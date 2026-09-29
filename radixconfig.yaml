@@ -1,0 +1,66 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: agenticlab
+spec:
+  environments:
+    # Built and deployed on every push to main.
+    - name: dev
+      build:
+        from: main
+    # Never built automatically; promote a dev deployment from the Radix web console.
+    - name: prod
+  components:
+    # Only public component. Sign-in is enforced by the Radix OAuth2 proxy, limited to the
+    # Equinor Entra ID tenant. Set the client secret in the web console for each environment.
+    - name: web
+      src: .
+      dockerfileName: docker/web.Dockerfile
+      ports:
+        - name: http
+          port: 8080
+      publicPort: http
+      authentication:
+        oauth2:
+          clientId: 742062d5-ef31-475a-84b1-282b21343b7f
+          scope: openid profile email offline_access
+          sessionStoreType: systemManaged
+          oidc:
+            issuerUrl: https://login.microsoftonline.com/3aa4a235-b6e2-48d5-9195-7fcf05b459b0/v2.0
+      variables:
+        services__aiservice__http__0: http://aiservice:8080
+
+    - name: aiservice
+      src: .
+      dockerfileName: docker/aiservice.Dockerfile
+      ports:
+        - name: http
+          port: 8080
+      variables:
+        Models__Provider: AzureOpenAI
+        AzureOpenAI__Deployment: gpt-5.6-sol
+        services__mcpserver__http__0: http://mcpserver:8080
+        services__a2aserver__http__0: http://a2aserver:8080
+      secrets:
+        - AzureOpenAI__Endpoint
+        - AzureOpenAI__ApiKey
+
+    - name: mcpserver
+      src: .
+      dockerfileName: docker/mcpserver.Dockerfile
+      ports:
+        - name: http
+          port: 8080
+
+    - name: a2aserver
+      src: .
+      dockerfileName: docker/a2aserver.Dockerfile
+      ports:
+        - name: http
+          port: 8080
+      variables:
+        Models__Provider: AzureOpenAI
+        AzureOpenAI__Deployment: gpt-5.6-sol
+      secrets:
+        - AzureOpenAI__Endpoint
+        - AzureOpenAI__ApiKey
