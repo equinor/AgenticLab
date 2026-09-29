@@ -240,6 +240,21 @@ Web's data-protection keys are not persisted across container replacement. Clear
 cookies or use a private window if an old antiforgery cookie cannot be decrypted. This warning is
 separate from service connection errors; the local sample does not disable antiforgery protection.
 
+### Deploy to Radix
+
+[radixconfig.yaml](radixconfig.yaml) deploys the four services to Equinor's Radix platform as the
+`agenticlab` application. Radix cannot select a stage of the multi-target root Dockerfile, so each
+component builds its own single-service file under [docker/](docker); keep them in sync with the
+root Dockerfile's stages.
+
+- **dev** builds and deploys on every push to `main`. **prod** is never built; promote a dev
+  deployment to it from the Radix web console.
+- Only `web` is public, behind the Radix OAuth2 proxy restricted to the Equinor Entra ID tenant.
+  `aiservice`, `mcpserver` and `a2aserver` are internal and reach each other at
+  `http://<component>:8080`.
+- In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
+  `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
+
 ### Learning Only
 
 To explore the guided lessons without configuring a model provider, run only the Web project:
