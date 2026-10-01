@@ -10,6 +10,10 @@ spec:
         from: main
     # Never built automatically; promote a dev deployment from the Radix web console.
     - name: prod
+  # Stable public address for prod: https://agenticlab.app.radix.equinor.com
+  dnsAppAlias:
+    environment: prod
+    component: web
   components:
     # Only public component. Sign-in is enforced by the Radix OAuth2 proxy, limited to the
     # Equinor Entra ID tenant. Set the client secret in the web console for each environment.
