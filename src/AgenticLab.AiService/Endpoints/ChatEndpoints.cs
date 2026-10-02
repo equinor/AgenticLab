@@ -43,7 +43,7 @@ internal static class ChatEndpoints
     }
 
     // One non-interactive turn against a built-in or workspace-defined agent.
-    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, CancellationToken cancellationToken)
+    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
@@ -61,7 +61,7 @@ internal static class ChatEndpoints
                 return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
             }
 
-            using var workspace = catalog.RequiresWorkspace(resolvedName) ? WorkspaceScope.TryBegin(request.Workspace) : null;
+            using var workspace = catalog.RequiresWorkspace(resolvedName) ? access.TryBegin(request.Workspace) : null;
             if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
             {
                 return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
@@ -71,13 +71,13 @@ internal static class ChatEndpoints
         }
 
         // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
-        // only be discovered once a (valid) workspace is open.
-        if (string.IsNullOrWhiteSpace(request.Workspace))
+        // only be discovered once a (valid) workspace is open, and never while workspace features are disabled.
+        if (!access.Enabled || string.IsNullOrWhiteSpace(request.Workspace))
         {
             return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
         }
 
-        using var agentWorkspace = WorkspaceScope.TryBegin(request.Workspace);
+        using var agentWorkspace = access.TryBegin(request.Workspace);
         if (agentWorkspace is null)
         {
             return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");

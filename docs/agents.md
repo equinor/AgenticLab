@@ -122,7 +122,8 @@ and ownership, see [example modules](examples.md).
 | `Orchestrator` | Solves arithmetic itself, but delegates general-knowledge/research/creative questions to **specialist agents over the A2A protocol** (real A2A client), routing by name. | `Calculate`, `DelegateToAgent` (A2A) |
 
 The first definition registered by `AddDemoAgents` is the default. `Ask` and `Plan` never write,
-delete or run commands. For custom agents, see the
+delete or run commands. `Ask`, `Plan` and `Coder` are not registered when
+[workspace features are disabled](workspace.md#disabling-workspace-features). For custom agents, see the
 [workspace format](workspace.md#workspace-defined-agents-the-agents-folder).
 
 ### Optional Copilot365 example

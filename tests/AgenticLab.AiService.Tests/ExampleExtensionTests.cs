@@ -83,7 +83,7 @@ public sealed class ExampleExtensionTests
     }
 
     private static IServiceCollection HostServices(IConfiguration configuration) => new ServiceCollection()
-        .AddVendorHarnesses().AddDemoAgents()
+        .AddVendorHarnesses().AddDemoAgents(configuration)
         .AddExample<ChatGptExample>(configuration, ExampleHost.AiService)
         .AddExample<ClaudeExample>(configuration, ExampleHost.AiService)
         .AddExample<ClaudeCodeExample>(configuration, ExampleHost.AiService)
