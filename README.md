@@ -252,6 +252,9 @@ root Dockerfile's stages.
 - Only `web` is public, behind the Radix OAuth2 proxy restricted to the Equinor Entra ID tenant.
   `aiservice`, `mcpserver` and `a2aserver` are internal and reach each other at
   `http://<component>:8080`.
+- Prod's official address is the app alias <https://agenticlab.app.radix.equinor.com>; dev is
+  <https://web-agenticlab-dev.radix.equinor.com>. Every address users sign in through needs its
+  `/oauth2/callback` URL registered as a Web redirect URI on the Entra ID app registration.
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 
