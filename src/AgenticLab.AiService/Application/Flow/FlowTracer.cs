@@ -19,7 +19,8 @@ namespace AgenticLab.AiService.Application.Flow;
 /// <param name="skills">Discovers the active workspace's skills so their catalogue can be injected into the run.</param>
 /// <param name="instructions">Discovers the active workspace's custom instructions so their content can be injected into the run.</param>
 /// <param name="vendors">Resolves a brand/vendor key to a harness prompt that replaces the shared harness for the run.</param>
-public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors)
+/// <param name="workspaceAccess">The server-wide switch that, when off, keeps runs from opening a workspace or resolving workspace-defined agents.</param>
+public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, FlowControlRegistry registry, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, WorkspaceAccess workspaceAccess)
 {
     /// <summary>
     /// Streams the steps of running <paramref name="message"/> through the selected agent, pacing each
@@ -66,16 +67,19 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         var requiresWorkspace = !fromCatalog || catalog.RequiresWorkspace(resolvedName);
         var supportsSkills = fromCatalog && catalog.SupportsSkills(resolvedName);
 
-        if (requiresWorkspace && string.IsNullOrWhiteSpace(workspace))
+        if (requiresWorkspace && (!workspaceAccess.Enabled || string.IsNullOrWhiteSpace(workspace)))
         {
-            yield return fromCatalog
-                ? Step("error", $"Agent '{resolvedName}' requires a workspace", "Set a workspace path before running this agent.")
-                : Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names.");
+            yield return (fromCatalog, workspaceAccess.Enabled) switch
+            {
+                (true, true) => Step("error", $"Agent '{resolvedName}' requires a workspace", "Set a workspace path before running this agent."),
+                (true, false) => Step("error", $"Agent '{resolvedName}' requires a workspace", "Workspace features are disabled on this server."),
+                _ => Step("error", $"Unknown agent '{agentName}'", "Call GET /agents for the available names."),
+            };
             registry.Remove(session.Id);
             yield break;
         }
 
-        using var workspaceScope = requiresWorkspace ? WorkspaceScope.TryBegin(workspace) : null;
+        using var workspaceScope = requiresWorkspace ? workspaceAccess.TryBegin(workspace) : null;
         if (requiresWorkspace && workspaceScope is null)
         {
             yield return Step("error", "Invalid workspace", $"Workspace path '{workspace}' is not an existing directory.");

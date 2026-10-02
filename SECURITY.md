@@ -43,7 +43,9 @@ policy. A reverse proxy alone does not provide all of these controls.
 
 ### Workspace and Terminal Tools
 
-Only select trusted workspaces. Agent definitions, skills, instructions, fetched pages, and tool
+On any shared deployment, set `Workspace:Enabled=false` so callers cannot choose server folders at
+all; see [disabling workspace features](docs/workspace.md#disabling-workspace-features). Otherwise,
+only select trusted workspaces. Agent definitions, skills, instructions, fetched pages, and tool
 results can influence model requests; instructions and tool descriptions are not a security boundary.
 Disable tools you do not need, and avoid running agents with access to valuable credentials or data.
 

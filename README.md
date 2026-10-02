@@ -252,6 +252,9 @@ root Dockerfile's stages.
 - Only `web` is public, behind the Radix OAuth2 proxy restricted to the Equinor Entra ID tenant.
   `aiservice`, `mcpserver` and `a2aserver` are internal and reach each other at
   `http://<component>:8080`.
+- `aiservice` runs with `Workspace__Enabled=false`: the Ask, Plan and Coder agents and the
+  workspace endpoints are off, so signed-in users can't point file, terminal or web-fetch tools at
+  server folders. See [disabling workspace features](docs/workspace.md#disabling-workspace-features).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 

@@ -165,6 +165,22 @@ Web suggests up to eight recent workspaces first, then these folders. Preference
 storage under `agenticlab-workspace-bases` and `agenticlab-workspace-recent`; runs remember the
 selected path. These endpoints inspect the service filesystem, not the browser's local files.
 
+## Disabling workspace features
+
+Set `Workspace:Enabled=false` (environment variable `Workspace__Enabled=false`) on shared
+deployments where callers must not choose folders on the server. The default is `true`, so local
+use is unchanged. [WorkspaceAccess](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAccess.cs)
+then refuses every workspace for the whole service:
+
+- `Ask`, `Plan` and `Coder` are not registered, so `GET /agents` doesn't list them.
+- Workspace-defined agents can't be discovered or run; both chat paths report them as unknown agents.
+- `POST /skills`, `/instructions`, `/workspaces` and `/agents/workspace` return empty lists.
+
+All other agents, Learn, live flow and Execution keep working. The Radix deployment disables
+workspace features (see [radixconfig.yaml](../radixconfig.yaml)). Enabled host examples that
+offer Ask/Plan/Coder modes, such as Copilot and Claude Code, still list those modes; selecting one
+reports an unknown agent.
+
 ## Per-run implementation
 
 [WorkspaceScope](../src/AgenticLab.AiService/Application/Workspace/WorkspaceScope.cs) carries the

@@ -17,10 +17,10 @@ internal static class AgentEndpoints
 
         // Lists the user-authored agents declared in a given workspace's agents/ folder so a client can offer
         // them alongside the built-in agents. Returns an empty list when the path is missing/invalid or the
-        // workspace declares no agents.
-        app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgentResolver workspaceAgents) =>
+        // workspace declares no agents, and always while workspace features are disabled.
+        app.MapPost("/agents/workspace", (WorkspaceAgentsRequest request, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access) =>
         {
-            using var workspace = WorkspaceScope.TryBegin(request.Workspace);
+            using var workspace = access.TryBegin(request.Workspace);
             return workspace is null
                 ? Results.Ok(new AgentsResponse(Array.Empty<AgentInfo>(), string.Empty))
                 : Results.Ok(new AgentsResponse(workspaceAgents.ListAgents(), string.Empty));

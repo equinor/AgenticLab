@@ -20,9 +20,9 @@ builder.AddServiceDefaults();
 
 builder.Services
     .AddHarnessTools()
-    .AddWorkspaceFeatures()
+    .AddWorkspaceFeatures(builder.Configuration)
     .AddVendorHarnesses()
-    .AddDemoAgents()
+    .AddDemoAgents(builder.Configuration)
     .AddConversationMemory(builder.Configuration)
     .AddFlowTracing()
     .AddDiscovery();
