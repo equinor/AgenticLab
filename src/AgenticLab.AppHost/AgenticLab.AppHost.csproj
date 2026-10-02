@@ -1,4 +1,4 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.5.4">
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.5.4" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.6.0" />
     <ProjectReference Include="..\AgenticLab.Bff\AgenticLab.Bff.csproj" />
     <ProjectReference Include="..\AgenticLab.AiService\AgenticLab.AiService.csproj" />
     <ProjectReference Include="..\AgenticLab.A2AServer\AgenticLab.A2AServer.csproj" />
