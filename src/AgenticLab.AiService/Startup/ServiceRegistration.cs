@@ -46,9 +46,13 @@ internal static class ServiceRegistration
         return services;
     }
 
-    /// <summary>Workspace skills, custom instructions and user-authored agents, all discovered per run from the active workspace.</summary>
-    public static IServiceCollection AddWorkspaceFeatures(this IServiceCollection services)
+    /// <summary>
+    /// Workspace skills, custom instructions and user-authored agents, all discovered per run from the active
+    /// workspace, plus the <see cref="WorkspaceAccess"/> switch that can disable workspaces server-wide.
+    /// </summary>
+    public static IServiceCollection AddWorkspaceFeatures(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddSingleton(WorkspaceAccess.FromConfiguration(configuration));
         services.AddSingleton<SkillLoader>();
         services.AddSingleton<SkillMatcher>();
         services.AddSingleton<SkillsTool>();
@@ -69,8 +73,11 @@ internal static class ServiceRegistration
         return services;
     }
 
-    /// <summary>The demo agent definitions (first registered is the default) and the catalog that builds them on their chat clients.</summary>
-    public static IServiceCollection AddDemoAgents(this IServiceCollection services)
+    /// <summary>
+    /// The demo agent definitions (first registered is the default) and the catalog that builds them on their
+    /// chat clients. The workspace agents (Ask, Plan, Coder) are left out when workspace features are disabled.
+    /// </summary>
+    public static IServiceCollection AddDemoAgents(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<ExampleCatalog>();
         services.AddSingleton<IAgentRunContext, AgentRunContext>();
@@ -78,9 +85,12 @@ internal static class ServiceRegistration
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
         services.AddSingleton<IAgentDefinition, MathTutorAgent>();
         // services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
-        services.AddSingleton<IAgentDefinition, AskAgent>();
-        services.AddSingleton<IAgentDefinition, PlanAgent>();
-        services.AddSingleton<IAgentDefinition, CoderAgent>();
+        if (WorkspaceAccess.FromConfiguration(configuration).Enabled)
+        {
+            services.AddSingleton<IAgentDefinition, AskAgent>();
+            services.AddSingleton<IAgentDefinition, PlanAgent>();
+            services.AddSingleton<IAgentDefinition, CoderAgent>();
+        }
         services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
         services.AddSingleton<IAgentDefinition, OrchestratorAgent>();
 

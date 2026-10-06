@@ -1,6 +1,9 @@
 namespace AgenticLab.AiService.Endpoints;
 
-/// <summary>Read-only endpoints that inspect a workspace: its skills, custom instructions and candidate repo folders.</summary>
+/// <summary>
+/// Read-only endpoints that inspect a workspace: its skills, custom instructions and candidate repo folders.
+/// All of them return empty results while workspace features are disabled (see <see cref="WorkspaceAccess"/>).
+/// </summary>
 internal static class WorkspaceEndpoints
 {
     public static IEndpointRouteBuilder MapWorkspaceEndpoints(this IEndpointRouteBuilder app)
@@ -8,9 +11,9 @@ internal static class WorkspaceEndpoints
         // Lists the skills discovered in a given workspace (names + descriptions) so a client can show the
         // skill catalogue before a run starts. Returns an empty list when the path is missing/invalid or the
         // workspace declares no skills.
-        app.MapPost("/skills", (SkillsRequest request, SkillLoader skills) =>
+        app.MapPost("/skills", (SkillsRequest request, SkillLoader skills, WorkspaceAccess access) =>
         {
-            using var workspace = WorkspaceScope.TryBegin(request.Workspace);
+            using var workspace = access.TryBegin(request.Workspace);
             if (workspace is null)
             {
                 return Results.Ok(new SkillsResponse(Array.Empty<SkillInfo>()));
@@ -24,9 +27,9 @@ internal static class WorkspaceEndpoints
 
         // Lists the custom instructions discovered in a given workspace (names + descriptions) so a client
         // can offer them per run. Returns an empty list when the path is missing/invalid or there are none.
-        app.MapPost("/instructions", (InstructionsRequest request, InstructionLoader instructions) =>
+        app.MapPost("/instructions", (InstructionsRequest request, InstructionLoader instructions, WorkspaceAccess access) =>
         {
-            using var workspace = WorkspaceScope.TryBegin(request.Workspace);
+            using var workspace = access.TryBegin(request.Workspace);
             if (workspace is null)
             {
                 return Results.Ok(new InstructionsResponse(Array.Empty<InstructionInfo>()));
@@ -40,8 +43,8 @@ internal static class WorkspaceEndpoints
 
         // Lists the immediate sub-folders of one or more base folders so a client can suggest workspace paths
         // (e.g. the repo folders under a "GitHub" directory the user pointed at).
-        app.MapPost("/workspaces", (WorkspaceBrowseRequest request) =>
-            Results.Ok(new WorkspaceBrowseResponse(BrowseWorkspaces(request.Bases))));
+        app.MapPost("/workspaces", (WorkspaceBrowseRequest request, WorkspaceAccess access) =>
+            Results.Ok(new WorkspaceBrowseResponse(access.Enabled ? BrowseWorkspaces(request.Bases) : Array.Empty<WorkspaceEntry>())));
 
         return app;
     }

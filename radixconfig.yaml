@@ -43,6 +43,9 @@ spec:
       variables:
         Models__Provider: AzureOpenAI
         AzureOpenAI__Deployment: gpt-5.6-sol
+        # No workspace agents or workspace endpoints: signed-in users must not choose server folders
+        # for the file, terminal and web-fetch tools (see SECURITY.md).
+        Workspace__Enabled: "false"
         services__mcpserver__http__0: http://mcpserver:8080
         services__a2aserver__http__0: http://a2aserver:8080
       secrets:
