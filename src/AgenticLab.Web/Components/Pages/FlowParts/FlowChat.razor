@@ -92,7 +92,7 @@
         <div class="composer-actions">
             <span class="send-action">
                 <LabButton Label="Send" Icon="send" IconOnly="true" Variant="primary" OnClick="Run.SendAsync"
-                           Disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))" />
+                           Disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.Agent.RequiresWorkspace && !View.HasWorkspace))" />
             </span>
         </div>
 

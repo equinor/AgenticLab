@@ -10,18 +10,20 @@ namespace AgenticLab.AiService.Application.Workspace;
 /// <see cref="WorkspaceAgentLoader"/> and wired to the same shared chat client. A workspace agent may
 /// only use the harness's bounded tool set (file, terminal, skills and ask-question tools); a tool name
 /// it lists that is not part of that set is silently dropped, so it can never grant itself a tool the
-/// platform does not already expose. Discovery and building both require an active
-/// <see cref="WorkspaceScope"/>.
+/// platform does not already expose. In the read-only sample mode (<see cref="WorkspaceAccess.ReadOnly"/>),
+/// only agents whose declared tools are all read-only are offered, and the registry holds no writing,
+/// terminal or web tools. Discovery and building both require an active <see cref="WorkspaceScope"/>.
 /// </summary>
 public sealed class WorkspaceAgentResolver
 {
     private readonly ChatClientProvider _clients;
     private readonly WorkspaceAgentLoader _loader;
+    private readonly WorkspaceAccess _access;
     private readonly IReadOnlyDictionary<string, AIFunction> _registry;
 
     /// <summary>
     /// Builds the registry of tool functions a workspace agent may reference, keyed by function name
-    /// (case-insensitive), from the harness's application tools.
+    /// (case-insensitive), from the harness's application tools that the workspace mode allows.
     /// </summary>
     public WorkspaceAgentResolver(
         ChatClientProvider clients,
@@ -30,13 +32,16 @@ public sealed class WorkspaceAgentResolver
         TerminalTool terminal,
         SkillsTool skills,
         AskQuestionTool ask,
-        WebFetchTool web)
+        WebFetchTool web,
+        WorkspaceAccess access)
     {
         _clients = clients;
         _loader = loader;
+        _access = access;
         _registry = new[] { files.AsTools(), terminal.AsTools(), skills.AsTools(), ask.AsTools(), web.AsTools() }
             .SelectMany(t => t)
             .OfType<AIFunction>()
+            .Where(f => access.AllowsTool(f.Name))
             .GroupBy(f => f.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
     }
@@ -48,7 +53,7 @@ public sealed class WorkspaceAgentResolver
     /// </summary>
     /// <returns>The workspace agents, ordered by name.</returns>
     public IReadOnlyList<AgentInfo> ListAgents() =>
-        _loader.Load()
+        Available()
             .Select(d =>
             {
                 var tools = ResolveTools(d.ToolNames);
@@ -86,7 +91,7 @@ public sealed class WorkspaceAgentResolver
             return false;
         }
 
-        var match = _loader.Load()
+        var match = Available()
             .FirstOrDefault(d => string.Equals(d.Name, name.Trim(), StringComparison.OrdinalIgnoreCase));
         if (match is null)
         {
@@ -103,6 +108,12 @@ public sealed class WorkspaceAgentResolver
             tools: tools);
         return true;
     }
+
+    // The workspace's agents the mode allows: all of them, or in the read-only sample mode only those that
+    // declare nothing but read-only tools. An agent written to edit files or run commands is left out rather
+    // than offered with half its tools, so its persona never promises what it can't do.
+    private IEnumerable<WorkspaceAgentDefinition> Available() =>
+        _loader.Load().Where(d => d.ToolNames.All(_access.AllowsTool));
 
     // Maps the agent's declared tool names to the registered tool functions, dropping any that are unknown.
     // Every workspace agent supports workspace skills, so the ReadSkill tool is always granted (even when the

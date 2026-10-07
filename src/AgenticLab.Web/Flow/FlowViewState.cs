@@ -5,7 +5,8 @@
 /// keys off (message, agent, workspace, vendor, active tab) plus the feature-scoped
 /// collaborators that hold the rest — <see cref="Layout"/> (dockable panels), <see cref="Concepts"/>
 /// (the Learn UI), <see cref="Options"/> (per-run stepping/breakpoint/toggle options),
-/// <see cref="WorkspacePrefs"/> (persisted workspace preferences), <see cref="Diagram"/> (diagram
+/// <see cref="WorkspacePrefs"/> (persisted workspace preferences), <see cref="ServerWorkspace"/> (the
+/// service's workspace mode), <see cref="Diagram"/> (diagram
 /// toggles + pinned token), <see cref="Cursor"/> (the Execution explorer cursor), <see cref="Roster"/>
 /// (agents + vendors), <see cref="Agent"/> (values derived from the selected agent) and
 /// <see cref="Harness"/> (the harness/LLM node presentation + system prompt). It is deliberately free of
@@ -30,6 +31,7 @@ internal sealed class FlowViewState
         Layout = layout;
         Options = new RunOptions(Notify);
         WorkspacePrefs = new WorkspacePrefs(Notify);
+        ServerWorkspace = new ServerWorkspace(() => { ConfigurationVersion++; Notify(); });
         Diagram = new DiagramOptions(Notify);
         Cursor = new ReplayCursor(Notify);
         Roster = new AgentRoster(this, Notify);
@@ -53,6 +55,7 @@ internal sealed class FlowViewState
     public ConceptDrawer Concepts { get; }
     public RunOptions Options { get; }
     public WorkspacePrefs WorkspacePrefs { get; }
+    public ServerWorkspace ServerWorkspace { get; }
     public DiagramOptions Diagram { get; }
     public ReplayCursor Cursor { get; }
     public AgentRoster Roster { get; }
@@ -109,6 +112,11 @@ internal sealed class FlowViewState
             Notify();
         }
     }
+
+    /// <summary>
+    /// Whether a workspace agent can run: the server supplies the read-only sample, or the user has set a path.
+    /// </summary>
+    public bool HasWorkspace => ServerWorkspace.IsSample || !string.IsNullOrWhiteSpace(Workspace);
 
     /// <summary>Which tab is active in the left Controls panel.</summary>
     public ControlsTab ActiveControlsTab

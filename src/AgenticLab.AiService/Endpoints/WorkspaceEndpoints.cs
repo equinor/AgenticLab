@@ -1,13 +1,26 @@
 namespace AgenticLab.AiService.Endpoints;
 
 /// <summary>
-/// Read-only endpoints that inspect a workspace: its skills, custom instructions and candidate repo folders.
-/// All of them return empty results while workspace features are disabled (see <see cref="WorkspaceAccess"/>).
+/// Read-only endpoints that inspect a workspace: the server's workspace mode, the workspace's skills, custom
+/// instructions and candidate repo folders. They follow the <see cref="WorkspaceAccess"/> mode: empty results
+/// while disabled, and always the bundled sample (ignoring caller paths) in the read-only sample mode.
 /// </summary>
 internal static class WorkspaceEndpoints
 {
     public static IEndpointRouteBuilder MapWorkspaceEndpoints(this IEndpointRouteBuilder app)
     {
+        // Tells a client how this server handles workspaces, so it can hide the path input when the server
+        // decides the folder. The sample's server path is not exposed, only its folder name.
+        app.MapGet("/workspace", (WorkspaceAccess access) => Results.Ok(new WorkspaceInfo(
+            access.Mode switch
+            {
+                WorkspaceMode.Local => "local",
+                WorkspaceMode.ReadOnlySample => "sample",
+                _ => "disabled",
+            },
+            access.ReadOnly ? Path.GetFileName(access.SampleRoot) : null,
+            access.ReadOnly)));
+
         // Lists the skills discovered in a given workspace (names + descriptions) so a client can show the
         // skill catalogue before a run starts. Returns an empty list when the path is missing/invalid or the
         // workspace declares no skills.
@@ -42,9 +55,10 @@ internal static class WorkspaceEndpoints
         });
 
         // Lists the immediate sub-folders of one or more base folders so a client can suggest workspace paths
-        // (e.g. the repo folders under a "GitHub" directory the user pointed at).
+        // (e.g. the repo folders under a "GitHub" directory the user pointed at). Only in local mode: when
+        // the server decides the folder, there is nothing to browse.
         app.MapPost("/workspaces", (WorkspaceBrowseRequest request, WorkspaceAccess access) =>
-            Results.Ok(new WorkspaceBrowseResponse(access.Enabled ? BrowseWorkspaces(request.Bases) : Array.Empty<WorkspaceEntry>())));
+            Results.Ok(new WorkspaceBrowseResponse(access.RequiresClientPath ? BrowseWorkspaces(request.Bases) : Array.Empty<WorkspaceEntry>())));
 
         return app;
     }
@@ -126,6 +140,7 @@ internal static class WorkspaceEndpoints
     }
 }
 
+internal sealed record WorkspaceInfo(string Mode, string? SampleName, bool ReadOnly);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);
