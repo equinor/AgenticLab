@@ -1,10 +1,9 @@
-## What is an agent host?
+## What is a harness?
 
-The **agent host** is the software that manages an agent's run around the model.
-Its agent-running machinery is also called the **harness**. Here, host means that
-software role, not a particular machine, cloud provider or product.
+The **harness** is the software that manages an agent's run around the model. It is
+not a particular machine, cloud provider or product.
 
-**Agent host = Context + Instructions + Tools + Memory + Execution controls.**
+**Harness = Context + Instructions + Tools + Memory + Execution controls.**
 
 - **Context**: gathers the task, relevant information and tool results for the next model request.
 - **Instructions**: loads operating guidance, the agent persona and applicable task guidance.
@@ -12,14 +11,14 @@ software role, not a particular machine, cloud provider or product.
 - **Memory**: retains conversation or other state outside the model and selects what to include in context.
 - **Execution controls**: enforces permissions, approvals, limits, cancellation and other runtime checks.
 
-The model proposes a next step; the host checks it, executes an allowed action and returns
+The model proposes a next step; the harness checks it, executes an allowed action and returns
 the result to the model. A final answer is delivered to the client. Instructions guide
 behavior, but enforcement must happen outside the prompt. The host can be local or remote,
 independently of where model inference runs.
 
 ## In this application (Agentic Lab)
 
-The **Agent host** node represents the AI service, with the client outside its boundary.
+The **Harness** node represents the AI service, with the client outside its boundary.
 Its expanded anatomy shows colour-coded layers: *application* (system prompt), *agent*
 (persona, tools, settings) and *user* (the prompt and workspace guidance). The **Context**
 bar grows as each turn adds to what the model sees.
@@ -27,5 +26,5 @@ bar grows as each turn adds to what the model sees.
 Conversation memory is retained in the service with a sliding inactivity expiry; it is not
 permanent model memory. Workspace access and tool selection are enforced by application code.
 
-> **Agent = Agent host + Model.** The **Agent host** boundary excludes the model;
+> **Agent = Harness + Model.** The **Harness** boundary excludes the model;
 > the **Agent** boundary includes both.

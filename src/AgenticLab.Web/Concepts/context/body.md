@@ -2,7 +2,7 @@
 
 The **context** is everything the model can see when it produces the next response — its
 working input for that turn. **Memory** is state retained outside the model; **context**
-is the information selected for a particular request. The agent host manages memory and
+is the information selected for a particular request. The harness manages memory and
 makes relevant history available to the model, directly or through a stateful service.
 Retaining something does not mean it must all fit in every model request.
 
@@ -10,7 +10,7 @@ Retaining something does not mean it must all fit in every model request.
 
 A turn's context is assembled from several contributors:
 
-- **Agent host** — the system prompt and context assembly.
+- **Harness** — the system prompt and context assembly.
 - **Agent** — the persona and the tool catalogue.
 - **User** — the user's message.
 - Plus the **conversation so far**: earlier messages, tool calls and their results.
@@ -28,7 +28,7 @@ contributed it and carrying a short preview of the real content. The structural 
 boxes above already show them. When the conversation has earlier turns, they appear first as
 **dimmed** chips under an *Earlier in this conversation* divider (one for the user's message
 and one for the agent's final answer per past turn), above the current turn's live chips —
-reflecting that the agent host carries conversation history into subsequent requests. The bar and the
+reflecting that the harness carries conversation history into subsequent requests. The bar and the
 character count include that carried-over history, so you can watch the model's context
 accumulate turn by turn across the conversation.
 

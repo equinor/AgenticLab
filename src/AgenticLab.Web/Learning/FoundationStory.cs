@@ -195,7 +195,7 @@ internal sealed class FoundationStory
     private static readonly IReadOnlyList<string> AnatomyCaptions = Array.AsReadOnly<string>(
     [
         "The system prompt supplies shared operating guidance. A prompt guides the model; it is not a security boundary.",
-        "The agent host has a catalogue of capabilities. It executes local functions, calls MCP tools and delegates tasks over A2A. Not every capability is exposed to every agent.",
+        "The harness has a catalogue of capabilities. It executes local functions, calls MCP tools and delegates tasks over A2A. Not every capability is exposed to every agent.",
         "The persona defines the agent's purpose and approach. Chat, office, coding and custom agents need different context and capabilities. Coding offers Ask, Plan, Implement and Review modes.",
         "A configuration pairs the persona with a tool subset and a model suited to its task. Model examples illustrate trade-offs, not fixed requirements. The host enforces permissions; neither a persona nor a model grants access.",
         "The task prompt says what is wanted this time. It is a message, separate from the agent's standing instructions.",
@@ -207,24 +207,24 @@ internal sealed class FoundationStory
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
     [
         "Agents serve many purposes. Chat, coding, office and custom agents are overlapping examples, not fixed categories.",
-        "Across these examples, the same foundation appears: Agent = Agent host + Model.",
+        "Across these examples, the same foundation appears: Agent = Harness + Model.",
     ]);
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Agent host + Model. An agent is the whole system, not the model alone.",
-        "The agent host manages context, instructions, tools, memory and execution controls. Its agent-running machinery is also called the harness.",
-        "The agent host executes tools such as search, calendar and file access. Model requests are subject to permissions, approvals and limits; a request is not permission.",
+        "Agent = Harness + Model. An agent is the whole system, not the model alone.",
+        "The harness manages context, instructions, tools, memory and execution controls.",
+        "The harness executes tools such as search, calendar and file access. Model requests are subject to permissions, approvals and limits; a request is not permission.",
         "The model reasons over the supplied context, plans and chooses a next step or final answer. It does not execute tools itself.",
-        "The agent host selects relevant memory and sends instructions, context, available tool definitions and previous tool results to the model.",
+        "The harness selects relevant memory and sends instructions, context, available tool definitions and previous tool results to the model.",
         "The model returns an answer or a tool request. The host delivers the answer, or checks and executes a permitted request and returns the result to the model.",
-        "The model reasons. The agent host acts. Together, they form an agent. A trigger starts a turn; a final answer, enforced limit or cancellation ends it. A tool call is not required.",
+        "The model reasons. The harness acts. Together, they form an agent. A trigger starts a turn; a final answer, enforced limit or cancellation ends it. A tool call is not required.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(
     [
         "The shared foundation stays recognizable across different tasks. Purpose changes the context and capabilities an agent needs.",
-        "An agent host can run locally or in the cloud while using a remote model. Tools and permissions depend on its environment; portability is not automatic.",
+        "A harness can run locally or in the cloud while using a remote model. Tools and permissions depend on its environment; portability is not automatic.",
         "A user, schedule or event can start the work. The trigger is separate from the agent's purpose and where it runs. These are illustrative configurations, not product guarantees.",
     ]);
 }

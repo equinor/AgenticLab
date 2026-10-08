@@ -1,16 +1,16 @@
 ## What is a tool?
 
-A **tool** is a capability the model can request and the **agent host** can execute:
+A **tool** is a capability the model can request and the **harness** can execute:
 look something up, run a calculation, read a file or execute a command. The model
 chooses a request; the host controls whether and how the action happens.
 
 ## How it works
 
-1. The agent host describes each available tool to the model: its **name**, a **description**, and
+1. The harness describes each available tool to the model: its **name**, a **description**, and
    the **parameters** it accepts (a JSON schema).
 2. When the model decides a tool would help, it emits a **tool call** with arguments
    instead of a normal answer.
-3. The host applies execution controls, runs the function only if permitted, captures the
+3. The harness applies execution controls, runs the function only if permitted, captures the
    **result** and feeds it back to the model. A rejected request may return an error or stop the run.
 4. The model reasons over the updated context and selects another request or a final answer.
 

@@ -1,15 +1,15 @@
 ## What is an agent?
 
-**Agent = Agent host + Model.** An agent is the system that uses a model to make
+**Agent = Harness + Model.** An agent is the system that uses a model to make
 decisions and carry out actions, not the model alone.
 
-The **agent host** gathers and manages **context, instructions, tools, memory and
-execution controls**. Its agent-running machinery is also called the **harness**.
+The **harness** gathers and manages **context, instructions, tools, memory and
+execution controls**.
 The **model** reasons over the supplied context, plans and chooses a next step or final answer.
 
 ## Who does what?
 
-1. The user sends a request to the agent host.
+1. The user sends a request to the harness.
 2. The host gathers context, loads instructions, selects relevant memory and exposes tool definitions.
 3. The model returns a tool request or a final answer.
 4. For a tool request, the host checks permissions and execution controls, then executes it only if allowed.
@@ -19,7 +19,7 @@ The **model** reasons over the supplied context, plans and chooses a next step o
 A tool request is not permission to act. The host can reject it, require approval or stop
 the run. An agent can also answer without using tools; a loop need not repeat indefinitely.
 
-> **The model reasons. The agent host acts. Together, they form an agent.**
+> **The model reasons. The harness acts. Together, they form an agent.**
 
 ## In this application (Agentic Lab)
 
@@ -34,4 +34,4 @@ plus a bounded **toolset**:
 
 The user sits **outside** the agent: you send a prompt and read the reply, but the
 decision-execution-observation loop happens inside the agent. The dashed **Agent** boundary in the
-diagram makes this explicit: it wraps the agent host *and* the model together.
+diagram makes this explicit: it wraps the harness *and* the model together.

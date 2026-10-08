@@ -34,7 +34,7 @@ model's memory) keeps the chain honest.
 
 Reasoning happens **inside the Model node** — each request/response exchange is one round-trip where the
 model may reason before replying with a final answer or a **tool call**. When a question
-needs several steps, the model requests a tool, the agent host checks and executes it,
+needs several steps, the model requests a tool, the harness checks and executes it,
 and the model reasons over the returned result. The loop badge counts those round-trips.
 Intermediate reasoning tokens aren't surfaced as their own flow step: you see the model's
-requests, the host's tool results and the final answer, not a transcript of internal reasoning.
+requests, the harness's tool results and the final answer, not a transcript of internal reasoning.
