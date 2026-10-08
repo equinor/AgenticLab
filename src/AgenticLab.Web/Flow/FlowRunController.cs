@@ -165,7 +165,7 @@ internal sealed class FlowRunController : IDisposable
     /// <summary>Starts a run for the current message (no-op when already running or the message is blank).</summary>
     public Task SendAsync()
     {
-        if (_running || string.IsNullOrWhiteSpace(_view.Message))
+        if (_running || string.IsNullOrWhiteSpace(_view.Message) || _view.ChatLimits.IsTooLong(_view.Message))
         {
             return Task.CompletedTask;
         }

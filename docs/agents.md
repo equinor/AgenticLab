@@ -51,6 +51,14 @@ Both chat paths support these optional fields:
 | `disabledSkills` | Disable named skills; available skills default on. |
 | `enabledInstructions` | Inject selected workspace instructions; default off. |
 
+### Input limits
+
+`Chat:MaxMessageLength` (default 0, no limit) caps messages and answers to an agent's questions, in
+characters. `POST /chat`, `POST /chat/stream` and the `answer` action of `POST /chat/control` return
+`400 Bad Request` with "Messages can be at most N characters." when it's exceeded. `GET /chat/limits`
+returns `{ maxMessageLength }` (0 when unlimited), so Web stops input at the limit, shows a counter and
+disables Send. The Radix deployment sets 500.
+
 ### `POST /chat/reset`
 
 Clear remembered history with `{ "conversationId": "example-conversation-id" }`.

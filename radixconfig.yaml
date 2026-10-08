@@ -46,6 +46,8 @@ spec:
         # No workspace agents or workspace endpoints: signed-in users must not choose server folders
         # for the file, terminal and web-fetch tools (see SECURITY.md).
         Workspace__Enabled: "false"
+        # Longest chat message or answer accepted; the web composer reads it from GET /chat/limits.
+        Chat__MaxMessageLength: "500"
         services__mcpserver__http__0: http://mcpserver:8080
         services__a2aserver__http__0: http://a2aserver:8080
       secrets:

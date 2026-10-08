@@ -18,6 +18,10 @@ internal sealed class AiServiceClient(HttpClient http)
     public async Task<AgentsResponse?> GetAgentsAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<AgentsResponse>("/agents", JsonOptions, cancellationToken);
 
+    /// <summary>The service's input limits, such as the longest message it accepts (0 when unlimited).</summary>
+    public async Task<ChatLimitsInfo?> GetChatLimitsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<ChatLimitsInfo>("/chat/limits", JsonOptions, cancellationToken);
+
     /// <summary>
     /// Lists the brand vendors with their metadata (display name, simulated model label and the modes each
     /// offers) so the vendor picker can be built from the service rather than hard-coded. The non-brand
@@ -283,6 +287,7 @@ internal sealed class AiServiceClient(HttpClient http)
 internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false);
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
+internal sealed record ChatLimitsInfo(int MaxMessageLength);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);

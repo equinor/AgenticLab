@@ -26,7 +26,10 @@ Skills default on; instructions are opt-in. Workspace features appear for agents
 see the [workspace guide](workspace.md). Switching tabs preserves the chat log and draft.
 **New conversation** is in the panel header and is disabled during a run. A waiting
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
-near the composer. Replies are displayed as escaped text.
+near the composer. Replies are displayed as escaped text. When the service sets an
+[input limit](agents.md#input-limits), the composer and answer input stop at it, a counter shows the
+characters used, and Send stays disabled over the limit. Every page shows the "Data notice" banner
+below the header: Agentic Lab is educational, and only Open information may be entered.
 
 ### Run controls
 

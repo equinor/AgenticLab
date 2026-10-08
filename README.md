@@ -258,6 +258,8 @@ root Dockerfile's stages.
 - `aiservice` runs with `Workspace__Enabled=false`: the Ask, Plan and Coder agents and the
   workspace endpoints are off, so signed-in users can't point file, terminal or web-fetch tools at
   server folders. See [disabling workspace features](docs/workspace.md#disabling-workspace-features).
+- `aiservice` limits chat messages and answers to 500 characters (`Chat__MaxMessageLength`); every
+  page shows a banner that only Open information may be entered. See [input limits](docs/agents.md#input-limits).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 

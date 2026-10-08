@@ -397,6 +397,44 @@ public sealed class ExecutionReplayTests
     }
 
     [Fact]
+    public async Task ChatLimits_StopSendingOverTheServiceLimit()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("ChatAgent", "Chats", [])]);
+        view.SelectedAgent = "ChatAgent";
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        view.Message = new string('x', 12);
+        Assert.Null(view.ChatLimits.Remaining(view.Message));
+        Assert.Null(run.Status.ComposerHint);
+
+        view.ChatLimits.Set(new ChatLimitsInfo(10));
+
+        Assert.Equal(10, view.ChatLimits.MaxMessageLength);
+        Assert.True(view.ChatLimits.IsTooLong(view.Message));
+        Assert.Equal(-2, view.ChatLimits.Remaining(view.Message));
+        Assert.Equal("Messages can be at most 10 characters.", run.Status.ComposerHint);
+        await run.SendAsync();
+        Assert.False(run.Running);
+        Assert.Equal(new string('x', 12), view.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void ChatLimits_ZeroOrLessMeansUnlimited(int configured)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+
+        view.ChatLimits.Set(new ChatLimitsInfo(configured));
+        view.ChatLimits.Set(null);
+
+        Assert.Null(view.ChatLimits.MaxMessageLength);
+        Assert.False(view.ChatLimits.IsTooLong(new string('x', 10_000)));
+    }
+
+    [Fact]
     public void HostDetails_CaptureUsesMatchingExchangeAndCausalPrefix()
     {
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));

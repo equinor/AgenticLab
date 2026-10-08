@@ -63,6 +63,8 @@ internal sealed class RunStatus(FlowRunController owner)
     /// <summary>A note under the composer explaining why it cannot send right now, or null when it can.</summary>
     public string? ComposerHint =>
         owner.Running ? "A turn is active. Continue or stop it before sending another message."
+        : owner.View.ChatLimits.IsTooLong(owner.View.Message)
+            ? $"Messages can be at most {owner.View.ChatLimits.MaxMessageLength} characters."
         : owner.View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(owner.View.Workspace)
             ? "This agent needs a workspace folder — set one under Settings."
             : null;

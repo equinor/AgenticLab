@@ -74,9 +74,10 @@
             <p class="ask-question-text">@Run.PendingQuestion</p>
             <div class="ask-question-row">
                 <input id="answer" @bind="Run.AnswerText" @bind:event="oninput"
+                       maxlength="@View.ChatLimits.MaxMessageLength"
                        placeholder="Type your answer…" @onkeydown="OnAnswerKeyDownAsync" />
                 <LabButton Label="Send your answer" Icon="send" IconOnly="true" Variant="primary"
-                       OnClick="Run.SubmitAnswerAsync" Disabled="@string.IsNullOrWhiteSpace(Run.AnswerText)" />
+                       OnClick="Run.SubmitAnswerAsync" Disabled="@(string.IsNullOrWhiteSpace(Run.AnswerText) || View.ChatLimits.IsTooLong(Run.AnswerText))" />
             </div>
         </div>
     }
@@ -85,14 +86,21 @@
         <div class="control message">
             <label for="message">Message</label>
             <textarea id="message" rows="3" data-enter-submit @bind="View.Message" @bind:event="oninput"
+                      maxlength="@View.ChatLimits.MaxMessageLength" aria-describedby="@(View.ChatLimits.MaxMessageLength is null ? null : "message-count")"
                       placeholder="Message the agent..."
                       disabled="@Run.Running" @onkeydown="OnKeyDownAsync"></textarea>
+            @if (View.ChatLimits.Remaining(View.Message) is { } remaining)
+            {
+                <span id="message-count" class="message-count @(remaining < 0 ? "over" : "")" aria-live="polite">
+                    @View.Message.Length / @View.ChatLimits.MaxMessageLength
+                </span>
+            }
         </div>
 
         <div class="composer-actions">
             <span class="send-action">
                 <LabButton Label="Send" Icon="send" IconOnly="true" Variant="primary" OnClick="Run.SendAsync"
-                           Disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || (View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))" />
+                           Disabled="@(Run.Running || string.IsNullOrWhiteSpace(View.Message) || View.ChatLimits.IsTooLong(View.Message) || (View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(View.Workspace)))" />
             </span>
         </div>
 
