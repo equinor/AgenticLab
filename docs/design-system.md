@@ -36,6 +36,11 @@ fallback. It must not change shared tokens, contributor meanings, layout or run 
 | `--lab-focus-*`, `--lab-duration`, `--lab-easing` | Visible keyboard focus and restrained motion |
 | `--lab-shadow-overlay`, `--lab-backdrop`, `--lab-layer-*` | Overlays, not decorative section cards |
 
+The info banner colours are defined in OKLCH inside `@supports (color: oklch(0 0 0))`, with sRGB hex
+fallbacks for older browsers. All are inside sRGB, so every display shows the same colour.
+`--lab-info-surface` is `oklch(0.9782 0.0167 215.46)`, the exact equivalent of the EDS team's `#ECFBFF`.
+(The EDS generator's `oklch(0.999 0.019 240.7)` is outside sRGB, P3 and Rec. 2020, so it can't be shown.)
+
 Reuse tokens, not palette literals. Feature aliases must not self-reference or mix foreground and
 background roles. Contributor provenance, risk levels and signed chart scales keep distinct meanings.
 
@@ -73,8 +78,9 @@ a tablist: real tabs need tab/tabpanel relationships, arrow navigation and a man
 the marker; the label must communicate state without colour or motion.
 
 `LabBanner` is an informational banner following the Equinor Design System Banner structure (icon,
-message, optional `Actions`, divider) in `--lab-*` tokens; its EDS `info_circle` icon is filled with
-`--lab-info`. It renders `role="note"` with a `Label`, and the message is always visible text.
+message, optional `Actions`, divider) in `--lab-*` tokens, on a `--lab-info-surface` background with
+`--lab-info-ink` text. Its EDS `info_circle` icon is filled with `--lab-info-strong`, without a badge: circular icon backgrounds are reserved
+for hovered info buttons. It renders `role="note"` with a `Label`, and the message is always visible text.
 `AppHeader` places the "Data notice" banner below every header (Flow, Learn, Discovery, notice pages),
 so it can't be dismissed. On narrow screens the message stays beside the icon and actions wrap below.
 
