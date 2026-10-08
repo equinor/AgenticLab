@@ -75,7 +75,7 @@ Details dock; `FlowViewState.Details` (`HostDetailsSelection`) owns its transien
 host-section selection and optional A2A agent selection. Learn keeps the existing `PanelLayout`
 right-panel state. Both reuse
 `SidePanel`, with a separate `SizeVariable` for Details. Selection is independent of diagram and run
-options; `HostSection` renders clickable headings only while **Expand agent host** is enabled,
+options; `HostSection` renders clickable headings only while **Expand harness** is enabled,
 and plain labels otherwise, including A2A chips, remote headings and catalogue entries.
 A2A details reuse the bounded live/replay projection;
 remote prompts, model settings and tools remain unavailable. An already-open inspector survives
@@ -250,7 +250,7 @@ overrides to AiService; A2A specialists use the global default. See
   Generic "agentic AI" is a subject,
   not an obsolete product name.
 
-- Teaching and UI vocabulary: **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and execution controls; the model reasons, plans and chooses a next step or final answer. Tool requests are not authorization: the host checks and executes permitted actions. Use **agent host** as the primary label, with **harness** explained as its agent-running machinery. Preserve technical identifiers, event kinds and existing concept/stage URLs when editing terminology.
+- Teaching and UI vocabulary: **Agent = Harness + Model**. The harness manages context, instructions, tools, memory and execution controls; the model reasons, plans and chooses a next step or final answer. Tool requests are not authorization: the harness checks and executes permitted actions. Use **Harness** as the component label and **harness** in prose. Preserve technical identifiers, event kinds and existing concept/stage URLs when editing terminology.
 
 - Target framework `net10.0`; `Nullable` and `ImplicitUsings` enabled across all projects.
 - Use top-level statements in `Program.cs` and minimal APIs (no controllers).

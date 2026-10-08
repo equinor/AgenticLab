@@ -94,7 +94,7 @@ internal sealed class FoundationStory
                     ["Read the meeting agenda and relevant accessible work content.", "Summarize decisions, owners and unresolved questions with sources.", "Draft the briefing; confirm recipients and content before any send."]),
                  new("follow-up", "Turn meeting notes into an action-oriented follow-up.",
                     ["Identify actions and owners from the notes.", "Check names and dates against accessible sources.", "Draft a follow-up for user review."])],
-                     "Long-context model for synthesis and drafting", "Meeting briefs need accurate synthesis across work sources. Evaluate citations and tool use; the host supplies access-controlled grounding, not the model alone."),
+                     "Long-context model for synthesis and drafting", "Meeting briefs need accurate synthesis across work sources. Evaluate citations and tool use; the harness supplies access-controlled grounding, not the model alone."),
                  new("document-reviewer", "Document reviewer", "Compare accessible work documents. Identify material changes, conflicting statements and missing information with source references. Suggest revisions for human review; do not edit or send documents.",
                      "Compare the latest project proposal with the approved brief. Flag scope changes and unresolved commitments.",
                      ["documents", "skill"],
@@ -196,9 +196,9 @@ internal sealed class FoundationStory
     private static readonly IReadOnlyList<string> AnatomyCaptions = Array.AsReadOnly<string>(
     [
         "The system prompt is standing instruction text supplied to the model. Its content depends on the selected configuration. It does not enforce file or network access.",
-        "The host registers tool implementations and their descriptions. It can offer only a subset to a particular agent or task.",
+        "The harness registers tool implementations and their descriptions. It can offer only a subset to a particular agent or task.",
         "Role instructions describe the task and approach. In this example, choosing a role also changes the configured tools. The text and the tool configuration are separate settings.",
-        "The host selects the model and tool subset. Execution rules are applied by code outside the model, not by the role's instruction text.",
+        "The harness selects the model and tool subset. Execution rules are applied by code outside the model, not by the role's instruction text.",
         "The task prompt says what is wanted this time. It is a message, separate from the agent's standing instructions.",
         "Custom instructions add project guidance when applicable and enabled. Their text enters context directly; it is not a tool call.",
         "Skills are optional packages of task instructions. This configuration initially supplies only their names and descriptions, not every package's full text.",
@@ -211,24 +211,24 @@ internal sealed class FoundationStory
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
     [
         "Agents serve many purposes. Chat, coding, office and custom agents are overlapping examples, not fixed categories.",
-        "Across these examples, the same foundation appears: Agent = Agent host + Model.",
+        "Across these examples, the same foundation appears: Agent = Harness + Model.",
     ]);
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Agent host + Model. The host is software that sends model requests and handles the responses. Its harness runs this sequence.",
-        "The host selects instruction text and messages for a request. It stores selected session messages and applies configured execution controls to tool requests.",
-        "The agent host executes tools: code that reads files, queries services or performs other actions. Here, the permitted tool reads meeting-notes.txt; no writing tool is enabled.",
+        "Agent = Harness + Model. The harness is software that sends model requests and handles the responses.",
+        "The harness selects instruction text and messages for a request. It stores selected session messages and applies configured execution controls to tool requests.",
+        "The harness executes tools: code that reads files, queries services or performs other actions. Here, the permitted tool reads meeting-notes.txt; no writing tool is enabled.",
         "A language model processes supplied input and generates a response. With tool calling enabled, that response can request a tool by name and arguments. It does not execute tools itself.",
-        "The host sends a model request containing selected messages and tool definitions. The supplied input is called context. The first request names the file but does not contain its text.",
-        "The model's response can contain text, tool requests or both. The host checks requested tool calls before invoking them. Returned file text can then enter a new model request.",
-        "The host presents the response and retains selected session messages. A response, configured limit or cancellation can end the turn. Ending a turn does not prove the task succeeded.",
+        "The harness sends a model request containing selected messages and tool definitions. The supplied input is called context. The first request names the file but does not contain its text.",
+        "The model's response can contain text, tool requests or both. The harness checks requested tool calls before invoking them. Returned file text can then enter a new model request.",
+        "The harness presents the response and retains selected session messages. A response, configured limit or cancellation can end the turn. Ending a turn does not prove the task succeeded.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(
     [
         "The shared foundation stays recognizable across different tasks. Purpose changes the context and capabilities an agent needs.",
-        "Host, model and tools can run in different locations. Moving the host does not automatically move its model or grant access to the same files and services.",
+        "Harness, model and tools can run in different locations. Moving the harness does not automatically move its model or grant access to the same files and services.",
         "A user, schedule or event can start the work. The trigger is separate from the agent's purpose and where it runs. These are illustrative configurations, not product guarantees.",
     ]);
 }

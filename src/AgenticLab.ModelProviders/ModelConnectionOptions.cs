@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 
 namespace AgenticLab.ModelProviders;
 
-/// <summary>The inference backend selected at application startup, independently of agent host branding.</summary>
+/// <summary>The inference backend selected at application startup, independently of harness branding.</summary>
 public enum ModelProvider
 {
     /// <summary>An Azure OpenAI deployment, including deployments managed through Foundry.</summary>

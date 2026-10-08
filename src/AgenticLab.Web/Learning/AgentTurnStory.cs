@@ -44,7 +44,7 @@ internal sealed class AgentTurnStory
         new("harness-memory", "Messages, tool requests and results from the session.",
             "Store selected messages and results. Choose which stored items to include in a later request.",
             "The retained read request and file result can be included when the user asks a follow-up question.",
-            "Retaining a conversation does not retrain the model or give it unlimited context. Storage and selection depend on the host."),
+            "Retaining a conversation does not retrain the model or give it unlimited context. Storage and selection depend on the harness."),
         new("execution-controls", "The requested tool name and path, plus the configured execution policy.",
             "Check that the tool is enabled and the path is allowed. Apply approval rules and limits before invoking it.",
             "In this example, read_file may read meeting-notes.txt. No file-writing or terminal tool is enabled.",
@@ -60,7 +60,7 @@ internal sealed class AgentTurnStory
             "The file was not found. Check the file name or provide the notes; I cannot list the agreed actions yet.", true),
         StoppedScenario("cancelled", "User cancels", "The user cancels before the file read starts.",
             "Cancelled. No tool was invoked and no action list was produced."),
-        StoppedScenario("limit", "Limit reached", "The configured tool-call limit is zero. The host refuses the requested read and stops this run.",
+        StoppedScenario("limit", "Limit reached", "The configured tool-call limit is zero. The harness refuses the requested read and stops this run.",
             "Stopped by a configured limit. No tool was invoked and no action list was produced."),
         DirectScenario(),
     ]);
@@ -105,7 +105,7 @@ internal sealed class AgentTurnStory
         "User message", task);
 
     private static LearningTurnStep RequestStep(string id, string title, LearningModelRequest request, string explanation) => new(
-        id, "Agent host", title, explanation, "Model request", Json(request), request);
+        id, "Harness", title, explanation, "Model request", Json(request), request);
 
     private static LearningTurnStep CallStep() => new(
         "tool-request", "Model", "Request a file read",
@@ -121,26 +121,26 @@ internal sealed class AgentTurnStory
         [
             Received(Task),
             RequestStep("request-1", "Send the first model request", FirstRequest,
-                "The host supplies instruction text, the user message and a tool definition. The file name is present; its contents are not. Context means the input supplied for this request."),
+                "The harness supplies instruction text, the user message and a tool definition. The file name is present; its contents are not. Context means the input supplied for this request."),
             CallStep(),
-            new("permission", "Agent host", executes ? "Allow the requested read" : "Deny the requested read",
-                executes ? "The host checks the enabled tool, the required path argument and the configured allowed path. This example permits this read without an approval prompt."
-                    : "The model can request a file even when the execution policy forbids it. The host refuses the invocation before any file-reading code runs.",
+            new("permission", "Harness", executes ? "Allow the requested read" : "Deny the requested read",
+                executes ? "The harness checks the enabled tool, the required path argument and the configured allowed path. This example permits this read without an approval prompt."
+                    : "The model can request a file even when the execution policy forbids it. The harness refuses the invocation before any file-reading code runs.",
                 "Configured decision", executes ? "Tool: read_file enabled\nArgument: path is a string\nAllowed path: meeting-notes.txt\nDecision: allow\nFile writes and terminal commands: no enabled tools"
                     : "Tool: read_file enabled\nRequested path: meeting-notes.txt\nAllowed paths: none\nDecision: deny"),
-            new("result", executes ? "File-reading tool" : "Agent host", executes ? "Return the read result" : "Return the denial",
-                succeeded ? "The host invokes the tool. The tool reads the permitted file and returns its text. The model has not received that text yet."
+            new("result", executes ? "File-reading tool" : "Harness", executes ? "Return the read result" : "Return the denial",
+                succeeded ? "The harness invokes the tool. The tool reads the permitted file and returns its text. The model has not received that text yet."
                     : executes ? "Permission to attempt a read does not guarantee success. The tool returns a missing-file error, not invented notes."
-                    : "The host produces an error result for the denied request. No file was opened.",
+                    : "The harness produces an error result for the denied request. No file was opened.",
                 succeeded ? "File content returned" : "Error returned", result, ExecutesTool: executes),
             RequestStep("request-2", "Send the result in a second request", nextRequest,
-                "The host includes the previous messages, the tool request and its matching result. The result identifier connects it to read-1. The model now receives the returned content or error."),
+                "The harness includes the previous messages, the tool request and its matching result. The result identifier connects it to read-1. The model now receives the returned content or error."),
             new("answer", "Model", succeeded ? "Generate the action list" : "Report the missing evidence",
                 succeeded ? "The model generates text from the supplied notes. Unstated owners and deadlines remain not stated. A generated answer still needs checking against its sources."
                     : "The model receives an error instead of notes. This example reports the limitation rather than claiming to have completed the task.",
                 "Model response", answer),
-            new("finish", "Agent host", "End this turn",
-                "In this example, the host presents the response and retains the messages and results for the session. Later requests receive only the stored information the host selects; retention does not retrain the model.",
+            new("finish", "Harness", "End this turn",
+                "In this example, the harness presents the response and retains the messages and results for the session. Later requests receive only the stored information the harness selects; retention does not retrain the model.",
                 "Run outcome", succeeded ? "Action list delivered. No file was changed." : "Response delivered, but the requested action list was not produced.",
                 Outcome: succeeded ? "answered" : "incomplete"),
         ]);
@@ -149,9 +149,9 @@ internal sealed class AgentTurnStory
     private static LearningTurnScenario StoppedScenario(string id, string title, string reason, string outcome) => new(id, title,
     [
         Received(Task),
-        RequestStep("request-1", "Send the first model request", FirstRequest, "The host supplies the task and read tool definition, without file content."),
+        RequestStep("request-1", "Send the first model request", FirstRequest, "The harness supplies the task and read tool definition, without file content."),
         CallStep(),
-        new("stop", "Agent host", "Stop before execution", reason, "Run outcome", outcome, Outcome: id),
+        new("stop", "Harness", "Stop before execution", reason, "Run outcome", outcome, Outcome: id),
     ]);
 
     private static LearningTurnScenario DirectScenario()
@@ -163,7 +163,7 @@ internal sealed class AgentTurnStory
             Received(task),
             RequestStep("request-1", "Send the supplied notes", request, "The user included the notes in the message. This request needs no file-reading tool."),
             new("answer", "Model", "Generate an answer without a tool call", "The model can answer from the content already supplied. Not every turn needs a tool.", "Model response", Answer),
-            new("finish", "Agent host", "End this turn", "The host presents the response. One model request was sufficient for this example.", "Run outcome", "Action list delivered. No tool was invoked.", Outcome: "answered"),
+            new("finish", "Harness", "End this turn", "The harness presents the response. One model request was sufficient for this example.", "Run outcome", "Action list delivered. No tool was invoked.", Outcome: "answered"),
         ]);
     }
 }

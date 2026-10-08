@@ -25,16 +25,16 @@ Security fixes target the latest `main` branch; older releases have no separate 
 The **Learn** experience explains the building blocks of an agent through guided lessons on models,
 tools and context. Start with the core idea:
 
-**Agent = Agent host + Model.** The model chooses the next step. The agent host is the code around
+**Agent = Harness + Model.** The model chooses the next step. The harness is the code around
 it that supplies context, manages tools and controls execution.
 
 1. You ask a question.
-2. The host sends the model your question, instructions, context and available tools.
+2. The harness sends the model your question, instructions, context and available tools.
 3. The model returns an answer or asks to use a tool.
-4. The host checks and runs allowed tool calls, then sends the results back to the model.
+4. The harness checks and runs allowed tool calls, then sends the results back to the model.
 
 This loop continues until the model gives a final answer. A request to use a tool is not permission
-to run it: the host decides what is allowed.
+to run it: the harness decides what is allowed.
 
 Explore the guided lessons at `/learn` with the [learning-only setup](#learning-only); no model
 credentials or live model calls are needed.
@@ -47,7 +47,7 @@ The agent loop in the guided Learn experience. [Learning guide](docs/learning.md
 
 **Live Flow** is the hands-on workspace where you run an agent and see what is happening as it runs.
 
-- Watch the flow between the agent host, model and tools as your question is processed.
+- Watch the flow between the harness, model and tools as your question is processed.
 - Inspect the actual model requests, responses, tool calls and results.
 - Pause, step through execution and replay a captured run without running it again.
 
@@ -58,7 +58,7 @@ Built with [.NET 10](https://dotnet.microsoft.com/download/dotnet/10.0),
 [Aspire](https://aspire.dev/) and your choice of Azure OpenAI, OpenAI or Gemini. Read the [vision](VISION.md) for more on the project's
 purpose and direction.
 
-[![Completed Wikipedia-and-calculator conversation beside the user, agent host, tools, and model diagram.](docs/images/01-live-workspace.png)](docs/images/01-live-workspace.png)
+[![Completed Wikipedia-and-calculator conversation beside the user, harness, tools, and model diagram.](docs/images/01-live-workspace.png)](docs/images/01-live-workspace.png)
 
 Follow a conversation alongside its agent and tools. [Workspace guide](docs/web-flow-page.md).
 

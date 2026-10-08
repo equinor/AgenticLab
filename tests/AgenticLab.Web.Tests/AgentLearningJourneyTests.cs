@@ -82,12 +82,12 @@ public sealed class AgentLearningJourneyTests
     public void AgentDefinition_DistinguishesHostAndModel()
     {
         var stage = AgentLearningJourney.Resolve("model-to-agent");
-        Assert.Contains("Agent = Agent host + Model", stage.Takeaway);
+        Assert.Contains("Agent = Harness + Model", stage.Takeaway);
         Assert.Contains("supplies input", stage.Summary);
         Assert.Contains("permitted tool requests", stage.Summary);
-        Assert.Equal("Agent host", AgentLearningJourney.Node("harness").Title);
+        Assert.Equal("Harness", AgentLearningJourney.Node("harness").Title);
         Assert.Equal("Inside the harness", AgentLearningJourney.Resolve("inside-the-harness").Title);
-        Assert.Equal("Agent host executes", AgentLearningJourney.Node("loop-execute").Title);
+        Assert.Equal("Harness executes", AgentLearningJourney.Node("loop-execute").Title);
         Assert.Contains("Generates responses", AgentLearningJourney.Node("model").Detail);
     }
 
@@ -206,7 +206,7 @@ public sealed class AgentLearningJourneyTests
         Assert.NotNull(client);
         Assert.Equal("Client", client.Title);
         Assert.Contains(client, catalog.All);
-        Assert.Contains("outside the agent host", client.BodyHtml);
+        Assert.Contains("outside the harness", client.BodyHtml);
     }
 
     /// <summary>Every stage links to readable concepts and defined architecture nodes.</summary>
@@ -450,7 +450,7 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(2, story.Captions.Count);
         Assert.Equal(0, story.Beat);
         story.Move(1);
-        Assert.Contains("Agent = Agent host + Model", story.Caption);
+        Assert.Contains("Agent = Harness + Model", story.Caption);
         Assert.False(story.CanNext);
         story.Complete();
         Assert.Equal(1, story.Beat);
@@ -468,12 +468,12 @@ public sealed class AgentLearningJourneyTests
         story.SetStage("model-to-agent");
 
         Assert.Equal(7, story.Captions.Count);
-        Assert.Contains("Agent = Agent host + Model", story.Caption);
+        Assert.Contains("Agent = Harness + Model", story.Caption);
         story.Move(1);
         Assert.Contains("selects instruction text and messages", story.Caption);
         Assert.Contains("execution controls", story.Caption);
         story.Move(1);
-        Assert.Contains("The agent host executes tools", story.Caption);
+        Assert.Contains("The harness executes tools", story.Caption);
         Assert.Contains("meeting-notes.txt", story.Caption);
         story.Move(1);
         Assert.Contains("generates a response", story.Caption);

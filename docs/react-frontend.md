@@ -101,7 +101,7 @@ The conversation/live-flow split supports:
 
 - Chat, follow-ups, New conversation and an answer input for agent questions.
 - Auto/Manual, Next, Pause/Resume, Stop and live mode changes.
-- SSE-driven User, Agent host, Model and Tools activity, pairing calls/results by call ID.
+- SSE-driven User, Harness, Model and Tools activity, pairing calls/results by call ID.
 - Loading, empty, failed, interrupted and stopped states; keyboard/IME input and reduced motion.
 
 Learn, Details/anatomy, replay, discovery, workspace tools and model simulations stay in Blazor.

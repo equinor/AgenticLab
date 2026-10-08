@@ -1,6 +1,6 @@
 # Sample Workspace
 
-Use this folder as an example workspace for Agentic Lab's coding agent hosts (harnesses),
+Use this folder as an example workspace for Agentic Lab's coding harnesses,
 such as the **GitHub Copilot** example. It includes sample agents and skills.
 
 1. [Run Agentic Lab locally](../README.md#run-locally).

@@ -7,7 +7,7 @@ namespace AgenticLab.AiService.Application.Agents;
 /// <summary>
 /// Caches one <see cref="IChatClient"/> per model or Azure deployment within the selected startup provider.
 /// All clients share connection settings and the same tool filtering, invocation, capture and telemetry
-/// pipeline. Agent host branding never changes the inference provider.
+/// pipeline. Harness branding never changes the inference provider.
 /// </summary>
 public sealed class ChatClientProvider
 {

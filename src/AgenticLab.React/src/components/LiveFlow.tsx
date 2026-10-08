@@ -8,13 +8,13 @@ export function LiveFlow({ state, identity }: { state: RunState; identity: RunId
       <Icon size={19} aria-hidden="true" /><span className={styles.nodeTitle}>{title}</span><span className={styles.nodeDetail} title={detail}>{detail}</span>
     </div>
   }
-  return <div className={styles.graph} aria-label="User, agent host, model and tools flow">
+  return <div className={styles.graph} aria-label="User, harness, model and tools flow">
     <div className={styles.userRow}>{node('user', 'User', 'You', UserRound)}</div>
     <div className={styles.userLink} aria-hidden="true"><ArrowDown size={16} /><span>Input / reply</span><ArrowUp size={16} /></div>
     <div className={styles.agentGroup}>
       <span className={styles.groupTitle}>Agent</span>
       <div className={styles.agentNodes}>
-        {node('host', 'Agent host', identity?.label ?? 'No agent selected', Workflow)}
+        {node('host', 'Harness', identity?.label ?? 'No agent selected', Workflow)}
         <div className={styles.modelLink} aria-hidden="true"><ArrowRight size={23} /><ArrowLeft size={23} /></div>
         {node('model', 'Model', identity?.model ?? 'Azure OpenAI', Cpu)}
       </div>

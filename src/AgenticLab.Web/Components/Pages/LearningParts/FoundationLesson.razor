@@ -46,11 +46,11 @@
                 User request / schedule / event <span aria-hidden="true">&darr;</span>
             </p>
             <div class="agent-boundary @(_story.Beat == 6 ? "complete" : null)">
-                <p class="@RevealClass(6, "section-label")" aria-hidden="@IsUnrevealed(6)">Agent = Agent host + Model</p>
+                <p class="@RevealClass(6, "section-label")" aria-hidden="@IsUnrevealed(6)">Agent = Harness + Model</p>
                 <div class="composition-grid">
                     <div class="application-node story-node" data-node="harness">
                         <span class="story-icon application-icon" aria-hidden="true"></span>
-                        <h3>Agent host</h3>
+                        <h3>Harness</h3>
                         <p class="@RevealClass(1, "application-description")" aria-hidden="@IsUnrevealed(1)">Supplies model input and invokes permitted tools</p>
                         <ul class="@RevealClass(1, "node-list")" aria-hidden="@IsUnrevealed(1)">
                             <li>Select messages and instruction text</li>
@@ -76,7 +76,7 @@
                     </div>
                     <div class="@RevealClass(2, "application-tools")" aria-hidden="@IsUnrevealed(2)">
                         <span class="tool-link" aria-hidden="true">&updownarrow;</span>
-                        <strong>Host invokes the file-reading tool</strong>
+                        <strong>Harness invokes the file-reading tool</strong>
                         <span><code>read_file</code> returns the permitted file's text</span>
                         <small>A request is not permission</small>
                     </div>
@@ -160,7 +160,7 @@
                 <small>Illustrative configuration</small>
             </section>
             <section class="@RevealClass(3, "anatomy-part anatomy-selected")" aria-hidden="@(IsUnrevealed(3) ? "true" : "false")" data-node="anatomy-selected-tools" data-reveal="3">
-                <p class="anatomy-owner">Host configuration</p>
+                <p class="anatomy-owner">Harness configuration</p>
                 <h3>Selected tools</h3>
                 <ul class="anatomy-tool-selection" aria-label="Configured capabilities">
                     @foreach (var capability in _story.AnatomyProfile.Capabilities)
@@ -292,7 +292,7 @@
     private string RevealClass(int beat, string className) => $"{className} reveal{(IsUnrevealed(beat) ? " unrevealed" : string.Empty)}";
 
     private static RenderFragment CorePair() => @<div class="core-pair">
-        <span><span class="story-icon application-icon" aria-hidden="true"></span>Agent host</span>
+        <span><span class="story-icon application-icon" aria-hidden="true"></span>Harness</span>
         <span class="core-connector" aria-label="Context to the model; answer or tool request to the harness">&harr;</span>
         <span><span class="story-icon model-icon" aria-hidden="true"></span>Model</span>
     </div>;

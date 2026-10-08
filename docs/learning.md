@@ -3,10 +3,10 @@
 Agentic Lab has two learning surfaces: a contextual **Learn** panel on the
 [Flow page](web-flow-page.md) and a standalone **Agent guide** at `/learn`.
 
-Both use **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and
+Both use **Agent = Harness + Model**. The harness manages context, instructions, tools, memory and
 execution controls; the model reasons and chooses an answer or next step. A tool request is not
-permission: the host checks and executes permitted actions. **Harness** means the host's
-agent-running machinery, not the whole agent or a particular machine. Memory is retained state;
+permission: the harness checks and executes permitted actions. **Harness** means the
+agent-running software, not the whole agent or a particular machine. Memory is retained state;
 context is the input selected for a model request.
 
 ## In-app learning content (Learn panel)
@@ -47,7 +47,7 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 | Point | Stage | ID | Focus |
 | --- | --- | --- | --- |
 | 1 | Intro | `why-agents` | Purpose and bounded autonomy, then what makes an agent possible. |
-| 2 | Agent | `model-to-agent` | Host + model, their responsibilities, and the exchange between them. |
+| 2 | Agent | `model-to-agent` | Harness + model, their responsibilities, and the exchange between them. |
 | 2.1 | Inside the harness | `inside-the-harness` | Assemble context, load instruction text, describe tools, retain session messages, check tool requests. |
 | 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
 | 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
@@ -115,7 +115,7 @@ Changing purpose selects its first mode without resetting reveals. Restart keeps
 reentering Anatomy restores Coding / Ask. These are original teaching examples, not vendor prompts,
 product replicas or claims about native connectors and enforcement.
 
-**Hosting** separates the agent host, model service, tools/data access and operational ownership.
+**Hosting** separates the harness, model service, tools/data access and operational ownership.
 Trigger and readiness selections are independent of hosting and reveal progress. Restart keeps
 selections; chapter reentry resets them. A local host can use a remote model, and moving to cloud
 does not guarantee portability or tool access.

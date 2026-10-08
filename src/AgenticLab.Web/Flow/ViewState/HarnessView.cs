@@ -1,7 +1,7 @@
 namespace AgenticLab.Web.Flow;
 
 /// <summary>
-/// How the Agent host node and the Model node present themselves
+/// How the Harness node and the Model node present themselves
 /// for the current vendor and display options — their labels and the active system (harness) prompt fetched
 /// from the service, shown in the anatomy's System Prompt box as a preview or the full text.
 /// </summary>
@@ -12,14 +12,14 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
     private int _promptVersion = -1;
     private bool _loading;
 
-    /// <summary>The host node's title: the vendor name when selected, otherwise Agent host.</summary>
+    /// <summary>The harness node's title: the vendor name when selected, otherwise Harness.</summary>
     public string Label => owner.VendorKey == "default"
-        ? "Agent host"
+        ? "Harness"
         : owner.Roster.VendorName;
 
     /// <summary>Technical labels expose the implementation and selected agent.</summary>
     public string Subtitle => owner.Diagram.ShowTechnicalLabels
-        ? $"Agent host · AiService · {owner.SelectedAgent ?? "Agent"}"
+        ? $"Harness · AiService · {owner.SelectedAgent ?? "Agent"}"
         : "Agent service";
 
     /// <summary>Technical labels expose the actual deployment; branded overview labels are explicitly simulated.</summary>
@@ -43,7 +43,7 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
 
     /// <summary>The descriptive fallback for the System Prompt box before the real text has been fetched.</summary>
     public string PromptBody => owner.VendorKey == "default"
-        ? "Agent host instructions: operating guidance and the tool loop"
+        ? "Harness instructions: operating guidance and the tool loop"
         : $"{owner.Roster.VendorName} system prompt: replaces the shared host instructions for this run (persona kept)";
 
     /// <summary>The actual harness (system) prompt text for the selected vendor and agent, fetched from the service.</summary>

@@ -56,7 +56,7 @@ try {
         await page.getByRole('checkbox', { name: 'Learn', exact: true }).check();
         await page.getByRole('button', { name: 'Technical', exact: true }).click();
         await page.getByRole('button', { name: 'View options', exact: true }).click();
-        await page.getByRole('checkbox', { name: 'Expand agent host', exact: true }).check();
+        await page.getByRole('checkbox', { name: 'Expand harness', exact: true }).check();
         await page.getByRole('checkbox', { name: 'Prompt signature', exact: true }).check();
         await page.keyboard.press('Escape');
         for (const title of ['Learn', 'Conversation', 'Execution']) {

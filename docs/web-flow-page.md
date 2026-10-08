@@ -40,7 +40,7 @@ stay visible but disabled; the holding reason and control errors appear below th
 
 ### View options
 
-The diagram separates **Agent host** from **Model**: the host manages execution; the model chooses
+The diagram separates **Harness** from **Model**: the harness manages execution; the model chooses
 an answer or a tool request. **Agent** encloses both, while User is outside. Separate arrows show
 requests and responses, and the loop counter counts model round-trips. Technical labels add
 implementation details; branded model labels marked **simulated** are not vendor integrations.
@@ -57,8 +57,8 @@ stays open while changing them, and closes on Escape or an outside click.
 | Technical labels | Off | On |
 | Tools | Off | On |
 | Skills, MCP servers, A2A agents | Off | Off |
-| Environment & risk, Agent / Agent host boundaries | Off | Off |
-| Expand agent host, Prompt signature, Inference, Embeddings, Neural network | Off | Off |
+| Environment & risk, Agent / Harness boundaries | Off | Off |
+| Expand harness, Prompt signature, Inference, Embeddings, Neural network | Off | Off |
 
 Display changes never enable tools, filter captures, reset history or move the replay cursor.
 Options last for the page lifetime. Reapplying a preset resets its options but preserves panel
@@ -70,14 +70,14 @@ and **A2A agents** independently show supported catalogues; the latter also show
 [remote agent flows](protocols.md#remote-a2a-agents). Skills appear before a run and highlight when
 loaded through `ReadSkill`. Tool activity grows downward without recentering the main nodes.
 
-### Inspect the agent host
+### Inspect the harness
 
-Enable **Expand agent host** to see the anatomy: application guidance, agent persona, configured
+Enable **Expand harness** to see the anatomy: application guidance, agent persona, configured
 tools/settings and user context. Contributor colours distinguish application (red), agent (yellow)
 and user (green), independently of branding. Click a section heading to open its read-only **Details**.
 Compact hosts show plain labels; collapsing the anatomy leaves an open Details selection intact.
 
-[![Expanded agent host anatomy with the configured system prompt open in the Details dock.](images/04-host-inspector.png)](images/04-host-inspector.png)
+[![Expanded harness anatomy with the configured system prompt open in the Details dock.](images/04-host-inspector.png)](images/04-host-inspector.png)
 
 Captured locally on 2026-09-22; this image retains the former **Agentic AI** branding. The product
 is **Agentic Lab**. Gray masks cover deployment identifiers. The ChatGPT-labelled host is an Azure

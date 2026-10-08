@@ -86,7 +86,7 @@ preserving drafts and view preferences. Agent-only changes keep history. This is
 the server does not reset based on `vendor`. React commits the host change after successful reset;
 Blazor uses a fresh local ID immediately and reports cleanup failures.
 
-**Prompt layers:** the agent host's shared guidance (`<harnessMode>`) precedes its persona
+**Prompt layers:** the harness's shared guidance (`<harnessMode>`) precedes its persona
 (`<agentMode>`). Harness is the technical name for the host's agent-running machinery. Selecting
 a vendor replaces only the host guidance, retaining the persona and configured tool set. It does
 not select a different model deployment. Prompts are original teaching examples, not proprietary

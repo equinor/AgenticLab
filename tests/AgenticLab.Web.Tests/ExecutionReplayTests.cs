@@ -333,13 +333,13 @@ public sealed class ExecutionReplayTests
         view.HostKey = "default";
         view.SelectedAgent = "Coder";
         view.Diagram.ShowTechnicalLabels = false;
-        Assert.Equal("Agent host", view.Harness.Label);
+        Assert.Equal("Harness", view.Harness.Label);
         Assert.Equal("Agent service", view.Harness.Subtitle);
 
         view.Diagram.ShowTechnicalLabels = true;
-        Assert.Equal("Agent host · AiService · Coder", view.Harness.Subtitle);
+        Assert.Equal("Harness · AiService · Coder", view.Harness.Subtitle);
         view.SelectedAgent = "Chat";
-        Assert.Equal("Agent host · AiService · Chat", view.Harness.Subtitle);
+        Assert.Equal("Harness · AiService · Chat", view.Harness.Subtitle);
     }
 
     [Fact]
