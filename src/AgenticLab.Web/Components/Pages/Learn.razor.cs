@@ -17,6 +17,7 @@ public partial class Learn
     private LearningStage _stage = Stages[0];
     private int _stageIndex;
     private int _introStep;
+    private int _revealedHarnessExamples;
     private bool _initialized;
     private Concept? _activeConcept;
     private ElementReference _stageHeading;
@@ -32,6 +33,7 @@ public partial class Learn
         {
             _pendingFocus = FocusTarget.Stage;
             _introStep = 0;
+            _revealedHarnessExamples = 0;
         }
 
         _activeConcept = null;
@@ -59,6 +61,31 @@ public partial class Learn
 
     private void MoveIntroduction(int offset) =>
         _introStep = Math.Clamp(_introStep + offset, 0, AgentLearningJourney.IntroductionSteps.Count - 1);
+
+    private void RevealNextHarnessExample() =>
+        _revealedHarnessExamples = _revealedHarnessExamples == AgentLearningJourney.HarnessExamples.Count
+            ? 0
+            : _revealedHarnessExamples + 1;
+
+    private string HarnessExamplesButtonLabel => _revealedHarnessExamples switch
+    {
+        0 => "Show examples",
+        var count when count < AgentLearningJourney.HarnessExamples.Count => "Show next example",
+        _ => "Restart examples",
+    };
+
+    private bool IsHarnessExampleRevealed(string nodeId)
+    {
+        for (var index = 0; index < _revealedHarnessExamples; index++)
+        {
+            if (AgentLearningJourney.HarnessExamples[index].NodeId == nodeId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private void OpenConcept(Concept concept)
     {

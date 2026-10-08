@@ -80,6 +80,12 @@
                 else if (_stage.Id == "inside-the-harness")
                 {
                     <p class="boundary-label">Harness</p>
+                    <div class="harness-example-controls">
+                        <LabButton Label="@HarnessExamplesButtonLabel" Icon="next" OnClick="RevealNextHarnessExample" />
+                        <span class="harness-example-progress" role="status" aria-live="polite">
+                            @(_revealedHarnessExamples == 0 ? "Examples hidden" : $"{_revealedHarnessExamples} / {AgentLearningJourney.HarnessExamples.Count} examples shown")
+                        </span>
+                    </div>
                     <div class="harness-anatomy" data-diagram="harness">
                         @foreach (var nodeId in _stage.HighlightedNodes)
                         {
@@ -227,6 +233,10 @@
             <span class="@iconClass" aria-hidden="true"></span>
             <strong>@node.Title</strong>
             <span class="node-detail">@node.Detail</span>
+            @if (_stage.Id == "inside-the-harness" && IsHarnessExampleRevealed(id))
+            {
+                <span class="node-example"><strong>Example:</strong> @AgentLearningJourney.HarnessExamples.First(example => example.NodeId == id).Text</span>
+            }
         </div>;
     }
 }

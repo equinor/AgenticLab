@@ -1,6 +1,7 @@
 namespace AgenticLab.Web.Learning;
 
 internal sealed record LearningNode(string Id, string Title, string Detail);
+internal sealed record LearningExample(string NodeId, string Text);
 
 internal sealed record LearningStage(
     string Id,
@@ -17,6 +18,15 @@ internal sealed record LearningStage(
 
 internal static class AgentLearningJourney
 {
+    internal static IReadOnlyList<LearningExample> HarnessExamples { get; } = Array.AsReadOnly<LearningExample>(
+    [
+        new("harness-context", "For “Summarize the latest deployment failures,” gather the request and relevant deployment logs."),
+        new("instructions", "Load the repository guidance that says which conventions and safety rules apply."),
+        new("available-tools", "Offer log search and file reading tools, but no tool that can deploy to production."),
+        new("harness-memory", "Keep the useful findings from earlier turns so the model does not repeat the same searches."),
+        new("execution-controls", "Before a command that changes files or deploys anything, check permissions and require approval."),
+    ]);
+
     internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
     [
         // new("why", "Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),

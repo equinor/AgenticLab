@@ -88,6 +88,10 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .node-harness.highlighted { border-left-color: var(--app); }
 .node-model.highlighted, .node-a2a-agent.highlighted, .node-foundry-model.highlighted, .node-lifecycle-observe.highlighted { border-left-color: var(--blue); }
 .harness-anatomy { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.harness-example-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem .85rem; margin: 0 0 .85rem; }
+.harness-example-progress { color: var(--muted); font-size: 12px; }
+.node-example { grid-column: 1 / -1; padding-top: .55rem; border-top: 1px solid var(--line); color: var(--ink); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
+.node-example strong { font-size: inherit; }
 .node-instructions.highlighted, .node-execution-controls.highlighted, .node-foundry-runtime.highlighted, .node-lifecycle-improve.highlighted { border-left-color: var(--app); }
 .node-available-tools.highlighted, .node-mcp-tools.highlighted, .node-foundry-tools.highlighted, .node-lifecycle-evaluate.highlighted { border-left-color: var(--agent); }
 .node-icon { display: block; width: 20px; height: 20px; background: var(--muted); mask: var(--icon) center / contain no-repeat; }

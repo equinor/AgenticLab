@@ -155,6 +155,8 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(
             ["Gather context", "Load instructions", "Make tools available", "Manage memory", "Enforce execution controls"],
             stage.HighlightedNodes.Select(id => AgentLearningJourney.Node(id).Title).ToArray());
+        Assert.Equal(stage.HighlightedNodes, AgentLearningJourney.HarnessExamples.Select(example => example.NodeId).ToArray());
+        Assert.All(AgentLearningJourney.HarnessExamples, example => Assert.False(string.IsNullOrWhiteSpace(example.Text)));
         Assert.Equal(["system-prompt", "context", "tools", "guardrails"], stage.ConceptIds.ToArray());
         Assert.False(stage.PlatformMap);
     }

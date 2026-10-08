@@ -63,6 +63,10 @@ where available, and **Restart** control the current lesson. There is no autopla
 or reloads reset progress; opening a related concept preserves it. Restart preserves example
 selections. Demystify returns to **Why** when revisited.
 
+Inside the agent host, **Show examples** reveals a practical example for each responsibility in
+order. The examples share a deployment-failure summary task; after the final example, the button
+restarts the sequence. Changing stages hides the examples.
+
 The lesson and navigation scroll independently; navigation becomes a horizontal strip on narrow
 screens. Reveal controls stay visible while scrolling. Unrevealed content is excluded from focus
 and assistive technology; reduced motion disables effects, not manual progression. Both learning
