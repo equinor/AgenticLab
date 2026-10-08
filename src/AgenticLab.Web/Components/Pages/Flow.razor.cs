@@ -107,7 +107,15 @@ public partial class Flow : IDisposable
                 _view.HostKey = _view.Roster.RestoreHost(null);
             }
 
-            _view.ServerWorkspace.Set(await Ai.GetWorkspaceInfoAsync());
+            // Optional: an older service without GET /workspace, or a failed call, keeps the local behavior
+            // (asking for a path) and must not stop the agent list from loading.
+            try
+            {
+                _view.ServerWorkspace.Set(await Ai.GetWorkspaceInfoAsync());
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or NotSupportedException)
+            {
+            }
 
             var response = await Ai.GetAgentsAsync();
             if (response is not null)

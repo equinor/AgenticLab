@@ -110,10 +110,13 @@ public sealed class WorkspaceAgentResolver
     }
 
     // The workspace's agents the mode allows: all of them, or in the read-only sample mode only those that
-    // declare nothing but read-only tools. An agent written to edit files or run commands is left out rather
-    // than offered with half its tools, so its persona never promises what it can't do.
+    // declare nothing but known, read-only tools. An agent written to edit files or run commands is left out
+    // rather than offered with half its tools, so its persona never promises what it can't do; so is one
+    // declaring a tool token that maps to no backend tool, since it can't be shown to be read-only.
     private IEnumerable<WorkspaceAgentDefinition> Available() =>
-        _loader.Load().Where(d => d.ToolNames.All(_access.AllowsTool));
+        _loader.Load().Where(d =>
+            d.ToolNames.All(_access.AllowsTool) &&
+            (!_access.ReadOnly || d.ToolMappings.All(m => m.Mapped is not null)));
 
     // Maps the agent's declared tool names to the registered tool functions, dropping any that are unknown.
     // Every workspace agent supports workspace skills, so the ReadSkill tool is always granted (even when the

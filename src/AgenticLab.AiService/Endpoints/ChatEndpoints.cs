@@ -83,7 +83,9 @@ internal static class ChatEndpoints
         using var agentWorkspace = access.TryBegin(request.Workspace);
         if (agentWorkspace is null)
         {
-            return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+            return Results.BadRequest(access.RequiresClientPath
+                ? $"Workspace path '{request.Workspace}' is not an existing directory."
+                : "The workspace is not available on this server.");
         }
 
         if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition, harness))

@@ -40,11 +40,16 @@ public sealed class WorkspaceAccess
     public static readonly IReadOnlySet<string> ReadOnlyToolNames =
         new HashSet<string>(["ReadFile", "ListFiles", "ReadSkill", "AskQuestion"], StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Creates the policy; <paramref name="sampleRoot"/> is only used by <see cref="WorkspaceMode.ReadOnlySample"/>.</summary>
+    /// <summary>
+    /// Creates the policy; <paramref name="sampleRoot"/> is only used by <see cref="WorkspaceMode.ReadOnlySample"/>.
+    /// A null or blank value (for example an empty environment variable) means the bundled default folder.
+    /// </summary>
     public WorkspaceAccess(WorkspaceMode mode, string? sampleRoot = null)
     {
         Mode = mode;
-        SampleRoot = Path.GetFullPath(sampleRoot ?? Path.Combine(AppContext.BaseDirectory, "sample-workspace"));
+        SampleRoot = Path.GetFullPath(string.IsNullOrWhiteSpace(sampleRoot)
+            ? Path.Combine(AppContext.BaseDirectory, "sample-workspace")
+            : sampleRoot.Trim());
     }
 
     /// <summary>The active mode.</summary>

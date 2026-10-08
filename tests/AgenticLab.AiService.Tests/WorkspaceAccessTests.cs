@@ -1,4 +1,6 @@
+using AgenticLab.AiService.Application.Agents;
 using AgenticLab.AiService.Application.Skills;
+using AgenticLab.AiService.Application.Tools;
 using AgenticLab.AiService.Application.Workspace;
 using AgenticLab.AiService.Demo.Agents;
 using AgenticLab.AiService.Startup;
@@ -89,6 +91,47 @@ public sealed class WorkspaceAccessTests : IDisposable
         using var scope = access.TryBegin(requested ?? _root);
 
         Assert.Equal(Path.GetFullPath(_sample), scope?.Root);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void SampleRoot_BlankMeansTheBundledDefault(string? configured) =>
+        Assert.Equal(Path.Combine(AppContext.BaseDirectory, "sample-workspace"),
+            new WorkspaceAccess(WorkspaceMode.ReadOnlySample, configured).SampleRoot);
+
+    [Fact]
+    public void WorkspaceAgents_SampleModeOffersOnlyAgentsWithKnownReadOnlyTools()
+    {
+        var agents = Directory.CreateDirectory(Path.Combine(_sample, "agents")).FullName;
+        foreach (var (name, tools) in new[]
+        {
+            ("Reader", "[ReadFile, ListFiles]"),
+            ("Writer", "[ReadFile, WriteFile]"),
+            ("Unknown", "[ReadFile, vscode/openSimpleBrowser]"),
+        })
+        {
+            File.WriteAllText(Path.Combine(agents, $"{name.ToLowerInvariant()}.agent.yaml"),
+                $"name: {name}\ndescription: {name} agent\ntools: {tools}\npersona: You are {name}.\n");
+        }
+
+        IReadOnlyList<string> Offered(WorkspaceMode mode)
+        {
+            var access = new WorkspaceAccess(mode, _sample);
+            var configuration = Configuration(
+                ("AzureOpenAI:Endpoint", "https://unused.invalid"), ("AzureOpenAI:Deployment", "test"),
+                ("AzureOpenAI:ApiKey", "not-used-by-this-test"));
+            using var http = new HttpClient();
+            var resolver = new WorkspaceAgentResolver(new ChatClientProvider(configuration), new WorkspaceAgentLoader(),
+                new FileSystemTool(), new TerminalTool(configuration),
+                new SkillsTool(new SkillLoader(access), new SkillMatcher()), new AskQuestionTool(), new WebFetchTool(http), access);
+            using var scope = access.TryBegin(_sample);
+            return resolver.ListAgents().Select(agent => agent.Name).Order().ToList();
+        }
+
+        Assert.Equal(["Reader"], Offered(WorkspaceMode.ReadOnlySample));
+        Assert.Equal(["Reader", "Unknown", "Writer"], Offered(WorkspaceMode.Local));
     }
 
     [Fact]
