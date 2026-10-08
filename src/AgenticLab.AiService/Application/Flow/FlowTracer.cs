@@ -67,7 +67,8 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         var requiresWorkspace = !fromCatalog || catalog.RequiresWorkspace(resolvedName);
         var supportsSkills = fromCatalog && catalog.SupportsSkills(resolvedName);
 
-        if (requiresWorkspace && (!workspaceAccess.Enabled || string.IsNullOrWhiteSpace(workspace)))
+        // The read-only sample mode supplies the workspace itself, so only local mode needs a caller path.
+        if (requiresWorkspace && (!workspaceAccess.Enabled || (workspaceAccess.RequiresClientPath && string.IsNullOrWhiteSpace(workspace))))
         {
             yield return (fromCatalog, workspaceAccess.Enabled) switch
             {
@@ -82,7 +83,9 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         using var workspaceScope = requiresWorkspace ? workspaceAccess.TryBegin(workspace) : null;
         if (requiresWorkspace && workspaceScope is null)
         {
-            yield return Step("error", "Invalid workspace", $"Workspace path '{workspace}' is not an existing directory.");
+            yield return Step("error", "Invalid workspace", workspaceAccess.RequiresClientPath
+                ? $"Workspace path '{workspace}' is not an existing directory."
+                : "The workspace is not available on this server.");
             registry.Remove(session.Id);
             yield break;
         }

@@ -23,7 +23,9 @@ reports it but keeps the new local conversation ID.
 
 **Settings** contains tool toggles, breakpoints, workspace paths, skills and custom instructions.
 Skills default on; instructions are opt-in. Workspace features appear for agents that support them;
-see the [workspace guide](workspace.md). Switching tabs preserves the chat log and draft.
+see the [workspace guide](workspace.md). When the service runs the
+[read-only sample mode](workspace.md#read-only-sample-mode), Settings shows the sample's name instead
+of a path input and folder picker, and workspace agents can run without a path. Switching tabs preserves the chat log and draft.
 **New conversation** is in the panel header and is disabled during a run. A waiting
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
 near the composer. Current and earlier agent replies render Markdown headings, emphasis, lists,

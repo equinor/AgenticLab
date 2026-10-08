@@ -466,6 +466,41 @@ public sealed class ExecutionReplayTests
     }
 
     [Fact]
+    public void ServerSampleWorkspace_LetsWorkspaceAgentsRunWithoutAPath()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("Ask", "Reads files", [], RequiresWorkspace: true)]);
+        view.SelectedAgent = "Ask";
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        Assert.False(view.HasWorkspace);
+        Assert.NotNull(run.Status.ComposerHint);
+
+        var version = view.ConfigurationVersion;
+        view.ServerWorkspace.Set(new WorkspaceInfo("sample", "sample-workspace", ReadOnly: true));
+
+        Assert.True(view.ServerWorkspace.IsSample);
+        Assert.Equal("sample-workspace", view.ServerWorkspace.SampleName);
+        Assert.True(view.HasWorkspace);
+        Assert.Null(run.Status.ComposerHint);
+        Assert.True(view.ConfigurationVersion > version);
+    }
+
+    [Fact]
+    public void ServerWorkspace_KeepsLocalBehaviorWithoutAnAnswer()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+
+        view.ServerWorkspace.Set(null);
+
+        Assert.Equal("local", view.ServerWorkspace.Mode);
+        Assert.False(view.HasWorkspace);
+        view.Workspace = "C:\\code\\app";
+        Assert.True(view.HasWorkspace);
+    }
+
+    [Fact]
     public void HostDetails_CaptureUsesMatchingExchangeAndCausalPrefix()
     {
         var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));

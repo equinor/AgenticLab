@@ -255,9 +255,9 @@ root Dockerfile's stages.
 - Prod's official address is the app alias <https://agenticlab.app.radix.equinor.com>; dev is
   <https://web-agenticlab-dev.radix.equinor.com>. Every address users sign in through needs its
   `/oauth2/callback` URL registered as a Web redirect URI on the Entra ID app registration.
-- `aiservice` runs with `Workspace__Enabled=false`: the Ask, Plan and Coder agents and the
-  workspace endpoints are off, so signed-in users can't point file, terminal or web-fetch tools at
-  server folders. See [disabling workspace features](docs/workspace.md#disabling-workspace-features).
+- `aiservice` runs with `Workspace__Mode=ReadOnlySample`: Ask, Plan and the Guide agent work on the
+  bundled `sample-workspace` with read-only tools. Users can't choose server folders, write files,
+  run commands or fetch web pages. See [read-only sample mode](docs/workspace.md#read-only-sample-mode).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 
