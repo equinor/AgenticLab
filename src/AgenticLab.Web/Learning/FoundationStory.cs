@@ -158,6 +158,7 @@ internal sealed class FoundationStory
     internal IReadOnlyList<string> Captions => StageId switch
     {
         "model-to-agent" => CompositionCaptions,
+        "inside-the-harness" => HarnessCaptions,
         "agents-everywhere" => EnvironmentCaptions,
         "anatomy-of-agent" => AnatomyCaptions,
         _ => LandscapeCaptions,
@@ -194,37 +195,40 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> AnatomyCaptions = Array.AsReadOnly<string>(
     [
-        "The system prompt supplies shared operating guidance. A prompt guides the model; it is not a security boundary.",
-        "The harness has a catalogue of capabilities. It executes local functions, calls MCP tools and delegates tasks over A2A. Not every capability is exposed to every agent.",
-        "The persona defines the agent's purpose and approach. Chat, office, coding and custom agents need different context and capabilities. Coding offers Ask, Plan, Implement and Review modes.",
-        "A configuration pairs the persona with a tool subset and a model suited to its task. Model examples illustrate trade-offs, not fixed requirements. The host enforces permissions; neither a persona nor a model grants access.",
+        "The system prompt is standing instruction text supplied to the model. Its content depends on the selected configuration. It does not enforce file or network access.",
+        "The host registers tool implementations and their descriptions. It can offer only a subset to a particular agent or task.",
+        "Role instructions describe the task and approach. In this example, choosing a role also changes the configured tools. The text and the tool configuration are separate settings.",
+        "The host selects the model and tool subset. Execution rules are applied by code outside the model, not by the role's instruction text.",
         "The task prompt says what is wanted this time. It is a message, separate from the agent's standing instructions.",
         "Custom instructions add project guidance when applicable and enabled. Their text enters context directly; it is not a tool call.",
-        "Skills are reusable playbooks. Initially, only names and descriptions enter context, so the model can choose relevant guidance without loading every body.",
-        "An allowed Read skill call can load a relevant playbook into context. Its instructions guide the next decision; they do not execute actions or grant new tools.",
+        "Skills are optional packages of task instructions. This configuration initially supplies only their names and descriptions, not every package's full text.",
+        "An allowed Read skill call supplies the package's full instructions for a later model request. Loading this text neither executes its steps nor enables new tools.",
     ]);
+
+    private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly(
+        AgentTurnStory.Responsibilities.Select(item => item.Output).ToArray());
 
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
     [
         "Agents serve many purposes. Chat, coding, office and custom agents are overlapping examples, not fixed categories.",
-        "Across these examples, the same foundation appears: Agent = Harness + Model.",
+        "Across these examples, the same foundation appears: Agent = Agent host + Model.",
     ]);
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Harness + Model. An agent is the whole system, not the model alone.",
-        "The harness manages context, instructions, tools, memory and execution controls.",
-        "The harness executes tools such as search, calendar and file access. Model requests are subject to permissions, approvals and limits; a request is not permission.",
-        "The model reasons over the supplied context, plans and chooses a next step or final answer. It does not execute tools itself.",
-        "The harness selects relevant memory and sends instructions, context, available tool definitions and previous tool results to the model.",
-        "The model returns an answer or a tool request. The host delivers the answer, or checks and executes a permitted request and returns the result to the model.",
-        "The model reasons. The harness acts. Together, they form an agent. A trigger starts a turn; a final answer, enforced limit or cancellation ends it. A tool call is not required.",
+        "Agent = Agent host + Model. The host is software that sends model requests and handles the responses. Its harness runs this sequence.",
+        "The host selects instruction text and messages for a request. It stores selected session messages and applies configured execution controls to tool requests.",
+        "The agent host executes tools: code that reads files, queries services or performs other actions. Here, the permitted tool reads meeting-notes.txt; no writing tool is enabled.",
+        "A language model processes supplied input and generates a response. With tool calling enabled, that response can request a tool by name and arguments. It does not execute tools itself.",
+        "The host sends a model request containing selected messages and tool definitions. The supplied input is called context. The first request names the file but does not contain its text.",
+        "The model's response can contain text, tool requests or both. The host checks requested tool calls before invoking them. Returned file text can then enter a new model request.",
+        "The host presents the response and retains selected session messages. A response, configured limit or cancellation can end the turn. Ending a turn does not prove the task succeeded.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(
     [
         "The shared foundation stays recognizable across different tasks. Purpose changes the context and capabilities an agent needs.",
-        "A harness can run locally or in the cloud while using a remote model. Tools and permissions depend on its environment; portability is not automatic.",
+        "Host, model and tools can run in different locations. Moving the host does not automatically move its model or grant access to the same files and services.",
         "A user, schedule or event can start the work. The trigger is separate from the agent's purpose and where it runs. These are illustrative configurations, not product guarantees.",
     ]);
 }

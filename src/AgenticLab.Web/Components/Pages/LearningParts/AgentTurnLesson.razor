@@ -1,0 +1,99 @@
+@using AgenticLab.Web.Learning
+
+<section class="turn-lesson" aria-label="Follow one agent turn" data-diagram="loop" data-scenario="@_story.Scenario.Id" data-beat="@_story.Beat">
+    <div class="turn-toolbar" role="group" aria-label="Turn steps">
+        <LabButton Label="Previous step" Icon="prev" IconOnly="true" Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
+        <span class="step-count">@(_story.Beat + 1) / @_story.Scenario.Steps.Count</span>
+        <LabButton Label="Next step" Icon="next" IconOnly="true" Disabled="@(!_story.CanNext)" OnClick="() => _story.Move(1)" />
+        <LabButton Label="Show all steps" Icon="expand" Disabled="@_story.ShowAll" OnClick="_story.Complete" />
+        <LabButton Label="Restart" Variant="quiet" Disabled="@(_story.Beat == 0)" OnClick="_story.Restart" />
+    </div>
+    <p class="example-label">Example: list the actions agreed in meeting notes.</p>
+    <ol class="turn-nodes" aria-label="Steps reached">
+        @for (var index = 0; index <= _story.Beat; index++)
+        {
+            var step = _story.Scenario.Steps[index];
+            <li class="@(step.Actor == "Model" ? "model-step" : "host-step")" aria-current="@(index == _story.Beat ? "step" : null)">
+                <span class="node-index">@(index + 1)</span>
+                <span><small>@step.Actor</small><strong>@step.Title</strong></span>
+            </li>
+        }
+    </ol>
+    <div class="turn-evidence" aria-live="polite" aria-atomic="true">
+        @foreach (var step in _story.ShowAll ? _story.Scenario.Steps : new[] { _story.Step })
+        {
+            <section class="step-evidence" @key="step.Id" data-step="@step.Id">
+                <h3>@step.Title</h3>
+                <p>@step.Explanation</p>
+                @if (step.Request is { } request)
+                {
+                    <dl class="request-summary">
+                        <dt>Messages supplied</dt>
+                        <dd>@string.Join("; ", request.Messages.Select(message => MessageLabel(message.Role)))</dd>
+                        <dt>Tools described</dt>
+                        <dd>@(request.Tools.Count == 0 ? "None" : string.Join(", ", request.Tools.Select(tool => tool.Name)))</dd>
+                        <dt>Meeting notes supplied</dt>
+                        <dd>@(request.Messages.Any(message => message.Text.Contains(AgentTurnStory.FileContent)) ? "Yes" : "No")</dd>
+                    </dl>
+                    <details>
+                        <summary>Messages and tool definitions</summary>
+                        @foreach (var message in request.Messages)
+                        {
+                            <h4>@MessageLabel(message.Role)</h4>
+                            @if (message.ToolCall is { } call)
+                            {
+                                <pre>@AgentTurnStory.Json(call)</pre>
+                            }
+                            else
+                            {
+                                <pre>@message.Text</pre>
+                            }
+                        }
+                        @foreach (var tool in request.Tools)
+                        {
+                            <h4>@tool.Name</h4>
+                            <p>@tool.Description</p>
+                            <p>Required argument: <code>path</code>, a string containing the file name.</p>
+                        }
+                    </details>
+                }
+                else if (step.Id == "tool-request")
+                {
+                    <p class="call-summary"><code>read_file(path: "meeting-notes.txt")</code></p>
+                    <details><summary>Tool request data</summary><pre>@step.Evidence</pre></details>
+                }
+                else
+                {
+                    <h4>@step.EvidenceLabel</h4>
+                    <pre class="text-evidence">@step.Evidence</pre>
+                }
+            </section>
+        }
+    </div>
+    <details class="other-outcomes">
+        <summary>Other outcomes</summary>
+        <label for="turn-outcome">Example outcome</label>
+        <select id="turn-outcome" value="@_story.Scenario.Id" @onchange="SelectOutcome">
+            @foreach (var scenario in AgentTurnStory.Scenarios)
+            {
+                <option value="@scenario.Id">@scenario.Title</option>
+            }
+        </select>
+    </details>
+    <p class="example-note">Illustrative messages and configured checks, not a live file read or a provider's API format.</p>
+</section>
+
+@code {
+    private readonly AgentTurnStory _story = new();
+
+    private void SelectOutcome(ChangeEventArgs args) => _story.Select(args.Value?.ToString() ?? "read");
+
+    private static string MessageLabel(string role) => role switch
+    {
+        "instructions" => "Instruction text",
+        "user" => "User message",
+        "assistant" => "Model's tool request",
+        "tool" => "Tool result",
+        _ => role,
+    };
+}

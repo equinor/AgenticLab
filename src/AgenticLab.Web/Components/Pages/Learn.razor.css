@@ -34,10 +34,12 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .journey-heading { display: flex; justify-content: space-between; gap: .5rem; color: var(--muted); font-size: 12px; margin: 0 .65rem 1rem; }
 .stage-progress { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .stage-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .35rem; }
-.stage-list a { display: grid; grid-template-columns: 1.5rem minmax(0, 1fr); align-items: center; gap: .65rem; padding: .8rem .65rem; min-height: 48px; border-left: 3px solid transparent; color: var(--muted); text-decoration: none; line-height: 1.4; }
+.stage-sublist { list-style: none; margin: .2rem 0 0 .85rem; padding: 0; display: grid; gap: .2rem; }
+.stage-list a { display: grid; grid-template-columns: 2rem minmax(0, 1fr); align-items: center; gap: .65rem; padding: .8rem .65rem; min-height: 48px; border-left: 3px solid transparent; color: var(--muted); text-decoration: none; line-height: 1.4; }
+.stage-sublist a { font-size: 13px; padding-block: .6rem; }
 .stage-list a:hover { background: var(--lab-surface-hover); }
 .stage-list a[aria-current="step"] { color: var(--accent); background: var(--lab-accent-soft); border-left-color: var(--accent); font-weight: 600; }
-.stage-number { font: var(--lab-text-xs) var(--lab-font-mono); }
+.stage-number { font: var(--lab-text-xs) var(--lab-font-mono); white-space: nowrap; }
 .stage-main { --lesson-scroll-inset: 32px; position: relative; padding: var(--lesson-scroll-inset) 32px 40px; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scroll-padding-top: 8rem; container-type: inline-size; }
 .stage-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .8rem; }
 .eyebrow { margin: 0 0 8px; font: var(--lab-text-xs) var(--lab-font-mono); color: var(--muted); }
@@ -176,13 +178,9 @@ figcaption { margin-top: .85rem; font-size: 12px; line-height: 1.5; color: var(-
     .learn-workspace { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
     .stage-rail { padding: 12px 20px; border-right: 0; border-bottom: 1px solid var(--line); }
     .journey-heading { margin-bottom: .4rem; }
-    .stage-list { display: flex; overflow-x: auto; }
-    .stage-list li { flex: 0 0 175px; }
-    .stage-list a { height: 100%; padding: .5rem; gap: .35rem; font-size: 12px; }
+    .stage-list { display: flex; align-items: flex-start; overflow-x: auto; }
+    .stage-list > li { flex: 0 0 200px; }
+    .stage-list a { padding: .5rem; gap: .35rem; font-size: 12px; }
     .stage-main { --lesson-scroll-inset: 20px; padding: var(--lesson-scroll-inset) 20px 32px; }
     .stage-heading h2 { font-size: 23px; }
-}
-
-@media (max-width: 380px) {
-    .stage-list a { grid-template-columns: 1.1rem minmax(0, 1fr); }
 }

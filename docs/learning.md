@@ -39,33 +39,58 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Demystify** and follows these ten stages. Bookmark any stage with
+The guide opens at **Intro** and follows seven root points, with three subtopics under **Agent**.
+The ten lessons retain their reading order. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
-| Stage | ID | Focus |
-| --- | --- | --- |
-| Demystify | `why-agents` | Why agents matter; observing, deciding and acting; bounded autonomy; then what makes this possible and how it works. |
-| Agent | `model-to-agent` | Host + model, their responsibilities, and the exchange between them. |
-| The Agentic Landscape | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
-| Inside the agent host | `inside-the-harness` | Gather context, load instructions, make tools available, manage memory, enforce execution controls. |
-| Anatomy of an agent | `anatomy-of-agent` | Shared guidance, persona, tools, model settings and per-task context. |
-| The agent loop | `agent-loop` | Decide, execute, observe; a final answer can bypass tools. |
-| Same foundation, different setting | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
-| The wider ecosystem | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
-| Where should your agent run? | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
-| Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+| Point | Stage | ID | Focus |
+| --- | --- | --- | --- |
+| 1 | Intro | `why-agents` | Purpose and bounded autonomy, then what makes an agent possible. |
+| 2 | Agent | `model-to-agent` | Host + model, their responsibilities, and the exchange between them. |
+| 2.1 | Inside the harness | `inside-the-harness` | Assemble context, load instruction text, describe tools, retain session messages, check tool requests. |
+| 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
+| 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
+| 3 | Same foundation, different setting | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
+| 4 | The Agentic Landscape | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
+| 5 | The wider ecosystem | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
+| 6 | Where should your agent run? | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
+| 7 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
 
 ### Navigation and reveals
 
 Chapter navigation and lesson reveals are separate. **Previous/Next**, **Show complete diagram**
 where available, and **Restart** control the current lesson. There is no autoplay. Chapter changes
 or reloads reset progress; opening a related concept preserves it. Restart preserves example
-selections. Demystify returns to **Why** when revisited.
+selections. Intro returns to **Purpose** when revisited.
 
-Inside the agent host, **Show examples** reveals a practical example for each responsibility in
-order. The examples share a deployment-failure summary task; after the final example, the button
-restarts the sequence. Changing stages hides the examples.
+The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of an agent** beneath
+**Agent**, with matching `2.1`-`2.3` lesson labels. Page-level **Previous/Next** still visits every
+lesson in order, including the subtopics; the progress counter counts all ten lessons.
+
+Inside the harness, each reveal adds one responsibility while earlier nodes remain visible.
+The examples use the same meeting-notes task as Agent and the loop. **Example and limits** expands
+the input, output and boundary of a responsibility; these details start closed.
+
+The loop starts with one user message. **Next step** adds a node and shows its explanation;
+previous nodes remain visible. **Messages and tool definitions** expands the supplied request
+content. **Show all steps** reveals the full sequence; **Restart** returns to its first node.
+Changing stages or reloading resets the sequence.
+
+The first model request contains instructions, the task and a `read_file` definition, but no
+file content. A model tool request is checked before invocation. Only after the result is included
+in a second request does the model receive the notes. The answer preserves unstated owners and
+deadlines as **not stated**. Retention is separate from selecting context, and does not retrain
+the model. Responses can include text, tool requests or both; ending a run does not prove success.
+
+**Other outcomes** is optional and initially closed: denied access, a missing file, cancellation,
+a zero tool-call limit, or notes already supplied by the user. Selecting a case resets its steps;
+Restart preserves the selection. Denied/stopped cases never invoke a file tool; a missing-file
+case invokes it but returns an error. These are synthetic examples, not live operations, provider
+API formats, production policies or a filesystem sandbox.
+
+The content introduces one concept at a time, using explicit actors, inputs and outputs.
+More detail is available on demand rather than through a terminology-heavy first screen.
 
 The lesson and navigation scroll independently; navigation becomes a horizontal strip on narrow
 screens. Reveal controls stay visible while scrolling. Unrevealed content is excluded from focus
@@ -74,9 +99,11 @@ surfaces reuse the [Blazor design system](design-system.md).
 
 ### Illustrative configurations
 
-**Anatomy** builds up guidance, available capabilities, persona, selected tools and model/settings,
-task, custom instructions, skill descriptions and a loaded skill. **Chat / Office / Coding / Custom**
-changes the example, not the selected backend agent. Each persona explains its model trade-offs;
+**Anatomy** builds up standing instruction text, registered tools, role instructions, selected
+tools and model/settings, task, custom instructions, skill descriptions and a loaded skill.
+Unrevealed nodes take no layout space. Full system-prompt text and **Other agent configurations**
+start collapsed. **Chat / Office / Coding / Custom** changes the example, not the selected backend
+agent. Each role explains its model trade-offs;
 neither model choice, persona, instructions nor skills grant permissions.
 
 - Office contrasts a meeting assistant's confirmed communications with a read-only document reviewer.
@@ -118,7 +145,8 @@ explanations are product-agnostic. Put Agentic Lab-specific details in one trail
 `In this application (Agentic Lab)` section. Product topics are the exception.
 
 [AgentLearningJourney](../src/AgenticLab.Web/Learning/AgentLearningJourney.cs) owns stages and topic
-references; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
+references; [AgentTurnStory](../src/AgenticLab.Web/Learning/AgentTurnStory.cs) owns the synthetic
+meeting-notes trace, responsibility examples and outcome navigation; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
 [HostingStory](../src/AgenticLab.Web/Learning/HostingStory.cs) own illustrative content and reveal
 state. Keep source-review dates aligned with the curated hosting list when rechecking it.
 

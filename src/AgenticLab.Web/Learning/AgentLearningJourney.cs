@@ -14,18 +14,13 @@ internal sealed record LearningStage(
     IReadOnlyList<string> HighlightedNodes,
     string? ActionLabel = null,
     string? ActionHref = null,
-    bool Hidden = false);
+    bool Hidden = false,
+    string? ParentId = null);
 
 internal static class AgentLearningJourney
 {
     internal static IReadOnlyList<LearningExample> HarnessExamples { get; } = Array.AsReadOnly<LearningExample>(
-    [
-        new("harness-context", "For “Summarize the latest deployment failures,” gather the request and relevant deployment logs."),
-        new("instructions", "Load the repository guidance that says which conventions and safety rules apply."),
-        new("available-tools", "Offer log search and file reading tools, but no tool that can deploy to production."),
-        new("harness-memory", "Keep the useful findings from earlier turns so the model does not repeat the same searches."),
-        new("execution-controls", "Before a command that changes files or deploys anything, check permissions and require approval."),
-    ]);
+        AgentTurnStory.Responsibilities.Select(item => new LearningExample(item.NodeId, item.Output)).ToArray());
 
     internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
     [
@@ -38,24 +33,24 @@ internal static class AgentLearningJourney
 
     internal static IReadOnlyList<LearningNode> Nodes { get; } = Array.AsReadOnly<LearningNode>(
     [
-        new("harness", "Harness", "Manages context, instructions, tools, memory and execution controls"),
-        new("model", "Model", "Reasons, plans and chooses the next step or final answer"),
-        new("instructions", "Load instructions", "Load system rules, persona and task-specific guidance"),
-        new("harness-context", "Gather context", "Gather the task, relevant information and observations for the next model request"),
-        new("available-tools", "Make tools available", "Expose the tool definitions the model can request"),
-        new("harness-memory", "Manage memory", "Retain conversation state and select relevant history for context"),
-        new("execution-controls", "Enforce execution controls", "Check permissions, limits and approvals before executing actions"),
-        new("anatomy-persona", "Agent persona", "Purpose and approach for the selected example"),
+        new("harness", "Agent host", "Supplies model input, checks tool requests and invokes permitted tools; the harness is its agent-running machinery"),
+        new("model", "Model", "Generates responses from supplied input, including text and, when enabled, tool requests"),
+        new("instructions", "Load instruction text", "Insert standing and task-specific guidance into the model request"),
+        new("harness-context", "Assemble context", "Select messages and retrieved information for one model request"),
+        new("available-tools", "Describe tools", "Supply tool names, descriptions and expected arguments; map accepted requests to implementations"),
+        new("harness-memory", "Retain session messages", "Store selected messages and results, then choose what to include in a later request"),
+        new("execution-controls", "Check tool requests", "Validate the requested tool and arguments against configured permissions, approvals and limits"),
+        new("anatomy-persona", "Role instructions", "Instruction text describing this agent's task and approach, not its execution permissions"),
         new("anatomy-selected-tools", "Selected tools", "The configured subset exposed to this agent"),
         new("anatomy-settings", "Settings", "Model choice and enforced controls"),
         new("anatomy-task", "Task prompt", "The user's request for this turn"),
         new("anatomy-custom-instructions", "Custom instructions", "Applicable project guidance added to context"),
         new("anatomy-skills", "Skills", "Playbook descriptions, with a body loaded when needed"),
         new("loop-context", "Context", "The current instructions, messages and observations"),
-        new("loop-decision", "Model decision", "Answer now or request a tool"),
-        new("loop-execute", "Harness executes", "Checks the request and runs only permitted actions"),
-        new("loop-observe", "Observation", "The result becomes context for the next decision"),
-        new("loop-answer", "Final answer", "Ends this turn, even without a tool call"),
+        new("loop-decision", "Model response", "Generate text, tool requests or both from the supplied input"),
+        new("loop-execute", "Agent host executes", "Checks the request before invoking a permitted tool"),
+        new("loop-observe", "Tool result", "Returned content or an error can be included in the next request"),
+        new("loop-answer", "Final response", "A response can end the turn without proving the task succeeded"),
         new("connected-agent", "Agent", "Uses external capabilities when needed"),
         new("mcp-tools", "Tool server", "Exposes tools the agent can call"),
         new("a2a-agent", "Another agent", "Accepts delegated tasks and returns results"),
@@ -80,28 +75,30 @@ internal static class AgentLearningJourney
             "Introduction", false,
             ["agent", "guardrails"], []),
         new("model-to-agent", "Agent",
-            "An agent is a system, not just a model. Its harness manages context, instructions, tools, memory and execution controls; the model reasons over that input and chooses the next step or final answer.",
-            "Agent = Harness + Model. The model reasons. The harness acts. Together, they form an agent.",
+            "An agent combines a model with an agent host: software that supplies input to the model and runs permitted tool requests. The harness is the host's agent-running machinery.",
+            "Agent = Agent host + Model. The model generates responses. The host supplies input and executes permitted tool requests.",
             "Available today", false,
             ["agent", "llm", "harness"], ["harness", "model"]),
         new("inside-the-harness", "Inside the harness",
-            "The harness gathers context, loads instructions, makes tools available, manages memory and enforces execution controls.",
-            "The model proposes a next step. The harness checks and executes it. Instructions guide; execution controls enforce.",
+            "The harness builds model requests, describes tools, retains session messages and checks tool invocations.",
+            "Instruction text guides the model. Executable rules control which tool requests the host allows.",
             "Available today", false,
             ["system-prompt", "context", "tools", "guardrails"],
-            ["harness-context", "instructions", "available-tools", "harness-memory", "execution-controls"]),
+            ["harness-context", "instructions", "available-tools", "harness-memory", "execution-controls"],
+            ParentId: "model-to-agent"),
         new("agent-loop", "The agent loop",
-            "User to harness to model. The model chooses a tool request or an answer; the harness checks and executes permitted requests, then returns results to the model.",
-            "The model reasons and chooses. The harness executes. Tool results inform the next decision; a final answer ends the turn.",
+            "One user turn can contain several model requests. A file read supplies content for a second request, from which the model generates an answer.",
+            "A tool result affects the next model response only when the host includes it in a new request. A run ending does not prove the task succeeded.",
             "Available today", false,
             ["reasoning", "tools", "context"], ["loop-context", "loop-decision", "loop-execute", "loop-observe", "loop-answer"],
-            "Open live flow", "/"),
+            "Open live flow", "/", ParentId: "model-to-agent"),
         new("anatomy-of-agent", "Anatomy of an agent",
-            "Shared guidance, an agent-specific configuration, and the context for one task. Build up the parts that work with the model.",
-            "Instructions guide the model. The harness manages tools and enforces permissions. Agent = Harness + Model.",
+            "Configuration selects instruction text, tools, model settings and execution rules. A task supplies the user's request for one turn.",
+            "Text supplied to the model is different from rules executed by the host. A role prompt or loaded skill does not grant permissions.",
             "Illustrative", false,
             ["persona", "tools", "custom-instructions", "skills"],
-            ["instructions", "available-tools", "anatomy-persona", "anatomy-selected-tools", "anatomy-settings", "anatomy-task", "anatomy-custom-instructions", "anatomy-skills"]),
+            ["instructions", "available-tools", "anatomy-persona", "anatomy-selected-tools", "anatomy-settings", "anatomy-task", "anatomy-custom-instructions", "anatomy-skills"],
+            ParentId: "model-to-agent"),
         new("agents-everywhere", "Same foundation, different setting",
             "Purpose, hosting and triggers are separate choices. Compare illustrative configurations while the foundation stays the same.",
             "Tools and permissions change with the environment. A local harness does not mean a local model.",
@@ -141,6 +138,26 @@ internal static class AgentLearningJourney
 
     internal static IReadOnlyList<LearningStage> Stages { get; } =
         Array.AsReadOnly(AllStages.Where(stage => !stage.Hidden).ToArray());
+
+    internal static IReadOnlyList<LearningStage> RootStages { get; } =
+        Array.AsReadOnly(Stages.Where(stage => stage.ParentId is null).ToArray());
+
+    internal static IEnumerable<LearningStage> Children(string id) =>
+        Stages.Where(stage => stage.ParentId == id);
+
+    internal static string Number(string? id)
+    {
+        var stage = Resolve(id);
+        var rootId = stage.ParentId ?? stage.Id;
+        var rootNumber = RootStages.TakeWhile(root => root.Id != rootId).Count() + 1;
+        if (stage.ParentId is null)
+        {
+            return $"{rootNumber}";
+        }
+
+        var childNumber = Children(rootId).TakeWhile(child => child.Id != stage.Id).Count() + 1;
+        return $"{rootNumber}.{childNumber}";
+    }
 
     internal static LearningNode Node(string id) => Nodes.First(node => node.Id == id);
 

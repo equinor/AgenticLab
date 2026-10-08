@@ -10,7 +10,15 @@ button:focus-visible, select:focus-visible { outline: var(--lab-focus-ring); out
 .story-caption { min-height: 4.8em; margin: 1rem 0; max-width: 95ch; line-height: 1.6; color: var(--ink); }
 .reveal { transition: opacity 240ms ease; }
 .unrevealed { visibility: hidden; opacity: 0; pointer-events: none; }
+.harness-responsibilities { display: grid; gap: .85rem; list-style: none; margin: 0; padding: 0; }
+.harness-responsibilities li { min-width: 0; padding: .75rem 0 .75rem 1rem; border-left: 3px solid var(--app); }
+.harness-responsibilities h3 { font: 500 18px/1.5 var(--lab-font-sans); margin: 0 0 .4rem; }
+.harness-responsibilities p { margin: 0; line-height: 1.65; }
+summary { cursor: pointer; color: var(--accent); padding: .5rem 0; min-height: 44px; line-height: 1.6; font-size: 13px; }
+summary:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
+.configuration-options { margin: .5rem 0 1rem; }
 .anatomy-story { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .9fr); gap: 1.25rem; align-items: stretch; }
+.anatomy-story > .unrevealed { display: none; }
 .anatomy-purpose-picker { margin-bottom: .75rem; }
 .anatomy-profile-label { min-height: 3em; margin: 0 0 .75rem; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .anatomy-mode { min-height: 44px; }

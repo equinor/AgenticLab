@@ -17,15 +17,29 @@
                 <span class="stage-progress" role="status">@(_stageIndex + 1) / @Stages.Count</span>
             </div>
             <ol class="stage-list">
-                @for (var index = 0; index < Stages.Count; index++)
+                @foreach (var stage in AgentLearningJourney.RootStages)
                 {
-                    var stage = Stages[index];
                     var selected = stage.Id == _stage.Id;
+                    var children = AgentLearningJourney.Children(stage.Id).ToArray();
                     <li>
                         <a href="@AgentLearningJourney.Href(stage.Id)" aria-current="@(selected ? "step" : null)">
-                            <span class="stage-number" aria-hidden="true">@((index + 1).ToString("00"))</span>
+                            <span class="stage-number" aria-hidden="true">@AgentLearningJourney.Number(stage.Id)</span>
                             <span>@stage.Title</span>
                         </a>
+                        @if (children.Length > 0)
+                        {
+                            <ol class="stage-sublist" aria-label="@($"{stage.Title} subtopics")">
+                                @foreach (var child in children)
+                                {
+                                    <li>
+                                        <a href="@AgentLearningJourney.Href(child.Id)" aria-current="@(child.Id == _stage.Id ? "step" : null)">
+                                            <span class="stage-number" aria-hidden="true">@AgentLearningJourney.Number(child.Id)</span>
+                                            <span>@child.Title</span>
+                                        </a>
+                                    </li>
+                                }
+                            </ol>
+                        }
                     </li>
                 }
             </ol>
@@ -34,7 +48,7 @@
         <section class="stage-main" aria-labelledby="stage-title">
             <header class="stage-heading">
                 <div>
-                    <p class="eyebrow">Stage @(_stageIndex + 1)</p>
+                    <p class="eyebrow">Stage @AgentLearningJourney.Number(_stage.Id)</p>
                     <h2 id="stage-title" tabindex="-1" @ref="_stageHeading">@_stage.Title</h2>
                 </div>
                 <span class="reality @(_stage.PlatformMap ? "conceptual" : "today")">@_stage.RealityLabel</span>
@@ -69,7 +83,7 @@
             @if (_stage.HighlightedNodes.Count > 0)
             {
             <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
-                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "agents-everywhere" or "anatomy-of-agent")
+                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "inside-the-harness" or "agents-everywhere" or "anatomy-of-agent")
                 {
                     <FoundationLesson StageId="@_stage.Id" />
                 }
@@ -77,38 +91,9 @@
                 {
                     <HostingLesson />
                 }
-                else if (_stage.Id == "inside-the-harness")
-                {
-                    <p class="boundary-label">Harness</p>
-                    <div class="harness-example-controls">
-                        <LabButton Label="@HarnessExamplesButtonLabel" Icon="next" OnClick="RevealNextHarnessExample" />
-                        <span class="harness-example-progress" role="status" aria-live="polite">
-                            @(_revealedHarnessExamples == 0 ? "Examples hidden" : $"{_revealedHarnessExamples} / {AgentLearningJourney.HarnessExamples.Count} examples shown")
-                        </span>
-                    </div>
-                    <div class="harness-anatomy" data-diagram="harness">
-                        @foreach (var nodeId in _stage.HighlightedNodes)
-                        {
-                            @DiagramNode(nodeId)
-                        }
-                    </div>
-                }
                 else if (_stage.Id == "agent-loop")
                 {
-                    <div class="execution-loop" data-diagram="loop">
-                        <div class="loop-input">@DiagramNode("loop-context")</div>
-                        <div class="loop-feed loop-connector" aria-label="Context goes to the model"><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-decision">@DiagramNode("loop-decision")</div>
-                        <div class="loop-exit loop-connector" aria-label="Answer instead of using a tool"><span aria-hidden="true">&rarr;</span></div>
-                        <div class="loop-answer">@DiagramNode("loop-answer")</div>
-                        <div class="loop-request loop-connector"><span>Tool request</span><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-execute">@DiagramNode("loop-execute")</div>
-                        <div class="loop-result loop-connector"><span>Tool result</span><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-observe">@DiagramNode("loop-observe")</div>
-                        <div class="loop-return" role="img" aria-label="Observation returns to the model as updated context for another decision">
-                            <span class="sr-only">Repeat with updated context</span>
-                        </div>
-                    </div>
+                    <AgentTurnLesson />
                 }
                 else if (_stage.Id == "wider-ecosystem")
                 {
@@ -233,10 +218,6 @@
             <span class="@iconClass" aria-hidden="true"></span>
             <strong>@node.Title</strong>
             <span class="node-detail">@node.Detail</span>
-            @if (_stage.Id == "inside-the-harness" && IsHarnessExampleRevealed(id))
-            {
-                <span class="node-example"><strong>Example:</strong> @AgentLearningJourney.HarnessExamples.First(example => example.NodeId == id).Text</span>
-            }
         </div>;
     }
 }
