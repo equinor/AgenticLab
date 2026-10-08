@@ -25,6 +25,75 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public async Task ConversationMarkdown_RendersCurrentAndArchivedRepliesAndClearsOnReset()
+    {
+        var concepts = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(concepts);
+        using var handler = new ReplayHandler { Reply = "**Safe reply** <img src='https://images.invalid/pixel'>" };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        var storage = new DelayedPanelStorage();
+        storage.Complete();
+        await using var services = new ServiceCollection().AddLogging().AddSingleton<IJSRuntime>(storage).BuildServiceProvider();
+        await using var renderer = new Microsoft.AspNetCore.Components.Web.HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+
+        async Task<string> RenderAsync() => await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            RenderFragment content = builder =>
+            {
+                builder.OpenComponent<CascadingValue<FlowRunController>>(0);
+                builder.AddAttribute(1, "Value", run);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(child =>
+                {
+                    child.OpenComponent<AgenticLab.Web.Components.Pages.FlowParts.FlowChat>(0);
+                    child.CloseComponent();
+                }));
+                builder.CloseComponent();
+            };
+            var root = await renderer.RenderComponentAsync<CascadingValue<FlowViewState>>(ParameterView.FromDictionary(
+                new Dictionary<string, object?> { ["Value"] = view, ["ChildContent"] = content }));
+            return root.ToHtmlString();
+        });
+
+        async Task SendAsync()
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = "**User text** <script>not executable</script>";
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await SendAsync();
+        var current = await RenderAsync();
+        Assert.Contains("<strong>Safe reply</strong>", current);
+        Assert.Contains("**User text** &lt;script&gt;", current);
+        Assert.DoesNotContain("<img", current);
+        Assert.Empty(run.Turns);
+
+        await SendAsync();
+        Assert.Single(run.Turns);
+        var archived = await RenderAsync();
+        Assert.Equal(2, archived.Split("<strong>Safe reply</strong>").Length - 1);
+        Assert.DoesNotContain("<img", archived);
+
+        run.ReportError("**Error** <script>not executable</script>");
+        var error = await RenderAsync();
+        Assert.Contains("**Error** &lt;script&gt;", error);
+        Assert.Equal(1, error.Split("<strong>Safe reply</strong>").Length - 1);
+
+        await run.NewConversationAsync();
+        var cleared = await RenderAsync();
+        Assert.Contains("No messages yet.", cleared);
+        Assert.DoesNotContain("reply-markdown", cleared);
+    }
+
     [Theory]
     [InlineData("1|0|1|400|300|450", false)]
     [InlineData("1|0|1|400|300|450|0", false)]
@@ -892,6 +961,7 @@ public sealed class ExecutionReplayTests
 
     private sealed class ReplayHandler : HttpMessageHandler
     {
+        internal string Reply { get; init; } = "answer";
         internal int Resets { get; private set; }
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
@@ -915,7 +985,7 @@ public sealed class ExecutionReplayTests
             [
                 Event(1, "llm-request", 1) with
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
-                Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
+                Event(2, "final", 1) with { Detail = Reply, Data = Reply },
             ];
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
