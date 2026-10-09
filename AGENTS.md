@@ -41,6 +41,18 @@ Key flow: Web → `POST /chat` or `POST /chat/stream` (with an optional agent na
 - [Demo/](src/AgenticLab.AiService/Demo) holds the built-in sample content: generic agent personas under `Demo/Agents`, shared tools (`WikiTool`, `CalculatorTool` and their bounded `DemoToolSource` adapter) under `Demo/Tools`, and only the non-brand Default host under `Demo/Vendors/Default`. Every other host owns its prompt, dedicated agents, branding, tests and guide in an opt-in example. `Application` never depends on `Demo` or an example; shared interfaces define the dependency boundary.
 - Both chat paths share [Application/Flow/RunScopeSet.cs](src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs), which begins, re-activates and disposes the per-run ambient scopes (workspace, disabled tools/skills, enabled instructions, user input and agent/conversation identity) together, and `WorkspaceScope.TryBegin` to turn a bad path into a 400 / error event.
 
+Blazor's [Home page](src/AgenticLab.Web/Components/Pages/Home.razor) owns `/`, with equally prominent
+**Live flow** (`/flow`) and **Agent guide** (`/learn`) links. Home uses static server rendering,
+local assets and scoped CSS, without Flow state, catalogue/model calls, preference writes or an
+interactive server circuit. Guide stage URLs remain `/learn?stage=<id>`; the shared header's product
+mark returns to Home. Keep the optional React root route independent.
+
+Home owns its teaser text independently of the learning journey. The local
+[home-teaser.js](src/AgenticLab.Web/wwwroot/js/home-teaser.js) custom element cycles three
+server-rendered messages every seven seconds, with manual controls and reduced-motion support.
+It clears timers/listeners on disconnect; without JavaScript all messages remain readable.
+Keep this enhancement browser-only, without shared run state or changes to guide progression.
+
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
 Blazor's [design system](docs/design-system.md) takes its visual language from React without a React
@@ -48,7 +60,7 @@ runtime or npm build dependency. [design-system.css](src/AgenticLab.Web/wwwroot/
 owns `--lab-*` tokens and locally served IBM Plex fonts; shared Razor controls under
 [Extensibility/Components](src/AgenticLab.Extensibility/Components) and Web's
 [Components/Shared](src/AgenticLab.Web/Components/Shared) own reusable presentation and accessibility.
-`AppHeader` is reused by Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
+`AppHeader` is reused by Home, Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
 catalogue and returns 404 in Production. Feature CSS owns layout, not another generic palette.
 Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
 and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
@@ -194,6 +206,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
   Use a Development Web instance with an available agent catalogue. This does not send chat or run
   discovery; `/design-system` is also available there for isolated component inspection.
+  Add `--navigation-only` to check Home, `/flow` routing and the guide with only Development Web
+  running, without an agent catalogue. Browser tools resolve `/flow` from the Web base URL.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
   `dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
 - React checks: `npm --prefix src/AgenticLab.React test` and `npm --prefix src/AgenticLab.React run build`;

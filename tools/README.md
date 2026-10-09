@@ -17,6 +17,34 @@ node /tmp/agentic-lab-loadtest/node_modules/playwright/cli.js install chromium
 Start the application first, for example with `dotnet run --project src/AgenticLab.AppHost`, and set
 `AGENTICLAB_URL` to its externally reachable **web** resource, not the React frontend. The example port
 below is illustrative; use the actual URL. Only the `AGENTICLAB_*` variable names are supported.
+Keep this as the Web base URL; tools select `/`, `/flow` and `/learn` themselves.
+
+## Navigation smoke
+
+For backend-free checks, start only Development Web with `dotnet run --project src/AgenticLab.Web`
+and use its printed URL:
+
+```sh
+AGENTICLAB_URL=http://127.0.0.1:5140 \
+NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+node tools/web-smoke.mjs --navigation-only
+```
+
+This profile checks Home's equally sized choices, local icons/fonts, keyboard focus and activation,
+the permanent purpose statement, heading structure, the absence of a Home server circuit or
+preference writes, direct `/flow` reloads, consistently named Home return links,
+guide stage bookmarks and Back/Forward, lesson controls, catalogue navigation and 404 recovery.
+It runs the same four viewports, Home's 200% zoom and reduced-motion checks, and saves screenshots.
+An isolated browser page uses Playwright's clock to check the three-message teaser's seven-second
+cycle, wraparound, Pause/Play, manual and keyboard controls, pause on focus, hover/visibility
+suspension, initial and changed motion preferences, and disconnect/reconnect cleanup. It verifies
+stable layout, visible icons, inactive-slide accessibility, Pause/Play-first tab order, polite live
+regions while paused and quiet autoplay, and no circuit or preference writes after interaction.
+A separate JavaScript-disabled page checks the readable fallback and purpose statement. Teaser timers and
+the mocked clock do not affect the guide checks. These checks run in the full UI profile too.
+It visits the Flow page without requiring its catalogue or sending a prompt; with no AI service,
+the workspace's normal unavailable-service state is expected. Full execution/dock checks still need
+the UI smoke profile below.
 
 ## UI smoke
 
@@ -55,7 +83,7 @@ Module logos are fetched from local RCL URLs, decoded to check nonblank pixels, 
 dimensions, and captured at desktop/mobile widths. No vendor identities are hardcoded in the script.
 
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
-conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
+Home and destination navigation, conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
 restoration, reset, Execution maximise/collapse, independent Details/Learn docks, host-only anatomy
 with the Client Learn topic retained, individual A2A
 inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
@@ -105,7 +133,7 @@ separately cover current replies, archiving and reset with fake SSE responses.
 Optional example modules own their scenario-specific checks inside their project folders; see
 the [example catalogue](../docs/examples.md). The core smoke script remains domain-neutral.
 
-`flow-loadtest.mjs` exercises the Interactive Server Flow page with concurrent browser contexts.
+`flow-loadtest.mjs` exercises the Interactive Server Flow page at `/flow` with concurrent browser contexts.
 The defaults are 10 concurrent users and 3 rounds. `AGENTICLAB_WARMUP_MS` sets the startup wait
 (default 1000 ms), and `AGENTICLAB_MESSAGE` sets the message prefix (default `Load test message`).
 

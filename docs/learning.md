@@ -1,7 +1,8 @@
 # In-app learning (Learn panel + guided journey)
 
 Agentic Lab has two learning surfaces: a contextual **Learn** panel on the
-[Flow page](web-flow-page.md) and a standalone **Agent guide** at `/learn`.
+[Flow page](web-flow-page.md) at `/flow` and a standalone **Agent guide** at `/learn`.
+The front page at `/` offers direct links to both experiences.
 
 Both use **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and
 execution controls; the model reasons and chooses an answer or next step. A tool request is not
@@ -23,15 +24,15 @@ enabled example's metadata; Default has no product topic.
 
 ## Guided agent learning
 
-Open **Agent guide** from Flow in the same tab; **Live flow** returns to Flow in that tab.
-From Discovery, the guide opens in a new tab. The guide also works without AiService or Azure
-credentials:
+Open **Agent guide** from Home or Flow in the same tab; **Live flow** opens `/flow` in that tab.
+The header's product mark returns Home. From Discovery, the guide opens in a new tab.
+Both Home and the guide work without AiService or model credentials:
 
 ```sh
 dotnet run --project src/AgenticLab.Web
 ```
 
-Visit `/learn` at the printed Web URL. Lessons are local explanations, not live telemetry or
+Choose **Agent guide** at the printed Web URL, or visit `/learn` directly. Lessons are local explanations, not live telemetry or
 deployment/security maps. Their controls make no model, tool, discovery, scheduling or deployment
 calls. Live-flow links navigate without sending a prompt. For Discovery, use the
 [Flow overlay or standalone page](protocols.md#discovery-visualization-mcp--a2a); Learn has no

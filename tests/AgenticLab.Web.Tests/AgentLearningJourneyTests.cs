@@ -137,7 +137,7 @@ public sealed class AgentLearningJourneyTests
         {
             if (stage.ActionHref is not null)
             {
-                Assert.Equal("/", stage.ActionHref);
+                Assert.Equal("/flow", stage.ActionHref);
                 Assert.False(string.IsNullOrWhiteSpace(stage.ActionLabel));
             }
 
@@ -167,7 +167,7 @@ public sealed class AgentLearningJourneyTests
 
         Assert.Equal(["loop-context", "loop-decision", "loop-execute", "loop-observe", "loop-answer"], stage.HighlightedNodes.ToArray());
         Assert.Equal(["reasoning", "tools", "context"], stage.ConceptIds.ToArray());
-        Assert.Equal("/", stage.ActionHref);
+        Assert.Equal("/flow", stage.ActionHref);
         Assert.False(stage.PlatformMap);
     }
 
