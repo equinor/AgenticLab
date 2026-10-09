@@ -39,23 +39,27 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Intro** and follows seven root points, with three subtopics under **Agent**.
+The guide opens at **Intro** and follows four root topics, with six subtopics grouped under
+**Agent**, **One foundation, many systems** and **Where agents run**.
 The ten lessons retain their reading order. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
-| Point | Stage | ID | Focus |
+| Number | Topic | ID | Focus |
 | --- | --- | --- | --- |
 | 1 | Intro | `why-agents` | Purpose and bounded autonomy, then what makes an agent possible. |
 | 2 | Agent | `model-to-agent` | Harness + model, their responsibilities, and the exchange between them. |
 | 2.1 | Inside the harness | `inside-the-harness` | Assemble context, load instruction text, describe tools, retain session messages, check tool requests. |
 | 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
 | 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
-| 3 | Same foundation, different setting | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
-| 4 | The Agentic Landscape | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
-| 5 | The wider ecosystem | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
-| 6 | Where should your agent run? | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
-| 7 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+| 3 | One foundation, many systems | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
+| 3.1 | Different purposes, same pattern | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
+| 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
+| 4 | Where agents run | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
+| 4.1 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+
+Shared foundations do not imply identical capabilities, tools or permissions. Hosting is a separate
+choice: a local harness can use a remote model, and observation and evaluation matter wherever it runs.
 
 ### Navigation and reveals
 
@@ -65,8 +69,10 @@ or reloads reset progress; opening a related concept preserves it. Restart prese
 selections. Intro returns to **Purpose** when revisited.
 
 The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of an agent** beneath
-**Agent**, with matching `2.1`-`2.3` lesson labels. Page-level **Previous/Next** still visits every
-lesson in order, including the subtopics; the progress counter counts all ten lessons.
+**Agent**, with matching `2.1`-`2.3` lesson labels. **Different purposes, same pattern** and
+**Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
+**Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
+visits every lesson in order, including the subtopics; the progress counter counts all ten lessons.
 
 Inside the harness, each reveal adds one responsibility while earlier nodes remain visible.
 The examples use the same meeting-notes task as Agent and the loop. **Example and limits** expands

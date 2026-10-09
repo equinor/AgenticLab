@@ -100,18 +100,22 @@ public sealed class AgentLearningJourneyTests
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
     }
 
-    /// <summary>Agent owns its three detailed lessons while the settings comparison remains a root point.</summary>
+    /// <summary>Agent, shared foundations and hosting group their subtopics without changing lesson order.</summary>
     [Fact]
-    public void Hierarchy_GroupsAgentSubtopicsWithoutChangingReadingOrder()
+    public void Hierarchy_GroupsSubtopicsWithoutChangingReadingOrder()
     {
         Assert.Equal(
-            ["why-agents", "model-to-agent", "agents-everywhere", "agent-landscape", "wider-ecosystem", "where-to-run", "run-and-improve"],
+            ["why-agents", "model-to-agent", "agents-everywhere", "where-to-run"],
             AgentLearningJourney.RootStages.Select(stage => stage.Id).ToArray());
         Assert.Equal(
             ["inside-the-harness", "agent-loop", "anatomy-of-agent"],
             AgentLearningJourney.Children("model-to-agent").Select(stage => stage.Id).ToArray());
-        Assert.All(AgentLearningJourney.RootStages.Where(stage => stage.Id != "model-to-agent"),
-            stage => Assert.Empty(AgentLearningJourney.Children(stage.Id)));
+        Assert.Equal(
+            ["agent-landscape", "wider-ecosystem"],
+            AgentLearningJourney.Children("agents-everywhere").Select(stage => stage.Id).ToArray());
+        Assert.Equal("run-and-improve", Assert.Single(AgentLearningJourney.Children("where-to-run")).Id);
+        Assert.Empty(AgentLearningJourney.Children("why-agents"));
+        Assert.Equal(10, AgentLearningJourney.Stages.Count);
         Assert.Equal(AgentLearningJourney.Stages,
             AgentLearningJourney.RootStages.SelectMany(root => new[] { root }.Concat(AgentLearningJourney.Children(root.Id))).ToArray());
         Assert.Equal("inside-the-harness", AgentLearningJourney.Move("model-to-agent", 1).Id);
@@ -127,10 +131,10 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-loop", "2.2")]
     [InlineData("anatomy-of-agent", "2.3")]
     [InlineData("agents-everywhere", "3")]
-    [InlineData("agent-landscape", "4")]
-    [InlineData("wider-ecosystem", "5")]
-    [InlineData("where-to-run", "6")]
-    [InlineData("run-and-improve", "7")]
+    [InlineData("agent-landscape", "3.1")]
+    [InlineData("wider-ecosystem", "3.2")]
+    [InlineData("where-to-run", "4")]
+    [InlineData("run-and-improve", "4.1")]
     [InlineData("AGENT-LOOP", "2.2")]
     [InlineData("map-to-foundry", "1")]
     [InlineData(null, "1")]
