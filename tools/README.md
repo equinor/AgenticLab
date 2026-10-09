@@ -34,6 +34,12 @@ This profile checks Home's equally sized choices, local icons/fonts, keyboard fo
 the absence of a Home server circuit or preference writes, direct `/flow` reloads, Home return links,
 guide stage bookmarks and Back/Forward, lesson controls, catalogue navigation and 404 recovery.
 It runs the same four viewports, Home's 200% zoom and reduced-motion checks, and saves screenshots.
+An isolated browser page uses Playwright's clock to check the three-message teaser's seven-second
+cycle, wraparound, Pause/Play, manual and keyboard controls, pause on focus, hover/visibility
+suspension, initial and changed motion preferences, and disconnect/reconnect cleanup. It verifies
+stable layout, visible icons, inactive-slide accessibility and no circuit or preference writes after
+interaction. A separate JavaScript-disabled page checks the readable fallback. Teaser timers and
+the mocked clock do not affect the guide checks. These checks run in the full UI profile too.
 It visits the Flow page without requiring its catalogue or sending a prompt; with no AI service,
 the workspace's normal unavailable-service state is expected. Full execution/dock checks still need
 the UI smoke profile below.

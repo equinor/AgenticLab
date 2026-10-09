@@ -19,6 +19,19 @@ start an interactive server circuit, write preferences or call models. It always
 without a remembered destination or automatic redirect. The guide's `/learn?stage=<id>` bookmarks
 are unchanged. Live execution still requires the configured AI service.
 
+Below the destinations, three short messages introduce why agents matter, what an agent is and
+why Agentic Lab exists. This copy belongs to Home, not the learning journey. A local browser-only
+enhancement repeats the messages every seven seconds with a short fade, a position counter and
+Previous, Pause/Play and Next controls. The tallest message reserves the space, keeping the links
+and controls steady as the text changes.
+
+Manual navigation or focusing a control pauses rotation until Play is explicitly selected. Hover
+and a hidden browser tab temporarily suspend it. Reduced motion disables default autoplay and
+transitions; visitors can still browse manually or explicitly start timed changes. Inactive messages
+are excluded from assistive technology, and automatic changes do not trigger live announcements.
+Without JavaScript, all three messages form a readable list with the inactive controls hidden.
+Leaving Home clears the enhancement's timers and listeners. The guide itself remains manually paced.
+
 ## Live flow visualization
 
 ### Conversation and Settings

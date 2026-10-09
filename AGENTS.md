@@ -47,6 +47,12 @@ local assets and scoped CSS, without Flow state, catalogue/model calls, preferen
 interactive server circuit. Guide stage URLs remain `/learn?stage=<id>`; the shared header's product
 mark returns to Home. Keep the optional React root route independent.
 
+Home owns its teaser text independently of the learning journey. The local
+[home-teaser.js](src/AgenticLab.Web/wwwroot/js/home-teaser.js) custom element cycles three
+server-rendered messages every seven seconds, with manual controls and reduced-motion support.
+It clears timers/listeners on disconnect; without JavaScript all messages remain readable.
+Keep this enhancement browser-only, without shared run state or changes to guide progression.
+
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
 Blazor's [design system](docs/design-system.md) takes its visual language from React without a React

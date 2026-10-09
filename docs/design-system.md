@@ -50,6 +50,14 @@ Home reuses the header and local icon assets, with equally sized native destinat
 scoped CSS. The two-column layout stacks at 900px. It uses static server rendering, shared focus
 and reduced-motion tokens, and no catalogue or run state.
 
+Home's teaser is a feature-local browser enhancement, not a shared carousel primitive. Its
+page-owned messages share a grid cell after enhancement so the longest one reserves space;
+inactive messages are invisible, inert and hidden from accessibility. Native icon buttons reuse
+`MiniIcon`, with explicit SVG sizing, accessible labels and visible focus. No Blazor callbacks or
+server circuit are needed. Without JavaScript the messages remain an ordinary readable list.
+The local custom element owns playback, motion preferences and disconnect cleanup; the guide's
+content and reveal controls are independent.
+
 `LabButton` supports `primary`, `secondary`, `quiet`, `danger`, icons, disabled/busy and pressed states.
 `Label` is required even for icon-only commands. Use `OnClick` for actions and anchors for navigation.
 Keep labels and icon slots stable during progress.

@@ -11,10 +11,28 @@
 .guide-icon { background: var(--lab-info); mask-image: url("/icons/lucide/network.svg"); }
 .destination-name { font: 500 28px/1.25 var(--lab-font-sans); letter-spacing: 0; overflow-wrap: anywhere; }
 .destination-arrow { width: 28px; text-align: center; color: var(--lab-muted); font: 400 28px/1 var(--lab-font-sans); }
+.home-teaser { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--lab-space-7); margin-top: var(--lab-space-6); }
+.teaser-panels { min-width: 0; display: grid; gap: var(--lab-space-4); }
+.teaser-panel { min-width: 0; padding-block: var(--lab-space-4); }
+.teaser-panel h3 { margin: 0 0 var(--lab-space-2); color: var(--lab-accent); font: 600 var(--lab-text-lg)/1.4 var(--lab-font-sans); }
+.teaser-panel p { max-width: 70ch; margin: 0; font: var(--lab-text-md)/var(--lab-leading) var(--lab-font-sans); overflow-wrap: anywhere; }
+.home-teaser[data-ready] .teaser-panels { gap: 0; }
+.home-teaser[data-ready] .teaser-panel { grid-area: 1 / 1; visibility: hidden; opacity: 0; transition: opacity var(--lab-duration) var(--lab-easing); }
+.home-teaser[data-ready] .teaser-panel[data-active] { visibility: visible; opacity: 1; }
+.teaser-controls { display: flex; align-items: center; gap: var(--lab-space-1); }
+.teaser-controls[hidden], .teaser-control [hidden] { display: none; }
+.teaser-count { min-width: 5ch; margin-right: var(--lab-space-2); color: var(--lab-muted); font: var(--lab-text-sm)/1 var(--lab-font-mono); text-align: center; }
+.teaser-control { width: var(--lab-control-height); height: var(--lab-control-height); flex: 0 0 var(--lab-control-height); display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: var(--lab-radius-sm); color: var(--lab-muted); background: transparent; cursor: pointer; }
+.teaser-control > span { display: grid; place-items: center; }
+.teaser-control ::deep .mini-icon { display: block; width: var(--lab-icon-size); height: var(--lab-icon-size); }
+.teaser-control:hover { color: var(--lab-ink); background: var(--lab-surface-hover); }
+.teaser-control:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
 @media (max-width: 900px) {
     .destinations { grid-template-columns: minmax(0, 1fr); }
     .destination { min-height: 180px; padding: var(--lab-space-6); }
     .destination + .destination { border-left: 0; border-top: 1px solid var(--lab-border); }
+    .home-teaser { grid-template-columns: minmax(0, 1fr); gap: var(--lab-space-2); }
+    .teaser-controls { justify-self: end; }
 }
 @media (max-width: 500px) {
     .home-main { padding: var(--lab-space-7) var(--lab-space-5); }

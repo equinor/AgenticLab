@@ -18,6 +18,17 @@ let currentPage;
 try {
     for (const viewport of [{ width: 1440, height: 1000 }, { width: 1024, height: 900 }, { width: 390, height: 844 }, { width: 1920, height: 1080 }]) {
         const context = await browser.newContext({ viewport });
+        const teaserPage = currentPage = await context.newPage();
+        teaserPage.setDefaultTimeout(15000);
+        teaserPage.on("pageerror", error => errors.push(error.message));
+        await checkTeaser(teaserPage, viewport);
+        await teaserPage.close();
+        const fallbackPage = currentPage = await browser.newPage({ viewport, javaScriptEnabled: false });
+        await fallbackPage.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+        assert.equal(await fallbackPage.locator("[data-teaser-slide]:visible").count(), 3, "All messages are readable without JavaScript");
+        assert.equal(await fallbackPage.locator("[data-teaser-controls]").isVisible(), false, "Fallback has no inactive controls");
+        await capture(fallbackPage, `home-no-js-${viewport.width}`);
+        await fallbackPage.close();
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
@@ -119,6 +130,124 @@ try {
     await browser.close();
 }
 
+async function checkTeaser(page, viewport) {
+    const requests = [];
+    page.on("request", request => requests.push(new URL(request.url()).pathname));
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
+    await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    const teaser = page.locator("agentic-home-teaser[data-ready]");
+    await teaser.waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    const titles = ["Why", "What is an agent?", "Why Agentic Lab?"];
+    assert.deepEqual(await teaser.locator("h3").allTextContents(), titles);
+    assert.equal(await teaser.getAttribute("aria-roledescription"), "carousel");
+    assert.equal(await teaser.locator(".teaser-panels").getAttribute("aria-live"), "off");
+    const count = page.locator("[data-teaser-count]");
+    const previous = page.getByRole("button", { name: "Previous message", exact: true });
+    const next = page.getByRole("button", { name: "Next message", exact: true });
+    const toggle = page.locator('[data-teaser-action="toggle"]');
+    const layout = () => page.locator(".home-title, .destinations, .destination, .home-teaser, .teaser-controls")
+        .evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON()));
+    const initialLayout = await layout();
+
+    async function assertMessage(index) {
+        assert.equal(await count.textContent(), `${index + 1} / 3`);
+        assert.equal(await teaser.locator("[data-active] h3").textContent(), titles[index]);
+        assert.equal(await teaser.getByRole("group").count(), 1, "Only the active message is exposed to accessibility");
+        assert.ok(await teaser.locator("[data-teaser-slide]:not([data-active])")
+            .evaluateAll(slides => slides.every(slide => slide.inert && slide.getAttribute("aria-hidden") === "true")));
+        const icons = await teaser.locator(".teaser-control svg:visible")
+            .evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON()));
+        assert.equal(icons.length, 3, "All playback controls show their active icon");
+        assert.ok(icons.every(bounds => bounds.width >= 16 && bounds.height >= 16), "Playback icons have stable, nonzero dimensions");
+        assert.deepEqual(await layout(), initialLayout, "Messages and controls do not shift the page");
+    }
+
+    async function advance(milliseconds, index) {
+        await page.clock.runFor(milliseconds);
+        await assertMessage(index);
+    }
+
+    await assertMessage(0);
+    for (const index of [1, 2, 0]) await advance(7000, index);
+    await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await advance(14000, 0);
+    await previous.click();
+    await assertMessage(2);
+    await next.click();
+    await assertMessage(0);
+    await page.mouse.move(0, 0);
+    await page.keyboard.press("Shift+Tab");
+    assert.ok(await toggle.evaluate(element => element.matches(":focus-visible")), "Keyboard playback control has visible focus");
+    assert.equal(await toggle.getAttribute("aria-label"), "Play rotation");
+    await page.keyboard.press("Enter");
+    await advance(7000, 1);
+    await page.keyboard.press("Tab");
+    await advance(14000, 1);
+    await page.getByRole("link", { name: "Live flow", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    await advance(7000, 1);
+    await next.focus();
+    await page.keyboard.press("ArrowLeft");
+    await assertMessage(0);
+    await page.keyboard.press("ArrowRight");
+    await assertMessage(1);
+
+    await page.reload({ waitUntil: "networkidle" });
+    await teaser.waitFor();
+    await teaser.hover();
+    await advance(14000, 0);
+    await page.mouse.move(0, 0);
+    await advance(7000, 1);
+    await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await advance(14000, 1);
+    await page.evaluate(() => {
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await advance(7000, 2);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByRole("button", { name: "Play rotation", exact: true }).waitFor();
+    await advance(14000, 2);
+    assert.equal(await teaser.locator("[data-active]").evaluate(element => getComputedStyle(element).transitionDuration), "0s");
+    await page.reload({ waitUntil: "networkidle" });
+    await teaser.waitFor();
+    await advance(21000, 0);
+    await next.click();
+    await assertMessage(1);
+    await capture(page, `home-teaser-${viewport.width}`);
+    await page.getByRole("button", { name: "Play rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await advance(7000, 2);
+    await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await advance(14000, 2);
+
+    await page.getByRole("button", { name: "Play rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    const detached = await teaser.elementHandle();
+    await detached.evaluate(element => element.remove());
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.clock.runFor(21000);
+    assert.equal(await detached.evaluate(element => element.querySelector("[data-teaser-count]").textContent), "3 / 3",
+        "Disconnected teaser has no active timer or media listener");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await detached.evaluate(element => document.querySelector(".home-content").append(element));
+    await teaser.waitFor();
+    await assertMessage(0);
+    await advance(7000, 1);
+    await advance(7000, 2);
+    await detached.dispose();
+    assert.equal(requests.some(route => route.startsWith("/_blazor")), false, "Teaser interactions never start a server circuit");
+    assert.equal(await page.evaluate(() => localStorage.length), 0, "Teaser interactions do not save preferences");
+}
+
 async function checkHome(page, viewport) {
     const requests = [];
     const recordRequest = request => requests.push(new URL(request.url()).pathname);
@@ -126,6 +255,7 @@ async function checkHome(page, viewport) {
     const response = await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
     page.off("request", recordRequest);
     assert.equal(response.status(), 200);
+    await page.locator("agentic-home-teaser[data-ready]").waitFor();
     await page.getByRole("heading", { name: "Agentic Lab", level: 1, exact: true }).waitFor();
     assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
     assert.equal(await page.locator(".flow-app, .learn-app").count(), 0, "Home does not mount either destination");
@@ -183,6 +313,8 @@ async function checkHome(page, viewport) {
     await page.locator(".flow-app").waitFor();
     await page.getByRole("link", { name: / home$/ }).click();
     await page.locator(".home-app").waitFor();
+    await page.locator("agentic-home-teaser[data-ready]").waitFor();
+    assert.equal(await page.locator("[data-teaser-count]").textContent(), "1 / 3", "Returning Home initializes one fresh teaser");
 }
 
 async function followHomeLinkWithKeyboard(page, name, route) {
@@ -487,7 +619,7 @@ async function capture(page, name) {
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
         fonts: [...document.fonts].filter(font => font.status === "loaded").map(font => font.family),
         font: getComputedStyle(document.querySelector("h1")).fontFamily,
-        overflowingBars: [...document.querySelectorAll(".app-header, .home-content, .destinations, .destination, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
+        overflowingBars: [...document.querySelectorAll(".app-header, .home-content, .destinations, .destination, .home-teaser, .teaser-panels, .teaser-panel, .teaser-controls, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
             .filter(element => element.getClientRects().length && element.scrollWidth > element.clientWidth + 1)
             .map(element => element.className)
     }));

@@ -16,10 +16,47 @@
                 </a>
                 <a class="destination" href="/learn">
                     <span class="destination-icon guide-icon" aria-hidden="true"></span>
-                    <span class="destination-name">Agent guide</span>
+                    <span class="destination-name">Agentic AI guide</span>
                     <span class="destination-arrow" aria-hidden="true">&rarr;</span>
                 </a>
             </nav>
+
+            <agentic-home-teaser class="home-teaser" role="region" aria-label="Agent fundamentals">
+                <div class="teaser-panels" aria-live="off">
+                    @foreach (var teaser in Teasers)
+                    {
+                        <article class="teaser-panel" data-teaser-slide>
+                            <h3>@teaser.Title</h3>
+                            <p>@teaser.Detail</p>
+                        </article>
+                    }
+                </div>
+                <div class="teaser-controls" data-teaser-controls hidden>
+                    <span class="teaser-count" data-teaser-count aria-live="off">1 / @Teasers.Count</span>
+                    <button type="button" class="teaser-control" data-teaser-action="previous"
+                            aria-label="Previous message" title="Previous message">
+                        <MiniIcon Name="prev" />
+                    </button>
+                    <button type="button" class="teaser-control" data-teaser-action="toggle"
+                            aria-label="Pause rotation" title="Pause rotation">
+                        <span data-teaser-pause><MiniIcon Name="pause" /></span>
+                        <span data-teaser-play hidden><MiniIcon Name="play" /></span>
+                    </button>
+                    <button type="button" class="teaser-control" data-teaser-action="next"
+                            aria-label="Next message" title="Next message">
+                        <MiniIcon Name="next" />
+                    </button>
+                </div>
+            </agentic-home-teaser>
         </div>
     </main>
 </div>
+
+@code {
+    private static readonly IReadOnlyList<(string Title, string Detail)> Teasers =
+    [
+        ("Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),
+        ("What is an agent?", "An agent is a system that can observe its environment, make decisions, and take actions."),
+        ("Why Agentic Lab?", "To demystify agentic AI and show how it works"),
+    ];
+}
