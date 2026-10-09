@@ -188,7 +188,9 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `services__<name>__http__0` endpoints on internal port 8080, uses Production settings, and
   orders startup without readiness checks. See [README.md](README.md#run-with-docker).
 - Radix: [radixconfig.yaml](radixconfig.yaml) builds `dev` from `main` and promotes to `prod`; only
-  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. Radix has no Dockerfile target selection, so each component uses
+  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. `aiservice`
+  and `a2aserver` share one `AzureOpenAI__Deployment` (`gpt-5.6-luna`); the monthly budget and TPM
+  cap live on the Foundry resource, see [README.md](README.md#model-and-cost-controls). Radix has no Dockerfile target selection, so each component uses
   a single-service file under [docker/](docker) that must mirror its root Dockerfile stage.
   See [README.md](README.md#deploy-to-radix).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.

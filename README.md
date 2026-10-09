@@ -266,6 +266,26 @@ root Dockerfile's stages.
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 
+#### Model and cost controls
+
+Both environments run the same `AzureOpenAI__Deployment` from [radixconfig.yaml](radixconfig.yaml):
+`gpt-5.6-luna`, the small GPT-5.6 tier. It keeps Chat Completions tool calling (Wikipedia,
+calculator, MCP and A2A delegation) at roughly a twentieth of `gpt-5.6-sol`'s token price. The
+Foundry deployment must use exactly that name; `aiservice` and `a2aserver` must stay on the same
+value. Changing the model is a configuration change for Azure OpenAI deployments only; other Foundry
+model families need a new provider in code.
+
+Spend is bounded in two layers on the Foundry (Azure OpenAI) resource, both configured in the Azure
+portal rather than in this repository:
+
+- A **Cost Management budget** of USD 10,000 per month scoped to the resource, with actual and
+  forecasted alerts before the limit. Budgets notify; they never stop requests.
+- The deployment's **tokens-per-minute capacity** is the real ceiling: Azure rejects requests over
+  it with HTTP 429, so the maximum monthly spend is `TPM × 60 × 24 × 31 × output price`. Keep the
+  capacity at the lowest value that serves the expected number of concurrent users.
+
+Record the alert recipients with the budget in the Azure portal, not in this repository.
+
 ### Learning Only
 
 To explore the guided lessons without configuring a model provider, run only the Web project:
