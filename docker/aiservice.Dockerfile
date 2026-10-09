@@ -12,6 +12,8 @@ RUN dotnet publish src/AgenticLab.AiService/AgenticLab.AiService.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --chmod=644 LICENSE NOTICE ./
+# The sample workspace for Workspace:Mode=ReadOnlySample, owned by root so the app user can only read it.
+COPY --chmod=555 sample-workspace ./sample-workspace
 ENV ASPNETCORE_HTTP_PORTS=8080 \
     DOTNET_EnableDiagnostics=0
 EXPOSE 8080

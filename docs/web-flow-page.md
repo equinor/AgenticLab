@@ -23,13 +23,26 @@ reports it but keeps the new local conversation ID.
 
 **Settings** contains tool toggles, breakpoints, workspace paths, skills and custom instructions.
 Skills default on; instructions are opt-in. Workspace features appear for agents that support them;
-see the [workspace guide](workspace.md). Switching tabs preserves the chat log and draft.
+see the [workspace guide](workspace.md). When the service runs the
+[read-only sample mode](workspace.md#read-only-sample-mode), Settings shows the sample's name instead
+of a path input and folder picker, and workspace agents can run without a path. Switching tabs preserves the chat log and draft.
 **New conversation** is in the panel header and is disabled during a run. A waiting
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
-near the composer. Replies are displayed as escaped text. When the service sets an
-[input limit](agents.md#input-limits), the composer and answer input stop at it, a counter shows the
-characters used, and Send stays disabled over the limit. Every page shows the "Data notice" banner
-below the header: Agentic Lab is educational, and only Open information may be entered.
+near the composer. Current and earlier agent replies render Markdown headings, emphasis, lists,
+inline and fenced code, tables and links. User messages, errors and status notes remain escaped text.
+Replies are untrusted: raw HTML is shown literally; only absolute `http`, `https` and `mailto` links
+are clickable and open separately with `noopener noreferrer`. Other link targets retain their labels
+without navigation. Images become alt text and never load, including relative and data images.
+Code blocks and wide tables scroll within the reply rather than widening the conversation.
+
+The current stream delivers reply text in its `final` event. The same renderer also accepts partial
+Markdown snapshots safely, without changing the stream protocol, run controls or scroll-following
+behavior. Rendering is cached only for the component's latest text, not stored in conversation state.
+
+When the service sets an [input limit](agents.md#input-limits), the composer and answer input stop at
+it, a counter shows the characters used, and Send stays disabled over the limit. Every page shows the
+"Data notice" banner below the header: Agentic Lab is educational, and only Open information may be
+entered.
 
 ### Run controls
 

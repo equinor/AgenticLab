@@ -27,12 +27,18 @@ public sealed class DefaultHarness : IVendorHarness
     /// <summary>Empty so the LLM node shows the real Azure OpenAI deployment rather than a simulated label.</summary>
     public string ModelLabel => string.Empty;
 
-    /// <inheritdoc />
+    /// <summary>
+    /// The agents Default offers, first one being its default. Ask and Plan are listed for the read-only
+    /// workspace agents; clients only show modes whose agent the service actually registered, so they
+    /// disappear when workspaces are disabled (see <c>Workspace:Mode</c>).
+    /// </summary>
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
         new VendorMode(ChatAgent.AgentName, "chat"),
         new VendorMode(WikiAssistantAgent.AgentName, "wiki"),
         new VendorMode(TimeKeeperAgent.AgentName, "time"),
         new VendorMode(OrchestratorAgent.AgentName, "orchestrator"),
+        new VendorMode(AskAgent.AgentName, "ask"),
+        new VendorMode(PlanAgent.AgentName, "plan"),
     };
 }

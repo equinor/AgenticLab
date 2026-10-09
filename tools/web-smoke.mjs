@@ -6,12 +6,14 @@ import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
+const markdownOnly = process.argv.includes("--markdown-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
 const legacyHosts = JSON.parse(process.env.AGENTICLAB_HOST_ALIASES ?? "{}");
 const screenshots = process.env.AGENTICLAB_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
 mkdirSync(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const errors = [];
+const imageRequests = [];
 let currentPage;
 
 try {
@@ -20,6 +22,19 @@ try {
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
+        page.on("request", request => {
+            if (new URL(request.url()).hostname === "images.invalid") imageRequests.push(request.url());
+        });
+        if (markdownOnly) {
+            await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
+            await page.getByRole("button", { name: "New conversation", exact: true }).click();
+            await page.waitForFunction(() => document.querySelector("section > output")?.textContent === "1 activations");
+            await checkConversationMarkdown(page);
+            await context.close();
+            currentPage = null;
+            console.log(`Conversation Markdown ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
         await openFlow(page);
         await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
@@ -80,6 +95,7 @@ try {
         await page.waitForFunction(() => document.querySelector("section > output")?.textContent === "1 activations");
         await page.getByRole("group", { name: "Execution mode" }).getByRole("button", { name: "Manual", exact: true }).click();
         await page.waitForFunction(() => document.querySelector('[aria-label="Execution mode"] button:last-child')?.getAttribute("aria-pressed") === "true");
+        await checkConversationMarkdown(page);
         await capture(page, `design-system-${viewport.width}`);
         await page.emulateMedia({ reducedMotion: "reduce" });
         assert.equal(await page.locator(".spinner").evaluate(element => getComputedStyle(element).animationName), "none");
@@ -93,6 +109,7 @@ try {
         console.log(`Flow, docks, Discovery, Learn and design system ${viewport.width}x${viewport.height}: passed`);
     }
     assert.deepEqual(errors, [], "No unhandled browser errors");
+    assert.deepEqual(imageRequests, [], "Untrusted Markdown and raw HTML images must never make requests");
     console.log(`Screenshots: ${screenshots}`);
 } catch (error) {
     if (currentPage && !currentPage.isClosed()) await currentPage.screenshot({ path: path.join(screenshots, "failure.png"), fullPage: true });
@@ -100,6 +117,84 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkConversationMarkdown(page) {
+    const reply = page.locator(".markdown-example .reply-markdown");
+    const source = page.locator("#markdown-source");
+    const original = await source.inputValue();
+    await reply.getByRole("heading", { name: "Project summary" }).waitFor();
+    for (const selector of ["h2", "strong", "em", "ul", "ol", "li", "code", "pre", "blockquote", "table", "th", "td"]) {
+        assert.ok(await reply.locator(selector).count(), `Markdown must render ${selector}`);
+    }
+    assert.equal(await reply.locator("a").count(), 3);
+    const links = await reply.locator("a").evaluateAll(anchors => anchors.map(anchor => ({
+        protocol: new URL(anchor.href).protocol, target: anchor.target, rel: anchor.rel,
+    })));
+    assert.deepEqual(links.map(link => link.protocol), ["https:", "http:", "mailto:"]);
+    assert.ok(links.every(link => link.target === "_blank" && link.rel === "noopener noreferrer"));
+    const text = await reply.innerText();
+    assert.ok(text.includes("Image description"));
+    assert.ok(text.includes('<img src="https://images.invalid/raw-sentinel.png"'));
+    assert.ok(text.includes("<script>window.markdownExecuted=true</script>"));
+    await assertSafeReply();
+    const styles = await reply.locator("pre code").evaluate(code => ({
+        font: getComputedStyle(code).fontFamily,
+        size: getComputedStyle(code).fontSize,
+        whitespace: getComputedStyle(code.parentElement).whiteSpace,
+        overflow: getComputedStyle(code.parentElement).overflowX,
+    }));
+    assert.ok(styles.font.includes("IBM Plex Mono"), "Generated code must receive scoped typography");
+    assert.equal(styles.size, "12px");
+    assert.equal(styles.whitespace, "pre");
+    assert.equal(styles.overflow, "auto");
+    await reply.getByRole("link", { name: "Details", exact: true }).focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "HTTP");
+    assert.equal(await reply.getByRole("link", { name: "HTTP", exact: true }).evaluate(link => getComputedStyle(link).outlineStyle), "solid");
+    await assertBounds();
+    await reply.screenshot({ path: path.join(screenshots, `markdown-${page.viewportSize().width}.png`) });
+
+    for (const snapshot of [
+        { source: "```html\n<img src='https://images.invalid/partial.png'>", text: "<img src=", selector: "pre code" },
+        { source: "[Pending](https://", text: "[Pending]", selector: "p" },
+        { source: "- First\n- Sec", text: "Sec", selector: "ul" },
+        { source: "| Name | Value |\n| --- | --- |\n| First | Sec", text: "Sec", selector: "table" },
+        { source: "[Blocked](javascript:alert%281%29)", text: "Blocked", selector: "p" },
+        { source: "", text: "", selector: null },
+        { source: "## Updated\n\n**Complete**", text: "Complete", selector: "strong" },
+    ]) {
+        await source.fill(snapshot.source);
+        await page.waitForFunction(({ text, selector }) => {
+            const reply = document.querySelector(".markdown-example .reply-markdown");
+            return text === "" ? reply.textContent.trim() === "" : reply.textContent.includes(text) && reply.querySelector(selector);
+        }, snapshot);
+        await assertSafeReply();
+        await assertBounds();
+    }
+    await source.fill(original);
+    await reply.getByRole("heading", { name: "Project summary" }).waitFor();
+    await page.evaluate(() => document.documentElement.style.zoom = "2");
+    await assertBounds();
+    await reply.screenshot({ path: path.join(screenshots, `markdown-zoom-${page.viewportSize().width}.png`) });
+    await page.evaluate(() => document.documentElement.style.zoom = "");
+
+    async function assertSafeReply() {
+        assert.equal(await reply.locator("img, script, iframe, style, object, embed, video, audio, source, [src], [srcset], [onerror], [onmouseover]").count(), 0);
+        assert.equal(await page.evaluate(() => window.markdownExecuted), undefined);
+        assert.ok(await reply.locator("a").evaluateAll(anchors => anchors.every(anchor => ["http:", "https:", "mailto:"].includes(new URL(anchor.href).protocol))));
+    }
+
+    async function assertBounds() {
+        const bounds = await reply.evaluate(element => ({
+            pageWidth: document.documentElement.clientWidth,
+            pageScroll: document.documentElement.scrollWidth,
+            width: element.clientWidth,
+            scroll: element.scrollWidth,
+        }));
+        assert.ok(bounds.pageScroll <= bounds.pageWidth + 1, "Markdown must not widen the page");
+        assert.ok(bounds.scroll <= bounds.width + 1, "Only code and table payloads may scroll horizontally");
+    }
 }
 
 async function checkHosts(page, width) {

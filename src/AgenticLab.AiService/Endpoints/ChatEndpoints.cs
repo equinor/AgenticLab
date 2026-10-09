@@ -73,7 +73,7 @@ internal static class ChatEndpoints
         // A built-in agent: resolve it and open a workspace only when it requires one.
         if (catalog.TryResolve(request.Agent, harness, out var agent, out var resolvedName))
         {
-            if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
+            if (catalog.RequiresWorkspace(resolvedName) && access.RequiresClientPath && string.IsNullOrWhiteSpace(request.Workspace))
             {
                 return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
             }
@@ -81,7 +81,9 @@ internal static class ChatEndpoints
             using var workspace = catalog.RequiresWorkspace(resolvedName) ? access.TryBegin(request.Workspace) : null;
             if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
             {
-                return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+                return Results.BadRequest(access.RequiresClientPath
+                    ? $"Workspace path '{request.Workspace}' is not an existing directory."
+                    : "The workspace is not available on this server.");
             }
 
             return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, instructions, cancellationToken);
@@ -89,7 +91,8 @@ internal static class ChatEndpoints
 
         // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
         // only be discovered once a (valid) workspace is open, and never while workspace features are disabled.
-        if (!access.Enabled || string.IsNullOrWhiteSpace(request.Workspace))
+        // In the read-only sample mode the server supplies the workspace, so no path is needed.
+        if (!access.Enabled || (access.RequiresClientPath && string.IsNullOrWhiteSpace(request.Workspace)))
         {
             return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
         }
@@ -97,7 +100,9 @@ internal static class ChatEndpoints
         using var agentWorkspace = access.TryBegin(request.Workspace);
         if (agentWorkspace is null)
         {
-            return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+            return Results.BadRequest(access.RequiresClientPath
+                ? $"Workspace path '{request.Workspace}' is not an existing directory."
+                : "The workspace is not available on this server.");
         }
 
         if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition, harness))

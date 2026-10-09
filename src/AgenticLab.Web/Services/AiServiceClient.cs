@@ -22,6 +22,10 @@ internal sealed class AiServiceClient(HttpClient http)
     public async Task<ChatLimitsInfo?> GetChatLimitsAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<ChatLimitsInfo>("/chat/limits", JsonOptions, cancellationToken);
 
+    /// <summary>How the service handles workspaces: caller-chosen paths, a read-only sample, or none.</summary>
+    public async Task<WorkspaceInfo?> GetWorkspaceInfoAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<WorkspaceInfo>("/workspace", JsonOptions, cancellationToken);
+
     /// <summary>
     /// Lists the brand vendors with their metadata (display name, simulated model label and the modes each
     /// offers) so the vendor picker can be built from the service rather than hard-coded. The non-brand
@@ -288,6 +292,7 @@ internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record ChatLimitsInfo(int MaxMessageLength);
+internal sealed record WorkspaceInfo(string Mode, string? SampleName = null, bool ReadOnly = false);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
 internal sealed record SkillInfo(string Name, string Description);

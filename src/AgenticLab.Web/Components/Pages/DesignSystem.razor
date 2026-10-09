@@ -65,8 +65,17 @@
                     <LabStatus Label="Connection failed" Tone="danger" />
                 </div>
             </section>
+            <section aria-labelledby="markdown-title">
+                <header><span class="section-number">06</span><h2 id="markdown-title">Conversation Markdown</h2></header>
+                <div class="markdown-example">
+                    <LabField For="markdown-source" Label="Reply text">
+                        <textarea id="markdown-source" rows="5" @bind="_replySample" @bind:event="oninput"></textarea>
+                    </LabField>
+                    <ReplyMarkdown Text="@_replySample" />
+                </div>
+            </section>
             <section aria-labelledby="banner-title">
-                <header><span class="section-number">06</span><h2 id="banner-title">Banner</h2></header>
+                <header><span class="section-number">07</span><h2 id="banner-title">Banner</h2></header>
                 <div class="examples banner-examples">
                     <LabBanner>An informational message, shown under the page header.</LabBanner>
                     <LabBanner Label="Notice with action">
@@ -77,27 +86,4 @@
             </section>
         </main>
     </div>
-}
-
-@code {
-    private int _activations;
-    private bool _following;
-    private bool _manual;
-    private bool _checked;
-    private int _delay = 500;
-    private string _name = "Research agent";
-    private static readonly (string Name, string Token)[] Colours =
-    [
-        ("Surface", "--lab-surface"), ("Muted surface", "--lab-surface-muted"),
-        ("Ink", "--lab-ink"), ("Accent", "--lab-accent"),
-        ("User", "--lab-user"), ("Host", "--lab-host"),
-        ("Model", "--lab-model"), ("Tool", "--lab-tool"), ("Danger", "--lab-danger")
-    ];
-
-    protected override void OnInitialized()
-    {
-        if (!Environment.IsDevelopment()) Navigation.NotFound();
-    }
-
-    private void CountActivation() => _activations++;
 }

@@ -65,7 +65,7 @@ internal sealed class RunStatus(FlowRunController owner)
         owner.Running ? "A turn is active. Continue or stop it before sending another message."
         : owner.View.ChatLimits.IsTooLong(owner.View.Message)
             ? $"Messages can be at most {owner.View.ChatLimits.MaxMessageLength} characters."
-        : owner.View.Agent.RequiresWorkspace && string.IsNullOrWhiteSpace(owner.View.Workspace)
+        : owner.View.Agent.RequiresWorkspace && !owner.View.HasWorkspace
             ? "This agent needs a workspace folder — set one under Settings."
             : null;
 
