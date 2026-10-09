@@ -78,10 +78,15 @@ Inside the harness, each reveal adds one responsibility while earlier nodes rema
 The examples use the same meeting-notes task as Agent and the loop. **Example and limits** expands
 the input, output and boundary of a responsibility; these details start closed.
 
-The loop starts with one user message. **Next step** adds a node and shows its explanation;
-previous nodes remain visible. **Messages and tool definitions** expands the supplied request
-content. **Show all steps** reveals the full sequence; **Restart** returns to its first node.
-Changing stages or reloading resets the sequence.
+The loop keeps five boxes and their connecting paths visible from the start: Context, Model decision,
+Harness executes, Observation and Final answer. **Next step** reveals the latest reached step inside
+its box and shows its explanation below; unreached boxes show only their headings with dashed borders.
+The active box is outlined, and traversed paths are highlighted. The second model request returns
+along the observation loop to the same Model decision box. On narrow screens the answer sits below
+the loop with its own branch from the model. **Messages and tool definitions** expands the supplied
+request content. **Show all steps** reveals all reached boxes and the full sequence of explanations;
+**Restart** clears the reveals back to the user message. Changing stages or reloading resets the sequence.
+Branches that are not taken remain unrevealed, including tool execution when notes are already supplied.
 
 The first model request contains instructions, the task and a `read_file` definition, but no
 file content. A model tool request is checked before invocation. Only after the result is included

@@ -10,6 +10,26 @@ namespace AgenticLab.Web.Tests;
 /// <summary>Protects journey permalinks, navigation and references to the shipped learning content.</summary>
 public sealed class AgentLearningJourneyTests
 {
+    /// <summary>The second request returns to the same model node; alternate outcomes do not invent tool results.</summary>
+    [Fact]
+    public void TurnExample_MapsStepsOntoPersistentLoopNodes()
+    {
+        var story = new AgentTurnStory();
+        Assert.Equal("context", story.Step.LoopNodeId);
+        Assert.Equal(
+            ["context", "model", "model", "execute", "observation", "model", "answer", "answer"],
+            story.Scenario.Steps.Select(step => step.LoopNodeId).ToArray());
+        foreach (var scenario in AgentTurnStory.Scenarios)
+        {
+            Assert.All(scenario.Steps, step => Assert.Contains(step.LoopNodeId,
+                new[] { "context", "model", "execute", "observation", "answer" }));
+            if (scenario.Id is "cancelled" or "limit" or "provided")
+                Assert.DoesNotContain(scenario.Steps, step => step.LoopNodeId == "observation");
+            if (scenario.Id is "cancelled" or "limit")
+                Assert.Equal("execute", scenario.Steps[^1].LoopNodeId);
+        }
+    }
+
     /// <summary>Only a successful read supplies file content on the next model request.</summary>
     [Fact]
     public void TurnExample_SeparatesToolRequestsExecutionAndContext()

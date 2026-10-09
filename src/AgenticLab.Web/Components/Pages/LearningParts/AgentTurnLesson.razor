@@ -9,16 +9,28 @@
         <LabButton Label="Restart" Variant="quiet" Disabled="@(_story.Beat == 0)" OnClick="_story.Restart" />
     </div>
     <p class="example-label">Example: list the actions agreed in meeting notes.</p>
-    <ol class="turn-nodes" aria-label="Steps reached">
-        @for (var index = 0; index <= _story.Beat; index++)
+    <div class="turn-loop" role="group" aria-label="Agent loop: context to model decision, permitted execution to observation, then back to the model or a final answer">
+        @foreach (var node in LoopNodes)
         {
-            var step = _story.Scenario.Steps[index];
-            <li class="@(step.Actor == "Model" ? "model-step" : "host-step")" aria-current="@(index == _story.Beat ? "step" : null)">
-                <span class="node-index">@(index + 1)</span>
-                <span><small>@step.Actor</small><strong>@step.Title</strong></span>
-            </li>
+            var reached = _story.Scenario.Steps.Take(_story.Beat + 1).LastOrDefault(step => step.LoopNodeId == node.Id);
+            <section class="loop-node loop-@node.Id @(reached is null ? "pending" : "reached")"
+                     data-loop-node="@node.Id" aria-current="@(_story.Step.LoopNodeId == node.Id ? "step" : null)">
+                <h3><span class="loop-icon @node.Icon" aria-hidden="true"></span>@node.Title</h3>
+                @if (reached is not null)
+                {
+                    <div class="node-detail">
+                        <small>@reached.Actor</small>
+                        <p>@reached.Title</p>
+                    </div>
+                }
+            </section>
         }
-    </ol>
+        <span class="loop-edge context-edge @(HasReached("request-1") ? "traversed" : null)" aria-hidden="true"></span>
+        <span class="loop-edge tool-edge @(HasReached("tool-request") ? "traversed" : null)" aria-hidden="true"><span>Tool request</span></span>
+        <span class="loop-edge result-edge @(HasReached("result") ? "traversed" : null)" aria-hidden="true"><span>Tool result</span></span>
+        <span class="loop-edge answer-edge @(HasReached("answer") ? "traversed" : null)" aria-hidden="true"></span>
+        <span class="return-edge @(HasReached("request-2") ? "traversed" : null)" aria-hidden="true"><span>Next request</span></span>
+    </div>
     <div class="turn-evidence" aria-live="polite" aria-atomic="true">
         @foreach (var step in _story.ShowAll ? _story.Scenario.Steps : new[] { _story.Step })
         {
@@ -85,6 +97,17 @@
 
 @code {
     private readonly AgentTurnStory _story = new();
+
+    private static readonly (string Id, string Title, string Icon)[] LoopNodes =
+    [
+        ("context", "Context", "workflow-icon"),
+        ("model", "Model decision", "model-icon"),
+        ("execute", "Harness executes", "workflow-icon"),
+        ("observation", "Observation", "workflow-icon"),
+        ("answer", "Final answer", "workflow-icon"),
+    ];
+
+    private bool HasReached(string id) => _story.Scenario.Steps.Take(_story.Beat + 1).Any(step => step.Id == id);
 
     private void SelectOutcome(ChangeEventArgs args) => _story.Select(args.Value?.ToString() ?? "read");
 

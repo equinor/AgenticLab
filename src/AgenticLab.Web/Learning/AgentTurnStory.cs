@@ -9,7 +9,18 @@ internal sealed record LearningTurnMessage(string Role, string Text, LearningToo
 internal sealed record LearningModelRequest(IReadOnlyList<LearningTurnMessage> Messages, IReadOnlyList<LearningToolDefinition> Tools);
 internal sealed record LearningTurnStep(
     string Id, string Actor, string Title, string Explanation, string EvidenceLabel,
-    string Evidence, LearningModelRequest? Request = null, bool ExecutesTool = false, string? Outcome = null);
+    string Evidence, LearningModelRequest? Request = null, bool ExecutesTool = false, string? Outcome = null)
+{
+    internal string LoopNodeId => Id switch
+    {
+        "task" => "context",
+        "request-1" or "tool-request" or "request-2" => "model",
+        "permission" or "stop" => "execute",
+        "result" => "observation",
+        "answer" or "finish" => "answer",
+        _ => throw new InvalidOperationException($"No loop node for step '{Id}'."),
+    };
+}
 internal sealed record LearningTurnScenario(string Id, string Title, IReadOnlyList<LearningTurnStep> Steps);
 internal sealed record HarnessResponsibility(string NodeId, string Input, string Operation, string Output, string Boundary);
 
