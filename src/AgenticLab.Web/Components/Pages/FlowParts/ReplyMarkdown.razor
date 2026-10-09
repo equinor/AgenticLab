@@ -1,0 +1,19 @@
+@using AgenticLab.Web.Services
+
+<div class="reply-markdown">@_html</div>
+
+@code {
+    /// <summary>Untrusted reply text, including an incomplete snapshot during a run.</summary>
+    [Parameter]
+    public string? Text { get; set; }
+
+    private string? _source;
+    private MarkupString _html;
+
+    protected override void OnParametersSet()
+    {
+        if (string.Equals(_source, Text, StringComparison.Ordinal)) return;
+        _source = Text;
+        _html = new MarkupString(ReplyMarkdownRenderer.Render(Text));
+    }
+}

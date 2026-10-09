@@ -47,6 +47,8 @@ ENTRYPOINT ["dotnet", "AgenticLab.Web.dll"]
 
 FROM runtime AS aiservice
 COPY --from=publish-aiservice /out .
+# The sample workspace for Workspace:Mode=ReadOnlySample, owned by root so the app user can only read it.
+COPY --chmod=555 sample-workspace ./sample-workspace
 ENTRYPOINT ["dotnet", "AgenticLab.AiService.dll"]
 
 FROM runtime AS mcpserver

@@ -167,6 +167,17 @@
     color: var(--text-dim);
 }
 
+/* The read-only sample workspace the server supplies, shown in place of the path input. */
+.workspace-label {
+    font-size: .8rem;
+    color: var(--text-dim);
+}
+
+.workspace-sample {
+    font-family: var(--lab-font-mono);
+    font-size: .85rem;
+}
+
 /* Compact, expandable resource lists (workspace skills + custom instructions): a checkbox + name row
    per item, click the name to reveal its description. Skills default enabled, instructions default off. */
 .resource-control {

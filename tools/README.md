@@ -104,6 +104,30 @@ state and replay contracts without credentials:
 dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 ```
 
+### Markdown-only smoke
+
+The full smoke also checks the catalogue's Conversation Markdown sample. To run only those checks,
+start Web in Development without Aspire or model credentials and use `--markdown-only`:
+
+```powershell
+dotnet run --project src/AgenticLab.Web --no-launch-profile -- --environment Development --urls http://127.0.0.1:5186
+```
+
+In another PowerShell terminal, using the temporary Playwright installation from Setup:
+
+```powershell
+$env:AGENTICLAB_URL = "http://127.0.0.1:5186"
+$env:NODE_PATH = "$env:TEMP/agentic-lab-loadtest/node_modules"
+node tools/web-smoke.mjs --markdown-only
+```
+
+On Windows, use `$env:TEMP/agentic-lab-loadtest` as the install prefix instead of `/tmp/agentic-lab-loadtest`.
+The checks use the production reply component with synthetic content, not model calls: complete and
+partial Markdown, literal HTML, URL restrictions, image-request blocking, scoped code typography,
+keyboard link focus, bounded overflow, all four viewport sizes and 200% zoom. Screenshots are named
+`markdown-*.png`. This profile does not verify backend streaming or the full Flow page; the Web tests
+separately cover current replies, archiving and reset with fake SSE responses.
+
 ## Load test
 
 Optional example modules own their scenario-specific checks inside their project folders; see

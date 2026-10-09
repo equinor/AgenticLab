@@ -18,4 +18,6 @@ output { display: block; margin-top: var(--lab-space-3); color: var(--lab-muted)
 input { accent-color: var(--lab-accent); }
 .range { flex-wrap: wrap; }
 .range output { margin: 0; min-width: 64px; }
+.markdown-example { display: grid; gap: var(--lab-space-5); width: 100%; max-width: 600px; min-width: 0; }
+.markdown-example textarea { width: 100%; max-width: 100%; min-width: 0; resize: vertical; font: var(--lab-text-sm)/var(--lab-leading) var(--lab-font-mono); }
 @media (max-width: 600px) { main { padding-inline: var(--lab-space-5); } .fields { grid-template-columns: minmax(0, 1fr); } }

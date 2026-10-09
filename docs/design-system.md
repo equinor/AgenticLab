@@ -14,6 +14,13 @@ have no dependency on Flow state, AiService, React or npm.
 - `/design-system`: interactive catalogue, with no backend calls. Available only in Development;
   returns 404 otherwise and is absent from production navigation.
 
+The catalogue includes an editable Conversation Markdown sample using Flow's `ReplyMarkdown`
+component. It exercises untrusted HTML, restricted links, image alt text, tables and code without
+backend requests. Its scoped `::deep` styles reach generated HTML through the component wrapper;
+the renderer is separate from Learn's repository-authored content pipeline. Change the sample text
+to inspect incomplete replies. The [Markdown smoke profile](../tools/README.md#markdown-only-smoke)
+checks partial updates, security and responsive styling without an AI service.
+
 Host branding belongs to [example modules](examples.md), using local RCL SVG masks with a neutral
 fallback. It must not change shared tokens, contributor meanings, layout or run state.
 

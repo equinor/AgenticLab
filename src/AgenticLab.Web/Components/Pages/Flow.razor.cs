@@ -107,6 +107,16 @@ public partial class Flow : IDisposable
                 _view.HostKey = _view.Roster.RestoreHost(null);
             }
 
+            // Optional: an older service without GET /workspace, or a failed call, keeps the local behavior
+            // (asking for a path) and must not stop the agent list from loading.
+            try
+            {
+                _view.ServerWorkspace.Set(await Ai.GetWorkspaceInfoAsync());
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or NotSupportedException)
+            {
+            }
+
             var response = await Ai.GetAgentsAsync();
             if (response is not null)
             {
@@ -115,8 +125,17 @@ public partial class Flow : IDisposable
                 _catalogsLoaded = true;
             }
 
-            await _run.Catalogs.RefreshHarnessPromptAsync();
-            await _run.Catalogs.RefreshKnownA2AAsync();
+            // The server's sample workspace needs no path, so load its skills, instructions and agents now
+            // instead of waiting for the user to enter one.
+            if (_view.ServerWorkspace.IsSample)
+            {
+                await _run.Catalogs.RefreshWorkspaceContextAsync();
+            }
+            else
+            {
+                await _run.Catalogs.RefreshHarnessPromptAsync();
+                await _run.Catalogs.RefreshKnownA2AAsync();
+            }
         }
         catch (Exception ex)
         {

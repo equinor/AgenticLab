@@ -65,7 +65,16 @@
         }
     </div>
 
-    @if (View.Agent.RequiresWorkspace)
+    @if (View.Agent.RequiresWorkspace && View.ServerWorkspace.IsSample)
+    {
+        @* The server supplies a read-only sample project, so there is no path to enter or folders to browse. *@
+        <div class="control message workspace-control">
+            <span class="workspace-label">Workspace</span>
+            <span class="workspace-sample">📁 @View.ServerWorkspace.SampleName</span>
+            <span class="bases-hint">A shared, read-only sample project. Agents can read and explain its files, but can't change them or run commands.</span>
+        </div>
+    }
+    else if (View.Agent.RequiresWorkspace)
     {
         <div class="control message workspace-control">
             <label for="workspace">Workspace</label>
