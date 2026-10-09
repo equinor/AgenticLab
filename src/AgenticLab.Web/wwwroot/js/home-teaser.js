@@ -4,6 +4,7 @@ class AgenticHomeTeaser extends HTMLElement {
     #events;
     #timer;
     #slides = [];
+    #panels;
     #controls;
     #toggle;
     #counter;
@@ -29,6 +30,7 @@ class AgenticHomeTeaser extends HTMLElement {
         this.#timer = undefined;
         this.removeAttribute("data-ready");
         this.removeAttribute("aria-roledescription");
+        this.#panels?.setAttribute("aria-live", "off");
         for (const slide of this.#slides) {
             for (const attribute of ["data-active", "aria-hidden", "aria-label", "aria-roledescription", "role"])
                 slide.removeAttribute(attribute);
@@ -40,12 +42,13 @@ class AgenticHomeTeaser extends HTMLElement {
 
     #initialize(signal) {
         this.#slides = [...this.querySelectorAll("[data-teaser-slide]")];
+        this.#panels = this.querySelector(".teaser-panels");
         this.#controls = this.querySelector("[data-teaser-controls]");
         this.#toggle = this.querySelector('[data-teaser-action="toggle"]');
         this.#counter = this.querySelector("[data-teaser-count]");
         this.#pauseIcon = this.querySelector("[data-teaser-pause]");
         this.#playIcon = this.querySelector("[data-teaser-play]");
-        if (this.#slides.length < 2 || !this.#controls || !this.#toggle || !this.#counter || !this.#pauseIcon || !this.#playIcon) return;
+        if (this.#slides.length < 2 || !this.#panels || !this.#controls || !this.#toggle || !this.#counter || !this.#pauseIcon || !this.#playIcon) return;
 
         const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
         this.#index = 0;
@@ -59,6 +62,7 @@ class AgenticHomeTeaser extends HTMLElement {
             slide.setAttribute("aria-label", `${index + 1} of ${this.#slides.length}`);
         });
 
+        // Capture the intended action before focusin pauses rotation ahead of the click.
         this.#toggle.addEventListener("pointerdown", () => this.#pointerPause = !this.#paused, { signal });
         this.#toggle.addEventListener("pointercancel", () => this.#pointerPause = undefined, { signal });
         this.addEventListener("click", event => {
@@ -110,6 +114,7 @@ class AgenticHomeTeaser extends HTMLElement {
     }
 
     #render() {
+        this.#panels.setAttribute("aria-live", this.#paused ? "polite" : "off");
         this.#slides.forEach((slide, index) => {
             const active = index === this.#index;
             slide.toggleAttribute("data-active", active);

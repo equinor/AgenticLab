@@ -27,6 +27,7 @@ try {
         await fallbackPage.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
         assert.equal(await fallbackPage.locator("[data-teaser-slide]:visible").count(), 3, "All messages are readable without JavaScript");
         assert.equal(await fallbackPage.locator("[data-teaser-controls]").isVisible(), false, "Fallback has no inactive controls");
+        assert.equal(await fallbackPage.locator(".home-purpose").isVisible(), true, "The purpose is readable without JavaScript");
         await capture(fallbackPage, `home-no-js-${viewport.width}`);
         await fallbackPage.close();
         const page = currentPage = await context.newPage();
@@ -139,21 +140,27 @@ async function checkTeaser(page, viewport) {
     const teaser = page.locator("agentic-home-teaser[data-ready]");
     await teaser.waitFor();
     await page.evaluate(() => document.fonts.ready);
-    const titles = ["Why", "What is an agent?", "Why Agentic Lab?"];
+    const titles = ["Why agents matter", "What is an agent?", "Why Agentic Lab?"];
     assert.deepEqual(await teaser.locator("h3").allTextContents(), titles);
     assert.equal(await teaser.getAttribute("aria-roledescription"), "carousel");
-    assert.equal(await teaser.locator(".teaser-panels").getAttribute("aria-live"), "off");
+    const panels = teaser.locator(".teaser-panels");
+    assert.equal(await panels.getAttribute("aria-live"), "off");
+    assert.deepEqual(await teaser.locator("button").evaluateAll(buttons => buttons.map(button => button.dataset.teaserAction)),
+        ["toggle", "previous", "next"], "Rotation control comes first in visual and tab order");
     const count = page.locator("[data-teaser-count]");
     const previous = page.getByRole("button", { name: "Previous message", exact: true });
     const next = page.getByRole("button", { name: "Next message", exact: true });
     const toggle = page.locator('[data-teaser-action="toggle"]');
-    const layout = () => page.locator(".home-title, .destinations, .destination, .home-teaser, .teaser-controls")
+    const layout = () => page.locator(".home-title, .home-purpose, .destinations, .destination, .home-teaser, .teaser-controls")
         .evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON()));
     const initialLayout = await layout();
 
-    async function assertMessage(index) {
+    async function assertMessage(index, live = "off") {
         assert.equal(await count.textContent(), `${index + 1} / 3`);
         assert.equal(await teaser.locator("[data-active] h3").textContent(), titles[index]);
+        assert.equal(await panels.getAttribute("aria-live"), live, "Only stopped rotation announces message changes");
+        assert.equal(await count.getAttribute("aria-live"), "off", "The counter does not duplicate message announcements");
+        assert.equal(await page.locator(".home-purpose").isVisible(), true, "The purpose remains visible for every message");
         assert.equal(await teaser.getByRole("group").count(), 1, "Only the active message is exposed to accessibility");
         assert.ok(await teaser.locator("[data-teaser-slide]:not([data-active])")
             .evaluateAll(slides => slides.every(slide => slide.inert && slide.getAttribute("aria-hidden") === "true")));
@@ -164,36 +171,39 @@ async function checkTeaser(page, viewport) {
         assert.deepEqual(await layout(), initialLayout, "Messages and controls do not shift the page");
     }
 
-    async function advance(milliseconds, index) {
+    async function advance(milliseconds, index, live = "off") {
         await page.clock.runFor(milliseconds);
-        await assertMessage(index);
+        await assertMessage(index, live);
     }
 
     await assertMessage(0);
     for (const index of [1, 2, 0]) await advance(7000, index);
     await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
     await page.mouse.move(0, 0);
-    await advance(14000, 0);
+    await advance(14000, 0, "polite");
     await previous.click();
-    await assertMessage(2);
+    await assertMessage(2, "polite");
     await next.click();
-    await assertMessage(0);
+    await assertMessage(0, "polite");
     await page.mouse.move(0, 0);
+    await page.keyboard.press("Shift+Tab");
+    assert.ok(await previous.evaluate(element => document.activeElement === element), "Previous precedes Next in tab order");
     await page.keyboard.press("Shift+Tab");
     assert.ok(await toggle.evaluate(element => element.matches(":focus-visible")), "Keyboard playback control has visible focus");
     assert.equal(await toggle.getAttribute("aria-label"), "Play rotation");
     await page.keyboard.press("Enter");
     await advance(7000, 1);
     await page.keyboard.press("Tab");
-    await advance(14000, 1);
+    assert.ok(await previous.evaluate(element => document.activeElement === element), "Rotation control precedes Previous in tab order");
+    await advance(14000, 1, "polite");
     await page.getByRole("link", { name: "Live flow", exact: true }).focus();
     await page.keyboard.press("ArrowRight");
-    await advance(7000, 1);
+    await advance(7000, 1, "polite");
     await next.focus();
     await page.keyboard.press("ArrowLeft");
-    await assertMessage(0);
+    await assertMessage(0, "polite");
     await page.keyboard.press("ArrowRight");
-    await assertMessage(1);
+    await assertMessage(1, "polite");
 
     await page.reload({ waitUntil: "networkidle" });
     await teaser.waitFor();
@@ -213,13 +223,13 @@ async function checkTeaser(page, viewport) {
     await advance(7000, 2);
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.getByRole("button", { name: "Play rotation", exact: true }).waitFor();
-    await advance(14000, 2);
+    await advance(14000, 2, "polite");
     assert.equal(await teaser.locator("[data-active]").evaluate(element => getComputedStyle(element).transitionDuration), "0s");
     await page.reload({ waitUntil: "networkidle" });
     await teaser.waitFor();
-    await advance(21000, 0);
+    await advance(21000, 0, "polite");
     await next.click();
-    await assertMessage(1);
+    await assertMessage(1, "polite");
     await capture(page, `home-teaser-${viewport.width}`);
     await page.getByRole("button", { name: "Play rotation", exact: true }).click();
     await page.mouse.move(0, 0);
@@ -227,7 +237,7 @@ async function checkTeaser(page, viewport) {
     await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
     await page.mouse.move(0, 0);
     await page.emulateMedia({ reducedMotion: "no-preference" });
-    await advance(14000, 2);
+    await advance(14000, 2, "polite");
 
     await page.getByRole("button", { name: "Play rotation", exact: true }).click();
     await page.mouse.move(0, 0);
@@ -257,6 +267,9 @@ async function checkHome(page, viewport) {
     assert.equal(response.status(), 200);
     await page.locator("agentic-home-teaser[data-ready]").waitFor();
     await page.getByRole("heading", { name: "Agentic Lab", level: 1, exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Agentic Lab", exact: true }).count(), 1, "The product heading is not repeated");
+    assert.equal(await page.getByRole("heading", { name: "Choose where to start", level: 2, exact: true }).count(), 1);
+    assert.match(await page.locator(".home-purpose").textContent(), /Agentic Lab demystifies agentic AI\./);
     assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
     assert.equal(await page.locator(".flow-app, .learn-app").count(), 0, "Home does not mount either destination");
     assert.equal(requests.some(route => route === "/_blazor" || route === "/_blazor/negotiate"), false,
@@ -294,10 +307,11 @@ async function checkHome(page, viewport) {
     assert.equal((await page.reload({ waitUntil: "networkidle" })).status(), 200, "Flow supports direct reloads");
     await page.locator(".flow-app").waitFor();
     assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
-    await page.getByRole("link", { name: / home$/ }).click();
+    await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
     await page.locator(".home-app").waitFor();
-    await followHomeLinkWithKeyboard(page, "Agentic AI guide", "/learn");
+    await followHomeLinkWithKeyboard(page, "Agent guide", "/learn");
     await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
     assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
     await page.getByRole("link", { name: "The agent loop", exact: true }).click();
     await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("stage") === "agent-loop");
@@ -311,7 +325,7 @@ async function checkHome(page, viewport) {
     await page.getByRole("link", { name: "Open live flow", exact: true }).click();
     await page.waitForURL(url => url.pathname === "/flow");
     await page.locator(".flow-app").waitFor();
-    await page.getByRole("link", { name: / home$/ }).click();
+    await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
     await page.locator(".home-app").waitFor();
     await page.locator("agentic-home-teaser[data-ready]").waitFor();
     assert.equal(await page.locator("[data-teaser-count]").textContent(), "1 / 3", "Returning Home initializes one fresh teaser");

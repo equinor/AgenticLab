@@ -126,7 +126,7 @@ internal static class AgentLearningJourney
             "Today + future integration", false,
             ["guardrails", "securing-agents"],
             ["lifecycle-run", "lifecycle-observe", "lifecycle-evaluate", "lifecycle-improve"],
-                "Open live flow", "/flow"),
+            "Open live flow", "/flow"),
     ]);
 
     internal static IReadOnlyList<LearningStage> Stages { get; } =

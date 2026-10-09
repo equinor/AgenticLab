@@ -42,19 +42,24 @@ background roles. Contributor provenance, risk levels and signed chart scales ke
 ## Components
 
 `AppHeader` provides the product mark as an accessible Home link to `/`, page context and repository
-link; children supply page actions. Keep it inside the page's render boundary, without navigation/run
+link; its default heading and Home-link name use **Agentic Lab**. Children supply page actions.
+Keep it inside the page's render boundary, without navigation/run
 state. Agent guide links open in the same tab from Home/Flow and a new tab from Discovery;
 Learn has no Discovery entry. **Live flow** links target `/flow`, not the front page.
 
 Home reuses the header and local icon assets, with equally sized native destination links in its
 scoped CSS. The two-column layout stacks at 900px. It uses static server rendering, shared focus
-and reduced-motion tokens, and no catalogue or run state.
+and reduced-motion tokens, and no catalogue or run state. Its purpose statement remains visible
+above the destinations. A visually hidden "Choose where to start" heading identifies the main
+content without repeating the header's product heading; the large product wordmark is decorative.
 
 Home's teaser is a feature-local browser enhancement, not a shared carousel primitive. Its
 page-owned messages share a grid cell after enhancement so the longest one reserves space;
 inactive messages are invisible, inert and hidden from accessibility. Native icon buttons reuse
 `MiniIcon`, with explicit SVG sizing, accessible labels and visible focus. No Blazor callbacks or
-server circuit are needed. Without JavaScript the messages remain an ordinary readable list.
+server circuit are needed. Pause/Play is first in visual and tab order. The panels use
+`aria-live="polite"` while paused and `"off"` while rotating; the counter does not announce changes.
+Without JavaScript the messages remain an ordinary readable list.
 The local custom element owns playback, motion preferences and disconnect cleanup; the guide's
 content and reveal controls are independent.
 

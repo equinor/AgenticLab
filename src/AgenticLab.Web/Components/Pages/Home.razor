@@ -7,7 +7,10 @@
 
     <main class="home-main">
         <div class="home-content">
-            <h2 class="home-title">Agentic Lab</h2>
+            <p class="home-title" aria-hidden="true">Agentic Lab</p>
+            <p class="home-purpose">Agentic Lab demystifies agentic AI. Learn how agent hosts, models and tools work together,
+                and what happens between a question and an answer.</p>
+            <h2 class="destinations-heading">Choose where to start</h2>
             <nav class="destinations" aria-label="Agentic Lab destinations">
                 <a class="destination" href="/flow">
                     <span class="destination-icon flow-icon" aria-hidden="true"></span>
@@ -16,7 +19,7 @@
                 </a>
                 <a class="destination" href="/learn">
                     <span class="destination-icon guide-icon" aria-hidden="true"></span>
-                    <span class="destination-name">Agentic AI guide</span>
+                    <span class="destination-name">Agent guide</span>
                     <span class="destination-arrow" aria-hidden="true">&rarr;</span>
                 </a>
             </nav>
@@ -33,14 +36,14 @@
                 </div>
                 <div class="teaser-controls" data-teaser-controls hidden>
                     <span class="teaser-count" data-teaser-count aria-live="off">1 / @Teasers.Count</span>
-                    <button type="button" class="teaser-control" data-teaser-action="previous"
-                            aria-label="Previous message" title="Previous message">
-                        <MiniIcon Name="prev" />
-                    </button>
                     <button type="button" class="teaser-control" data-teaser-action="toggle"
                             aria-label="Pause rotation" title="Pause rotation">
                         <span data-teaser-pause><MiniIcon Name="pause" /></span>
                         <span data-teaser-play hidden><MiniIcon Name="play" /></span>
+                    </button>
+                    <button type="button" class="teaser-control" data-teaser-action="previous"
+                            aria-label="Previous message" title="Previous message">
+                        <MiniIcon Name="prev" />
                     </button>
                     <button type="button" class="teaser-control" data-teaser-action="next"
                             aria-label="Next message" title="Next message">
@@ -55,8 +58,8 @@
 @code {
     private static readonly IReadOnlyList<(string Title, string Detail)> Teasers =
     [
-        ("Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),
+        ("Why agents matter", "Agents can turn a request into actions across tools and services. Understanding their limits helps us decide when to rely on them."),
         ("What is an agent?", "An agent is a system that can observe its environment, make decisions, and take actions."),
-        ("Why Agentic Lab?", "To demystify agentic AI and show how it works"),
+        ("Why Agentic Lab?", "To demystify agentic AI and show how it works."),
     ];
 }
