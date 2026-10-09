@@ -296,7 +296,7 @@ async function checkHome(page, viewport) {
     assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
     await page.getByRole("link", { name: / home$/ }).click();
     await page.locator(".home-app").waitFor();
-    await followHomeLinkWithKeyboard(page, "Agent guide", "/learn");
+    await followHomeLinkWithKeyboard(page, "Agentic AI guide", "/learn");
     await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
     assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
     await page.getByRole("link", { name: "The agent loop", exact: true }).click();
