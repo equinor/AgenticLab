@@ -117,6 +117,16 @@ public partial class Flow : IDisposable
             {
             }
 
+            // Optional too: an older service without GET /chat/limits, or a failed call, applies no client-side
+            // limit and must not stop the agent list from loading. The service enforces its limit regardless.
+            try
+            {
+                _view.ChatLimits.Set(await Ai.GetChatLimitsAsync());
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or NotSupportedException)
+            {
+            }
+
             var response = await Ai.GetAgentsAsync();
             if (response is not null)
             {

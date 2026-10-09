@@ -68,6 +68,11 @@ The current stream delivers reply text in its `final` event. The same renderer a
 Markdown snapshots safely, without changing the stream protocol, run controls or scroll-following
 behavior. Rendering is cached only for the component's latest text, not stored in conversation state.
 
+When the service sets an [input limit](agents.md#input-limits), the composer and answer input stop at
+it, a counter shows the characters used, and Send stays disabled over the limit. Every page shows the
+"Data notice" banner below the header: Agentic Lab is educational, and only Open information may be
+entered.
+
 ### Run controls
 
 The toolbar above live flow owns **Auto / Manual**, delay, Pause/Resume, Next and Stop. Auto advances

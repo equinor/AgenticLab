@@ -6,7 +6,7 @@
 /// collaborators that hold the rest — <see cref="Layout"/> (dockable panels), <see cref="Concepts"/>
 /// (the Learn UI), <see cref="Options"/> (per-run stepping/breakpoint/toggle options),
 /// <see cref="WorkspacePrefs"/> (persisted workspace preferences), <see cref="ServerWorkspace"/> (the
-/// service's workspace mode), <see cref="Diagram"/> (diagram
+/// service's workspace mode), <see cref="ChatLimits"/> (the service's input limits), <see cref="Diagram"/> (diagram
 /// toggles + pinned token), <see cref="Cursor"/> (the Execution explorer cursor), <see cref="Roster"/>
 /// (agents + vendors), <see cref="Agent"/> (values derived from the selected agent) and
 /// <see cref="Harness"/> (the harness/LLM node presentation + system prompt). It is deliberately free of
@@ -32,6 +32,7 @@ internal sealed class FlowViewState
         Options = new RunOptions(Notify);
         WorkspacePrefs = new WorkspacePrefs(Notify);
         ServerWorkspace = new ServerWorkspace(() => { ConfigurationVersion++; Notify(); });
+        ChatLimits = new ChatLimits(Notify);
         Diagram = new DiagramOptions(Notify);
         Cursor = new ReplayCursor(Notify);
         Roster = new AgentRoster(this, Notify);
@@ -56,6 +57,7 @@ internal sealed class FlowViewState
     public RunOptions Options { get; }
     public WorkspacePrefs WorkspacePrefs { get; }
     public ServerWorkspace ServerWorkspace { get; }
+    public ChatLimits ChatLimits { get; }
     public DiagramOptions Diagram { get; }
     public ReplayCursor Cursor { get; }
     public AgentRoster Roster { get; }

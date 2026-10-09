@@ -1,4 +1,5 @@
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.Options;
 
 namespace AgenticLab.AiService.Endpoints;
 
@@ -9,10 +10,20 @@ internal static class ChatEndpoints
     {
         app.MapPost("/chat", ChatAsync);
 
+        // Publishes the input limits so a client can apply them while the user types. The endpoints below
+        // enforce them regardless, so the limit can't be bypassed by calling the service directly.
+        app.MapGet("/chat/limits", (IOptions<ChatInputOptions> limits) =>
+            Results.Ok(new ChatLimitsResponse(Math.Max(limits.Value.MaxMessageLength, 0))));
+
         // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
         // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, CancellationToken cancellationToken) =>
+        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
         {
+            if (!limits.Value.Allows(request.Message))
+            {
+                return Results.BadRequest(limits.Value.TooLongMessage);
+            }
+
             if (request.Breakpoints?.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)) == true)
             {
                 return Results.BadRequest("Unknown breakpoint kind.");
@@ -25,7 +36,8 @@ internal static class ChatEndpoints
                 eventType: "flow");
         });
 
-        app.MapPost("/chat/control", Control);
+        app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry registry, IOptions<ChatInputOptions> limits) =>
+            Control(request, registry, limits.Value));
 
         // Clears a conversation's remembered history so the next message starts fresh.
         app.MapPost("/chat/reset", (ConversationResetRequest request, ConversationStore conversations) =>
@@ -43,11 +55,16 @@ internal static class ChatEndpoints
     }
 
     // One non-interactive turn against a built-in or workspace-defined agent.
-    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, CancellationToken cancellationToken)
+    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return Results.BadRequest("Message must not be empty.");
+        }
+
+        if (!limits.Value.Allows(request.Message))
+        {
+            return Results.BadRequest(limits.Value.TooLongMessage);
         }
 
         // When a brand/vendor is selected, its harness replaces the shared harness for this run.
@@ -120,8 +137,13 @@ internal static class ChatEndpoints
 
     // Drives an in-flight /chat/stream run: single-step (next), pause, resume, switch mode, change the
     // delay, answer a tool's question, release a breakpoint or stop. Matches the run by its session id.
-    private static IResult Control(FlowControlRequest request, FlowControlRegistry registry)
+    private static IResult Control(FlowControlRequest request, FlowControlRegistry registry, ChatInputOptions limits)
     {
+        if (!limits.Allows(request.Answer))
+        {
+            return Results.BadRequest(limits.TooLongMessage);
+        }
+
         if (!registry.TryGet(request.SessionId, out var session))
         {
             return Results.NotFound();
@@ -183,6 +205,7 @@ internal static class ChatEndpoints
 
 internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
+internal sealed record ChatLimitsResponse(int MaxMessageLength);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record ConversationResetRequest(string ConversationId);

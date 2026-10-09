@@ -24,6 +24,7 @@ builder.Services
     .AddVendorHarnesses()
     .AddDemoAgents(builder.Configuration)
     .AddConversationMemory(builder.Configuration)
+    .AddChatInputLimits(builder.Configuration)
     .AddFlowTracing()
     .AddDiscovery();
 

@@ -261,6 +261,8 @@ root Dockerfile's stages.
 - `aiservice` runs with `Workspace__Mode=ReadOnlySample`: Ask, Plan and the Guide agent work on the
   bundled `sample-workspace` with read-only tools. Users can't choose server folders, write files,
   run commands or fetch web pages. See [read-only sample mode](docs/workspace.md#read-only-sample-mode).
+- `aiservice` limits chat messages and answers to 500 characters (`Chat__MaxMessageLength`); every
+  page shows a banner that only Open information may be entered. See [input limits](docs/agents.md#input-limits).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 

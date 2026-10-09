@@ -119,6 +119,13 @@ internal static class ServiceRegistration
         return services;
     }
 
+    /// <summary>The limits on what users may send (<see cref="ChatInputOptions"/>, from the <c>Chat</c> section).</summary>
+    public static IServiceCollection AddChatInputLimits(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ChatInputOptions>(configuration.GetSection(ChatInputOptions.SectionName));
+        return services;
+    }
+
     /// <summary>The flow tracer that projects a real agent run into paced flow events, and the session registry that drives it.</summary>
     public static IServiceCollection AddFlowTracing(this IServiceCollection services)
     {
