@@ -85,6 +85,10 @@ public sealed class AgentLearningJourneyTests
         Assert.False(story.ShowAll);
         story.Move(int.MaxValue);
         Assert.Equal(story.Scenario.Steps.Count - 1, story.Beat);
+        Assert.False(story.ShowAll);
+        story.Complete();
+        story.Move(int.MaxValue);
+        Assert.False(story.ShowAll);
         story.Restart();
         Assert.Equal("denied", story.Scenario.Id);
         Assert.Equal(0, story.Beat);
@@ -326,7 +330,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agents-everywhere", "harness,model")]
     [InlineData("model-to-agent", "harness,model")]
     [InlineData("inside-the-harness", "harness-context,instructions,available-tools,harness-memory,execution-controls")]
-    [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
+    [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,execution-controls,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-observe,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
     [InlineData("where-to-run", "hosting-runtime,hosting-model,hosting-access,hosting-owner")]
@@ -484,7 +488,7 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(0, story.Beat);
     }
 
-    /// <summary>Composition separates the outbound model request from its response before revealing the agent boundary.</summary>
+    /// <summary>Composition introduces the model, harness and tool before requests, responses and returned evidence.</summary>
     [Fact]
     public void FoundationStory_CompositionSeparatesRequestAndResponse()
     {
@@ -492,23 +496,24 @@ public sealed class AgentLearningJourneyTests
         story.SetStage("model-to-agent");
 
         Assert.Equal(7, story.Captions.Count);
-        Assert.Contains("Agent = Harness + Model", story.Caption);
-        story.Move(1);
-        Assert.Contains("selects instruction text and messages", story.Caption);
-        Assert.Contains("execution controls", story.Caption);
-        story.Move(1);
-        Assert.Contains("The harness executes tools", story.Caption);
-        Assert.Contains("meeting-notes.txt", story.Caption);
-        story.Move(1);
         Assert.Contains("generates a response", story.Caption);
-        Assert.Contains("does not execute tools itself", story.Caption);
+        Assert.Contains("does not independently read files", story.Caption);
+        story.Move(1);
+        Assert.Contains("supplies input to the model", story.Caption);
+        story.Move(1);
+        Assert.Contains("code the harness can invoke", story.Caption);
+        Assert.Contains("meeting-notes.txt", story.Caption);
         story.Move(1);
         Assert.Contains("selected messages and tool definitions", story.Caption);
         Assert.Contains("does not contain its text", story.Caption);
         story.Move(1);
         Assert.Contains("text, tool requests or both", story.Caption);
+        Assert.Contains("does not execute tools itself", story.Caption);
+        story.Move(1);
+        Assert.Contains("include it in a new model request", story.Caption);
         Assert.True(story.CanNext);
         story.Move(1);
+        Assert.Contains("Agent = Harness + Model", story.Caption);
         Assert.Contains("does not prove the task succeeded", story.Caption);
         Assert.False(story.CanNext);
     }
@@ -576,6 +581,14 @@ public sealed class AgentLearningJourneyTests
         var story = new FoundationStory();
         story.SetStage("anatomy-of-agent");
         Assert.Equal(8, story.Captions.Count);
+        Assert.Equal("meeting-notes", story.Anatomy.Id);
+        Assert.Equal(AgentTurnStory.Task, story.Anatomy.Task);
+        Assert.Equal([AgentTurnStory.ReadTool.Name], story.Anatomy.ToolIds);
+        Assert.Contains(AgentTurnStory.Instructions, story.AnatomyProfile.SystemPrompt);
+        Assert.Empty(story.Anatomy.Skills);
+        Assert.Null(story.LoadedSkill);
+        story.SelectAnatomyPurpose("coding");
+        Assert.Equal(10, story.Captions.Count);
         Assert.Equal("ask", story.Anatomy.Id);
         story.Move(2);
         foreach (var example in FoundationStory.AnatomyExamples)
@@ -588,20 +601,45 @@ public sealed class AgentLearningJourneyTests
         story.SelectAnatomy("unknown");
         Assert.Equal("review", story.Anatomy.Id);
         story.Complete();
-        Assert.Equal(7, story.Beat);
+        Assert.Equal(9, story.Beat);
         Assert.Contains("Read skill", story.Caption);
         story.SetStage("anatomy-of-agent");
-        Assert.Equal(7, story.Beat);
+        Assert.Equal(9, story.Beat);
         Assert.Equal("review", story.Anatomy.Id);
         story.Move(-1);
-        Assert.Equal(6, story.Beat);
+        Assert.Equal(8, story.Beat);
         story.Restart();
         Assert.Equal(0, story.Beat);
         Assert.Equal("review", story.Anatomy.Id);
         story.SetStage("agent-loop");
         story.SetStage("anatomy-of-agent");
         Assert.Equal(0, story.Beat);
-        Assert.Equal("ask", story.Anatomy.Id);
+        Assert.Equal("meeting-notes", story.Anatomy.Id);
+    }
+
+    /// <summary>Tool selection, model choice and executable controls are distinct; shorter configurations remain in bounds.</summary>
+    [Fact]
+    public void AnatomyStory_SeparatesControlsFromModelAndToolSelection()
+    {
+        var story = new FoundationStory();
+        story.SetStage("anatomy-of-agent");
+        story.Move(3);
+        Assert.Contains("Selected tools", story.Caption);
+        story.Move(1);
+        Assert.Contains("Model choice", story.Caption);
+        story.Move(1);
+        Assert.Contains("checks run by the harness", story.Caption);
+        Assert.Contains("meeting-notes.txt", story.AnatomyProfile.Controls);
+        story.SelectAnatomyPurpose("coding");
+        story.Complete();
+        Assert.Equal(9, story.Beat);
+        story.SelectAnatomyPurpose("meeting-notes");
+        Assert.Equal(7, story.Beat);
+        Assert.False(story.CanNext);
+        Assert.Null(story.LoadedSkill);
+        story.Restart();
+        Assert.Equal("meeting-notes", story.AnatomyProfile.Id);
+        Assert.Equal(0, story.Beat);
     }
 
     /// <summary>Illustrative subsets stay bounded; only Implement permits edits and terminal use.</summary>
@@ -652,7 +690,7 @@ public sealed class AgentLearningJourneyTests
         var story = new FoundationStory();
         story.SetStage("anatomy-of-agent");
         story.Move(2);
-        Assert.Equal(["chat", "office", "coding", "custom"], FoundationStory.AnatomyPurposes.Select(profile => profile.Id).ToArray());
+        Assert.Equal(["meeting-notes", "chat", "office", "coding", "custom"], FoundationStory.AnatomyPurposes.Select(profile => profile.Id).ToArray());
         foreach (var profile in FoundationStory.AnatomyPurposes)
         {
             story.SelectAnatomyPurpose(profile.Id);
@@ -672,9 +710,17 @@ public sealed class AgentLearningJourneyTests
                 Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.Model));
                 Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.ModelReason));
                 Assert.All(example.ToolIds, id => Assert.Contains(id, ids));
-                Assert.Contains("skill", example.ToolIds);
-                Assert.Contains(story.LoadedSkill, example.Skills);
-                Assert.Equal(2, example.Skills.Count);
+                if (profile.Id == "meeting-notes")
+                {
+                    Assert.Empty(example.Skills);
+                    Assert.Null(story.LoadedSkill);
+                }
+                else
+                {
+                    Assert.Contains("skill", example.ToolIds);
+                    Assert.Contains(story.LoadedSkill, example.Skills);
+                    Assert.Equal(2, example.Skills.Count);
+                }
                 Assert.All(example.Skills, skill => Assert.Equal(3, skill.Steps.Count));
                 Assert.Equal(2, story.Beat);
             }
@@ -692,8 +738,8 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(0, story.Beat);
         story.SetStage("agents-everywhere");
         story.SetStage("anatomy-of-agent");
-        Assert.Equal("coding", story.AnatomyProfile.Id);
-        Assert.Equal("ask", story.Anatomy.Id);
+        Assert.Equal("meeting-notes", story.AnatomyProfile.Id);
+        Assert.Equal("meeting-notes", story.Anatomy.Id);
         story.SelectAnatomyPurpose("custom");
         Assert.DoesNotContain("control", story.Anatomy.ToolIds);
         Assert.DoesNotContain("delegate", story.Anatomy.ToolIds);
@@ -713,12 +759,12 @@ public sealed class AgentLearningJourneyTests
 
         story.SelectAnatomy("document-reviewer");
         Assert.Same(profile, story.AnatomyProfile);
-        Assert.Equal(7, story.Beat);
+        Assert.Equal(story.Captions.Count - 1, story.Beat);
         Assert.Equal(["documents", "skill"], story.Anatomy.ToolIds.ToArray());
         Assert.Contains("Read-only", story.Anatomy.Controls);
         Assert.NotEqual(meeting.Model, story.Anatomy.Model);
         Assert.NotEqual(meeting.Task, story.Anatomy.Task);
-        Assert.Equal("compare-documents", story.LoadedSkill.Name);
+        Assert.Equal("compare-documents", Assert.IsType<AnatomySkill>(story.LoadedSkill).Name);
         story.Restart();
         Assert.Equal("document-reviewer", story.Anatomy.Id);
         story.SelectAnatomy("office-agent");

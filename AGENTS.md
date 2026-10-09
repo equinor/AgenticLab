@@ -194,6 +194,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `AGENTICLAB_URL=<web-url> NODE_PATH=/tmp/agentic-lab-loadtest/node_modules node tools/web-smoke.mjs`.
   Use a Development Web instance with an available agent catalogue. This does not send chat or run
   discovery; `/design-system` is also available there for isolated component inspection.
+  Add `--learn-only` for backend-free, desktop-only guide checks against a standalone Web instance.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
   `dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
 - React checks: `npm --prefix src/AgenticLab.React test` and `npm --prefix src/AgenticLab.React run build`;

@@ -83,4 +83,20 @@
 
 @code {
     private readonly HostingStory _story = new();
+
+    /// <summary>Moves one reveal, returning false when the page must navigate to another lesson.</summary>
+    public bool TryMoveStep(int direction)
+    {
+        if (!(direction == -1 ? _story.CanPrevious : direction == 1 && _story.CanNext)) return false;
+        _story.Move(direction);
+        StateHasChanged();
+        return true;
+    }
+
+    /// <summary>Enters the final reveal without changing the hosting selections.</summary>
+    public void MoveToLastStep()
+    {
+        _story.Move(int.MaxValue);
+        StateHasChanged();
+    }
 }

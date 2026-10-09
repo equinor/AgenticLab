@@ -65,6 +65,15 @@ internal sealed class FoundationStory
 
     internal static IReadOnlyList<AnatomyPurpose> AnatomyPurposes { get; } = Array.AsReadOnly<AnatomyPurpose>(
     [
+        new("meeting-notes", "Meeting notes", "Read-only meeting-notes assistant",
+            "You are a meeting-notes assistant. " + AgentTurnStory.Instructions,
+            "Only read_file is enabled. Its path must be meeting-notes.txt. No file-writing or terminal tool is enabled. An allowed read can still fail.",
+            "Use numbered actions. Mark missing owners and deadlines as not stated.",
+            [new(AgentTurnStory.ReadTool.Name, "Read file (read_file)", "Local function")],
+            [new("meeting-notes", "Action list", "Extract agreed actions from the notes. Do not invent missing owners or deadlines.",
+                AgentTurnStory.Task, [AgentTurnStory.ReadTool.Name], [],
+                "Language model with text input and tool calling",
+                "This example needs text generation and structured tool requests, not a particular provider or a local model.")]),
         new("chat", "Chat", "Conversational assistant",
             "You are a conversational assistant. Answer the user's question directly and adapt to their level of detail. Use search for current facts and calculation tools for arithmetic. Cite sources you actually retrieved, distinguish facts from assumptions, and ask a focused question when essential context is missing.",
             "Only user-provided content and permitted sources. No publishing or file changes.",
@@ -149,9 +158,9 @@ internal sealed class FoundationStory
     internal string StageId { get; private set; } = "agent-landscape";
     internal int Beat { get; private set; }
     internal AgentExample Example { get; private set; } = Examples[1];
-    internal AnatomyExample Anatomy { get; private set; } = AnatomyExamples[0];
-    internal AnatomyPurpose AnatomyProfile { get; private set; } = AnatomyPurposes[2];
-    internal AnatomySkill LoadedSkill => Anatomy.Skills[0];
+    internal AnatomyExample Anatomy { get; private set; } = AnatomyPurposes[0].Examples[0];
+    internal AnatomyPurpose AnatomyProfile { get; private set; } = AnatomyPurposes[0];
+    internal AnatomySkill? LoadedSkill => Anatomy.Skills.FirstOrDefault();
     internal string Trigger { get; private set; } = "User request";
     internal static IReadOnlyList<string> Triggers { get; } = Array.AsReadOnly<string>(["User request", "Schedule", "Event"]);
 
@@ -160,7 +169,7 @@ internal sealed class FoundationStory
         "model-to-agent" => CompositionCaptions,
         "inside-the-harness" => HarnessCaptions,
         "agents-everywhere" => EnvironmentCaptions,
-        "anatomy-of-agent" => AnatomyCaptions,
+        "anatomy-of-agent" => Anatomy.Skills.Count == 0 ? BasicAnatomyCaptions : AnatomyCaptions,
         _ => LandscapeCaptions,
     };
 
@@ -173,20 +182,25 @@ internal sealed class FoundationStory
         if (StageId == stageId) return;
         StageId = stageId;
         Beat = 0;
-        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose("coding");
+        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose("meeting-notes");
     }
 
     internal void Move(int offset) => Beat = (int)Math.Clamp((long)Beat + offset, 0, Captions.Count - 1);
     internal void Complete() => Beat = Captions.Count - 1;
     internal void Restart() => Beat = 0;
     internal void SelectExample(string id) => Example = Examples.FirstOrDefault(example => example.Id == id) ?? Example;
-    internal void SelectAnatomy(string id) => Anatomy = AnatomyProfile.Examples.FirstOrDefault(example => example.Id == id) ?? Anatomy;
+    internal void SelectAnatomy(string id)
+    {
+        Anatomy = AnatomyProfile.Examples.FirstOrDefault(example => example.Id == id) ?? Anatomy;
+        Beat = Math.Min(Beat, Captions.Count - 1);
+    }
     internal void SelectAnatomyPurpose(string id)
     {
         var purpose = AnatomyPurposes.FirstOrDefault(profile => profile.Id == id);
         if (purpose is null) return;
         AnatomyProfile = purpose;
         Anatomy = purpose.Examples[0];
+        Beat = Math.Min(Beat, Captions.Count - 1);
     }
     internal void SelectTrigger(string trigger)
     {
@@ -198,12 +212,16 @@ internal sealed class FoundationStory
         "The system prompt is standing instruction text supplied to the model. Its content depends on the selected configuration. It does not enforce file or network access.",
         "The harness registers tool implementations and their descriptions. It can offer only a subset to a particular agent or task.",
         "Role instructions describe the task and approach. In this example, choosing a role also changes the configured tools. The text and the tool configuration are separate settings.",
-        "The harness selects the model and tool subset. Execution rules are applied by code outside the model, not by the role's instruction text.",
+        "Selected tools are the subset described to this agent. Registering a tool does not mean it is enabled for every agent or every request.",
+        "Model choice selects the model used for inference. Selecting a model does not grant it file access.",
+        "Execution controls are checks run by the harness before a tool invocation. They are code, not instruction text. An allowed invocation can still fail.",
         "The task prompt says what is wanted this time. It is a message, separate from the agent's standing instructions.",
         "Custom instructions add project guidance when applicable and enabled. Their text enters context directly; it is not a tool call.",
         "Skills are optional packages of task instructions. This configuration initially supplies only their names and descriptions, not every package's full text.",
         "An allowed Read skill call supplies the package's full instructions for a later model request. Loading this text neither executes its steps nor enables new tools.",
     ]);
+
+    private static readonly IReadOnlyList<string> BasicAnatomyCaptions = Array.AsReadOnly(AnatomyCaptions.Take(8).ToArray());
 
     private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly(
         AgentTurnStory.Responsibilities.Select(item => item.Output).ToArray());
@@ -216,13 +234,13 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Harness + Model. The harness is software that sends model requests and handles the responses.",
-        "The harness selects instruction text and messages for a request. It stores selected session messages and applies configured execution controls to tool requests.",
-        "The harness executes tools: code that reads files, queries services or performs other actions. Here, the permitted tool reads meeting-notes.txt; no writing tool is enabled.",
-        "A language model processes supplied input and generates a response. With tool calling enabled, that response can request a tool by name and arguments. It does not execute tools itself.",
+        "A language model generates a response from the supplied input. It does not independently read files on your computer.",
+        "The harness is software that supplies input to the model and handles its response. The model does not run this software.",
+        "A tool is code the harness can invoke. Here, read_file can read meeting-notes.txt when the configured checks allow it. No file-writing tool is enabled.",
         "The harness sends a model request containing selected messages and tool definitions. The supplied input is called context. The first request names the file but does not contain its text.",
-        "The model's response can contain text, tool requests or both. The harness checks requested tool calls before invoking them. Returned file text can then enter a new model request.",
-        "The harness presents the response and retains selected session messages. A response, configured limit or cancellation can end the turn. Ending a turn does not prove the task succeeded.",
+        "The model's response can contain text, tool requests or both. It does not execute tools itself. The harness checks a requested tool call before invoking it.",
+        "After a permitted read returns file text, the harness can include it in a new model request. Only then does the model receive that text.",
+        "Agent = Harness + Model. The harness presents the response. An answer, configured limit or cancellation can end the turn; ending it does not prove the task succeeded.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(

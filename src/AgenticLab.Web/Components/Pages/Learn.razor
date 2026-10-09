@@ -5,7 +5,7 @@
 
 <PageTitle>Agentic Lab - @_stage.Title</PageTitle>
 
-<div class="learn-app">
+<div class="learn-app" @ref="_root">
     <AppHeader Context="Agent guide">
         <a class="header-link" href="/">Live flow</a>
     </AppHeader>
@@ -45,7 +45,7 @@
             </ol>
         </nav>
 
-        <section class="stage-main" aria-labelledby="stage-title">
+        <section class="stage-main" aria-labelledby="stage-title" aria-keyshortcuts="ArrowLeft ArrowRight">
             <header class="stage-heading">
                 <div>
                     <p class="eyebrow">Stage @AgentLearningJourney.Number(_stage.Id)</p>
@@ -85,15 +85,15 @@
             <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
                 @if (_stage.Id is "agent-landscape" or "model-to-agent" or "inside-the-harness" or "agents-everywhere" or "anatomy-of-agent")
                 {
-                    <FoundationLesson StageId="@_stage.Id" />
+                    <FoundationLesson StageId="@_stage.Id" @ref="_foundationLesson" />
                 }
                 else if (_stage.Id == "where-to-run")
                 {
-                    <HostingLesson />
+                    <HostingLesson @ref="_hostingLesson" />
                 }
                 else if (_stage.Id == "agent-loop")
                 {
-                    <AgentTurnLesson />
+                    <AgentTurnLesson @ref="_turnLesson" />
                 }
                 else if (_stage.Id == "wider-ecosystem")
                 {

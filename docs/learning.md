@@ -65,8 +65,21 @@ choice: a local harness can use a remote model, and observation and evaluation m
 
 Chapter navigation and lesson reveals are separate. **Previous/Next**, **Show complete diagram**
 where available, and **Restart** control the current lesson. There is no autoplay. Chapter changes
-or reloads reset progress; opening a related concept preserves it. Restart preserves example
-selections. Intro returns to **Purpose** when revisited.
+through links, browser history or reloads reset progress; opening a related concept preserves it.
+Restart preserves example selections. Intro returns to **Purpose** when revisited through a link.
+
+**Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;
+after the last reveal it opens the next lesson at its first reveal. Left goes back one reveal;
+from the first reveal it opens the previous lesson at its final reveal. Both directions visit
+all ten lessons, including subtopics: Agent at `7/7` advances to `2.1`, not directly to `3`.
+Lessons without reveal controls take one key press to leave. The journey does not wrap at either
+end. Backward entry shows the loop's final explanation, not **Show all steps**. Lesson URLs change
+only when crossing a lesson boundary; reveal progress is not saved in the URL.
+
+The shortcuts work while reading or focusing ordinary buttons and links. Editable fields,
+selectors and other controls with their own arrow-key behavior keep their native keys, as do
+modified arrows such as Alt+Left/Right for browser history. Held-key repeats do not advance the
+guide. Stage changes focus the lesson heading; hiding a focused reveal restores that focus.
 
 The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of an agent** beneath
 **Agent**, with matching `2.1`-`2.3` lesson labels. **Different purposes, same pattern** and
@@ -77,6 +90,10 @@ visits every lesson in order, including the subtopics; the progress counter coun
 Inside the harness, each reveal adds one responsibility while earlier nodes remain visible.
 The examples use the same meeting-notes task as Agent and the loop. **Example and limits** expands
 the input, output and boundary of a responsibility; these details start closed.
+
+Agent starts with the model alone, then adds the harness and its file-reading tool. Separate reveals
+add the model request, response and returned text for a later request, before completing the
+**Agent = Harness + Model** boundary. Unreached nodes and connections take no layout space.
 
 The loop keeps five boxes and their connecting paths visible from the start: Context, Model decision,
 Harness executes, Observation and Final answer. **Next step** reveals the latest reached step inside
@@ -110,20 +127,26 @@ surfaces reuse the [Blazor design system](design-system.md).
 
 ### Illustrative configurations
 
-**Anatomy** builds up standing instruction text, registered tools, role instructions, selected
-tools and model/settings, task, custom instructions, skill descriptions and a loaded skill.
+**Anatomy** defaults to the same read-only meeting-notes task as the loop. It builds up standing
+instruction text, registered tools, role instructions, selected tools, model choice, execution
+controls, task and custom instructions. Each reveal adds one node; tools, model and controls have
+separate steps. Only `read_file` is enabled for this example, with the permitted path
+`meeting-notes.txt`. No skill-loading, file-writing or terminal tool is enabled.
 Unrevealed nodes take no layout space. Full system-prompt text and **Other agent configurations**
-start collapsed. **Chat / Office / Coding / Custom** changes the example, not the selected backend
-agent. Each role explains its model trade-offs;
-neither model choice, persona, instructions nor skills grant permissions.
+start collapsed. **Meeting notes / Chat / Office / Coding / Custom** changes the example, not the
+selected backend agent. Model-selection considerations are available on demand.
+The other configurations add optional skill-description and skill-body reveals when skills are
+configured; reading a skill supplies instruction text, not permission or an executed workflow.
+Neither model choice, persona, instructions nor skills grant permissions.
 
 - Office contrasts a meeting assistant's confirmed communications with a read-only document reviewer.
 - Coding offers Ask, Plan, Implement and Review. Only Implement includes writes and terminal use,
   with approval or allowlisting, resource limits and no production access.
 - Chat researches questions; Custom reads equipment telemetry and manuals without controlling equipment.
 
-Changing purpose selects its first mode without resetting reveals. Restart keeps the selection;
-reentering Anatomy restores Coding / Ask. These are original teaching examples, not vendor prompts,
+Changing purpose selects its first mode without restarting reveals; switching to a shorter
+configuration clamps progress to its last step. Restart keeps the selection;
+reentering Anatomy restores Meeting notes / Action list. These are original teaching examples, not vendor prompts,
 product replicas or claims about native connectors and enforcement.
 
 **Hosting** separates the harness, model service, tools/data access and operational ownership.
@@ -166,3 +189,8 @@ Tests cover stage URLs, navigation, reveal/reset behavior and topic references:
 ```sh
 dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 ```
+
+For backend-free desktop interaction and screenshot checks, run
+`node tools/web-smoke.mjs --learn-only` against the standalone Web URL using the temporary
+Playwright setup in [tools/README.md](../tools/README.md). This checks keyboard reveals, cumulative
+nodes, optional configurations and all six synthetic loop outcomes without model or tool calls.
