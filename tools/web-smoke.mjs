@@ -6,6 +6,7 @@ import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
+const navigationOnly = process.argv.includes("--navigation-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
 const legacyHosts = JSON.parse(process.env.AGENTICLAB_HOST_ALIASES ?? "{}");
 const screenshots = process.env.AGENTICLAB_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
@@ -20,6 +21,22 @@ try {
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
+        await checkHome(page, viewport);
+        if (navigationOnly) {
+            await checkLearning(page, viewport.width);
+            await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
+            assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+            const missing = await page.goto(new URL("/missing-home-test", baseUrl).href, { waitUntil: "networkidle" });
+            assert.equal(missing.status(), 404);
+            await page.getByRole("heading", { name: "Page not found", exact: true }).waitFor();
+            assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+            await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
+            await page.locator(".home-app").waitFor();
+            await context.close();
+            currentPage = null;
+            console.log(`Home, navigation and Learn ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
         await openFlow(page);
         await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
@@ -90,7 +107,7 @@ try {
         await capture(page, `not-found-${viewport.width}`);
         await context.close();
         currentPage = null;
-        console.log(`Flow, docks, Discovery, Learn and design system ${viewport.width}x${viewport.height}: passed`);
+        console.log(`Home, Flow, docks, Discovery, Learn and design system ${viewport.width}x${viewport.height}: passed`);
     }
     assert.deepEqual(errors, [], "No unhandled browser errors");
     console.log(`Screenshots: ${screenshots}`);
@@ -100,6 +117,84 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkHome(page, viewport) {
+    const requests = [];
+    const recordRequest = request => requests.push(new URL(request.url()).pathname);
+    page.on("request", recordRequest);
+    const response = await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    page.off("request", recordRequest);
+    assert.equal(response.status(), 200);
+    await page.getByRole("heading", { name: "Agentic Lab", level: 1, exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
+    assert.equal(await page.locator(".flow-app, .learn-app").count(), 0, "Home does not mount either destination");
+    assert.equal(requests.some(route => route === "/_blazor" || route === "/_blazor/negotiate"), false,
+        "Home does not start an interactive server circuit");
+    assert.equal(await page.evaluate(() => localStorage.length), 0, "Home does not write preferences");
+
+    const destinations = page.getByRole("navigation", { name: "Agentic Lab destinations", exact: true });
+    assert.deepEqual(await destinations.locator("a").evaluateAll(links => links.map(link => link.getAttribute("href"))), ["/flow", "/learn"]);
+    const geometry = await destinations.locator("a").evaluateAll(links => links.map(link => {
+        const bounds = link.getBoundingClientRect();
+        return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, bottom: bounds.bottom };
+    }));
+    assert.ok(Math.abs(geometry[0].width - geometry[1].width) < 1, "Destinations have equal width");
+    assert.ok(Math.abs(geometry[0].height - geometry[1].height) < 1, "Destinations have equal height");
+    assert.ok(geometry.every(bounds => bounds.y >= 0 && bounds.bottom <= viewport.height), "Both choices fit the first viewport");
+    if (viewport.width > 900) assert.ok(geometry[1].x > geometry[0].x, "Wide home shows both destinations side by side");
+    else assert.ok(geometry[1].y >= geometry[0].bottom, "Narrow home stacks destinations without overlap");
+    for (const icon of await page.locator(".destination-icon").all()) {
+        const mask = await icon.evaluate(element => getComputedStyle(element).maskImage);
+        const asset = new URL(mask.match(/url\(["']?(.*?)["']?\)/)[1], page.url());
+        assert.equal(asset.origin, new URL(baseUrl).origin, "Home icons are local assets");
+        assert.ok((await page.request.get(asset.href)).ok(), "Home icon is available");
+    }
+    await capture(page, `home-${viewport.width}`);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(await destinations.locator("a").first().evaluate(element => getComputedStyle(element).transitionDuration), "0s");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    if (viewport.width === 1440) {
+        await page.evaluate(() => document.documentElement.style.zoom = "2");
+        await capture(page, "home-200-percent");
+        await page.evaluate(() => document.documentElement.style.zoom = "");
+    }
+
+    await followHomeLinkWithKeyboard(page, "Live flow", "/flow");
+    assert.equal((await page.reload({ waitUntil: "networkidle" })).status(), 200, "Flow supports direct reloads");
+    await page.locator(".flow-app").waitFor();
+    assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
+    await page.getByRole("link", { name: / home$/ }).click();
+    await page.locator(".home-app").waitFor();
+    await followHomeLinkWithKeyboard(page, "Agent guide", "/learn");
+    await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+    await page.getByRole("link", { name: "The agent loop", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("stage") === "agent-loop");
+    assert.equal((await page.reload({ waitUntil: "networkidle" })).status(), 200);
+    await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Open live flow", exact: true }).getAttribute("href"), "/flow");
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
+    await page.goForward({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Open live flow", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/flow");
+    await page.locator(".flow-app").waitFor();
+    await page.getByRole("link", { name: / home$/ }).click();
+    await page.locator(".home-app").waitFor();
+}
+
+async function followHomeLinkWithKeyboard(page, name, route) {
+    const link = page.getByRole("link", { name, exact: true });
+    for (let attempt = 0; attempt < 8; attempt++) {
+        await page.keyboard.press("Tab");
+        if (await link.evaluate(element => document.activeElement === element)) break;
+    }
+    assert.ok(await link.evaluate(element => element.matches(":focus-visible") && getComputedStyle(element).outlineStyle === "solid"),
+        `${name}: keyboard focus is visible`);
+    await page.keyboard.press("Enter");
+    await page.waitForURL(url => url.pathname === route);
 }
 
 async function checkHosts(page, width) {
@@ -381,7 +476,7 @@ async function checkLearning(page, width) {
 }
 
 async function openFlow(page) {
-    await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    await page.goto(new URL("/flow", baseUrl).href, { waitUntil: "networkidle" });
     await page.waitForFunction(() => document.querySelector(".chat-log")?._tsStickInit === true);
     await page.locator("#agent option").first().waitFor({ state: "attached" });
 }
@@ -392,7 +487,7 @@ async function capture(page, name) {
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
         fonts: [...document.fonts].filter(font => font.status === "loaded").map(font => font.family),
         font: getComputedStyle(document.querySelector("h1")).fontFamily,
-        overflowingBars: [...document.querySelectorAll(".app-header, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
+        overflowingBars: [...document.querySelectorAll(".app-header, .home-content, .destinations, .destination, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
             .filter(element => element.getClientRects().length && element.scrollWidth > element.clientWidth + 1)
             .map(element => element.className)
     }));

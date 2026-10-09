@@ -9,6 +9,9 @@ It brings together two complementary parts:
    between your question and its answer: what the model receives, which tools it asks to use,
    and what comes back.
 
+The Web front page at `/` offers **Live flow** and **Agent guide** as equal starting points.
+Open the workspace directly at `/flow` or the guide at `/learn`. The product mark returns Home.
+
 > [!WARNING]
 > This is an educational sample, not a production-ready agent platform. Use a trusted local
 > development environment. Before shared or public deployment, add authentication, authorization,
@@ -45,7 +48,7 @@ The agent loop in the guided Learn experience. [Learning guide](docs/learning.md
 
 ## 2. See It Happen in Live Flow
 
-**Live Flow** is the hands-on workspace where you run an agent and see what is happening as it runs.
+**Live Flow** at `/flow` is the hands-on workspace where you run an agent and see what is happening as it runs.
 
 - Watch the flow between the agent host, model and tools as your question is processed.
 - Inspect the actual model requests, responses, tool calls and results.
@@ -269,8 +272,9 @@ To explore the guided lessons without configuring a model provider, run only the
 dotnet run --project src/AgenticLab.Web
 ```
 
-Open the listening URL printed in the terminal and visit `/learn`. The guide works without
-the AI service; live chat requires the full setup above.
+Open the listening URL printed in the terminal and choose **Agent guide**, or visit `/learn`
+directly. Both the front page and guide work without the AI service; live chat at `/flow`
+requires the full setup above.
 
 ### Self-Contained Examples
 

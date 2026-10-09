@@ -41,9 +41,14 @@ background roles. Contributor provenance, risk levels and signed chart scales ke
 
 ## Components
 
-`AppHeader` provides the product mark, page context and repository link; children supply page actions.
-Keep it inside the page's render boundary, without navigation/run state. Agent guide links open a
-new tab from Flow/Discovery; Learn has no Discovery entry.
+`AppHeader` provides the product mark as an accessible Home link to `/`, page context and repository
+link; children supply page actions. Keep it inside the page's render boundary, without navigation/run
+state. Agent guide links open in the same tab from Home/Flow and a new tab from Discovery;
+Learn has no Discovery entry. **Live flow** links target `/flow`, not the front page.
+
+Home reuses the header and local icon assets, with equally sized native destination links in its
+scoped CSS. The two-column layout stacks at 900px. It uses static server rendering, shared focus
+and reduced-motion tokens, and no catalogue or run state.
 
 `LabButton` supports `primary`, `secondary`, `quiet`, `danger`, icons, disabled/busy and pressed states.
 `Label` is required even for icon-only commands. Use `OnClick` for actions and anchors for navigation.

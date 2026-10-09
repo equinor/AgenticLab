@@ -1,10 +1,23 @@
 # Web flow page (live agent run visualization)
 
 Agentic Lab's Blazor workspace shows a conversation beside its live agent execution. Open the
-**web** resource from the Aspire dashboard after [local setup](../README.md#run-locally).
+**web** resource from the Aspire dashboard after [local setup](../README.md#run-locally), then choose
+**Live flow**, or open `/flow` directly.
 Captures show requests, responses and tool activity, not the model's private reasoning.
 Live runs can send data to external services and incur model charges; use trusted inputs and
 read the [security policy](../SECURITY.md).
+
+## Front page and navigation
+
+The [Home page](../src/AgenticLab.Web/Components/Pages/Home.razor) at `/` gives equal prominence to
+**Live flow** (`/flow`) and **Agent guide** (`/learn`). Both links open in the same tab; wide layouts
+place them side by side and narrow layouts stack them. The product mark in the shared header returns
+Home, while the existing Flow and Guide links still connect those pages directly.
+
+Home is static server-rendered content with local icons and fonts. It does not load catalogues,
+start an interactive server circuit, write preferences or call models. It always shows both choices,
+without a remembered destination or automatic redirect. The guide's `/learn?stage=<id>` bookmarks
+are unchanged. Live execution still requires the configured AI service.
 
 ## Live flow visualization
 
