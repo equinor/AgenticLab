@@ -42,7 +42,9 @@ spec:
           port: 8080
       variables:
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
+        # Small GPT-5.6 tier with tool calling; keep in sync with a2aserver and the Foundry deployment
+        # name. Cost controls (budget, alert, TPM cap): README.md#model-and-cost-controls.
+        AzureOpenAI__Deployment: gpt-5.6-luna
         # Every user works on the bundled sample workspace with read-only tools only: nobody can choose
         # a server folder, write files, run commands or fetch web pages (see SECURITY.md).
         Workspace__Mode: ReadOnlySample
@@ -69,7 +71,7 @@ spec:
           port: 8080
       variables:
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
+        AzureOpenAI__Deployment: gpt-5.6-luna
       secrets:
         - AzureOpenAI__Endpoint
         - AzureOpenAI__ApiKey
