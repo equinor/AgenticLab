@@ -10,23 +10,22 @@ namespace AgenticLab.Web.Tests;
 /// <summary>Protects journey permalinks, navigation and references to the shipped learning content.</summary>
 public sealed class AgentLearningJourneyTests
 {
-    /// <summary>The second request returns to the same model node; alternate outcomes do not invent tool results.</summary>
+    /// <summary>Every new request returns to context management; execution checks tools before results or a stop.</summary>
     [Fact]
     public void TurnExample_MapsStepsOntoPersistentLoopNodes()
     {
         var story = new AgentTurnStory();
         Assert.Equal("context", story.Step.LoopNodeId);
         Assert.Equal(
-            ["context", "model", "model", "execute", "observation", "model", "answer", "answer"],
+            ["context", "context", "model", "execute", "execute", "context", "model", "answer"],
             story.Scenario.Steps.Select(step => step.LoopNodeId).ToArray());
         foreach (var scenario in AgentTurnStory.Scenarios)
         {
             Assert.All(scenario.Steps, step => Assert.Contains(step.LoopNodeId,
-                new[] { "context", "model", "execute", "observation", "answer" }));
-            if (scenario.Id is "cancelled" or "limit" or "provided")
-                Assert.DoesNotContain(scenario.Steps, step => step.LoopNodeId == "observation");
+                new[] { "context", "model", "execute", "answer" }));
+            Assert.Equal("context", Assert.Single(scenario.Steps, step => step.Id == "request-1").LoopNodeId);
             if (scenario.Id is "cancelled" or "limit")
-                Assert.Equal("execute", scenario.Steps[^1].LoopNodeId);
+                Assert.Equal("answer", scenario.Steps[^1].LoopNodeId);
         }
     }
 
@@ -107,11 +106,11 @@ public sealed class AgentLearningJourneyTests
     {
         var stage = AgentLearningJourney.Resolve("model-to-agent");
         Assert.Contains("Agent = Harness + Model", stage.Takeaway);
-        Assert.Contains("supplies input", stage.Summary);
-        Assert.Contains("permitted tool requests", stage.Summary);
+        Assert.Contains("handles input, manages context and controls execution", stage.Summary);
+        Assert.Contains("model that generates responses", stage.Summary);
         Assert.Equal("Harness", AgentLearningJourney.Node("harness").Title);
         Assert.Equal("Inside the harness", AgentLearningJourney.Resolve("inside-the-harness").Title);
-        Assert.Equal("Harness executes", AgentLearningJourney.Node("loop-execute").Title);
+        Assert.Equal("Execution", AgentLearningJourney.Node("loop-execute").Title);
         Assert.Contains("Generates responses", AgentLearningJourney.Node("model").Detail);
     }
 
@@ -281,14 +280,16 @@ public sealed class AgentLearningJourneyTests
     {
         var stage = AgentLearningJourney.Resolve("inside-the-harness");
 
-        Assert.Equal(["harness-context", "instructions", "available-tools", "harness-memory", "execution-controls"], stage.HighlightedNodes.ToArray());
+        Assert.Equal(["context-management", "instructions", "harness-context", "available-tools", "harness-memory", "execution-controls"], stage.HighlightedNodes.ToArray());
         Assert.Equal(
-            ["Assemble context", "Load instruction text", "Describe tools", "Retain session messages", "Check tool requests"],
-            stage.HighlightedNodes.Select(id => AgentLearningJourney.Node(id).Title).ToArray());
-        Assert.Equal(stage.HighlightedNodes, AgentLearningJourney.HarnessExamples.Select(example => example.NodeId).ToArray());
-        Assert.Equal(stage.HighlightedNodes, AgentTurnStory.Responsibilities.Select(item => item.NodeId).ToArray());
+            ["Instructions", "Context", "Tool descriptions", "Memory", "Execution"],
+            AgentTurnStory.Responsibilities.Select(item => item.Title).ToArray());
+        Assert.Equal(stage.HighlightedNodes.Skip(1), AgentLearningJourney.HarnessExamples.Select(example => example.NodeId));
+        Assert.Equal(stage.HighlightedNodes.Skip(1), AgentTurnStory.Responsibilities.Select(item => item.NodeId));
+        Assert.Equal(AgentTurnStory.Responsibilities.Take(4), AgentTurnStory.ContextAspects);
+        Assert.Equal("execution-controls", AgentTurnStory.Execution.NodeId);
         Assert.All(AgentTurnStory.Responsibilities, item =>
-            Assert.All(new[] { item.Input, item.Operation, item.Output, item.Boundary }, text => Assert.False(string.IsNullOrWhiteSpace(text))));
+            Assert.All(new[] { item.Title, item.Summary, item.Input, item.Operation, item.Output, item.Boundary }, text => Assert.False(string.IsNullOrWhiteSpace(text))));
         Assert.All(AgentLearningJourney.HarnessExamples, example => Assert.False(string.IsNullOrWhiteSpace(example.Text)));
         Assert.Equal(["system-prompt", "context", "tools", "guardrails"], stage.ConceptIds.ToArray());
         Assert.False(stage.PlatformMap);
@@ -300,7 +301,7 @@ public sealed class AgentLearningJourneyTests
     {
         var stage = AgentLearningJourney.Resolve("agent-loop");
 
-        Assert.Equal(["loop-context", "loop-decision", "loop-execute", "loop-observe", "loop-answer"], stage.HighlightedNodes.ToArray());
+        Assert.Equal(["loop-context", "loop-decision", "loop-execute", "loop-answer"], stage.HighlightedNodes.ToArray());
         Assert.Equal(["reasoning", "tools", "context"], stage.ConceptIds.ToArray());
         Assert.Equal("/", stage.ActionHref);
         Assert.False(stage.PlatformMap);
@@ -329,9 +330,9 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-landscape", "harness,model")]
     [InlineData("agents-everywhere", "harness,model")]
     [InlineData("model-to-agent", "harness,model")]
-    [InlineData("inside-the-harness", "harness-context,instructions,available-tools,harness-memory,execution-controls")]
+    [InlineData("inside-the-harness", "context-management,instructions,harness-context,available-tools,harness-memory,execution-controls")]
     [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,execution-controls,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
-    [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-observe,loop-answer")]
+    [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
     [InlineData("where-to-run", "hosting-runtime,hosting-model,hosting-access,hosting-owner")]
     [InlineData("run-and-improve", "lifecycle-run,lifecycle-observe,lifecycle-evaluate,lifecycle-improve")]
@@ -395,7 +396,7 @@ public sealed class AgentLearningJourneyTests
     public void HostingStory_ChoicesAreIndependentAndComplete()
     {
         var story = new HostingStory();
-        Assert.Equal(["local", "product", "service", "managed"], HostingStory.Options.Select(option => option.Id).ToArray());
+        Assert.Equal(["local", "service", "managed", "product"], HostingStory.Options.Select(option => option.Id).ToArray());
         story.Complete();
         foreach (var option in HostingStory.Options)
         {
@@ -420,15 +421,16 @@ public sealed class AgentLearningJourneyTests
                 }
             }
         }
+        var selectedOption = story.Option;
         story.SelectOption("unknown");
         story.SelectReadiness(null);
         story.SelectTrigger("unknown");
-        Assert.Equal("managed", story.Option.Id);
+        Assert.Same(selectedOption, story.Option);
         Assert.Equal("operate", story.Readiness.Id);
         Assert.Equal("Event", story.Trigger);
         story.Restart();
         Assert.Equal(0, story.Beat);
-        Assert.Equal("managed", story.Option.Id);
+        Assert.Same(selectedOption, story.Option);
         story.Move(int.MaxValue);
         Assert.Equal(2, story.Beat);
         story.Move(-1);
@@ -457,7 +459,7 @@ public sealed class AgentLearningJourneyTests
             story.SetStage(stageId);
             Assert.Equal(story.Captions.Count - 1, story.Beat);
             story.Move(-1);
-            Assert.True(story.CanNext);
+            Assert.Equal(story.Captions.Count > 1, story.CanNext);
             story.Complete();
             Assert.False(story.CanNext);
             story.Move(int.MinValue);
@@ -488,52 +490,111 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(0, story.Beat);
     }
 
-    /// <summary>Composition introduces the model, harness and tool before requests, responses and returned evidence.</summary>
+    /// <summary>The Agent overview presents responsibilities in one static view, without tool or flow examples.</summary>
     [Fact]
-    public void FoundationStory_CompositionSeparatesRequestAndResponse()
+    public void FoundationStory_AgentShowsResponsibilitiesImmediately()
     {
         var story = new FoundationStory();
         story.SetStage("model-to-agent");
 
-        Assert.Equal(7, story.Captions.Count);
-        Assert.Contains("generates a response", story.Caption);
-        Assert.Contains("does not independently read files", story.Caption);
-        story.Move(1);
-        Assert.Contains("supplies input to the model", story.Caption);
-        story.Move(1);
-        Assert.Contains("code the harness can invoke", story.Caption);
-        Assert.Contains("meeting-notes.txt", story.Caption);
-        story.Move(1);
-        Assert.Contains("selected messages and tool definitions", story.Caption);
-        Assert.Contains("does not contain its text", story.Caption);
-        story.Move(1);
-        Assert.Contains("text, tool requests or both", story.Caption);
-        Assert.Contains("does not execute tools itself", story.Caption);
-        story.Move(1);
-        Assert.Contains("include it in a new model request", story.Caption);
-        Assert.True(story.CanNext);
-        story.Move(1);
+        Assert.Single(story.Captions);
         Assert.Contains("Agent = Harness + Model", story.Caption);
-        Assert.Contains("does not prove the task succeeded", story.Caption);
+        Assert.Contains("handles input, manages context and controls execution", story.Caption);
+        Assert.Contains("generates responses from the supplied input", story.Caption);
+        Assert.DoesNotContain("read_file", story.Caption);
+        Assert.DoesNotContain("tool requests", story.Caption);
+        story.Move(int.MaxValue);
+        Assert.Equal(0, story.Beat);
+        story.Complete();
+        Assert.Equal(0, story.Beat);
+        Assert.False(story.CanPrevious);
         Assert.False(story.CanNext);
     }
 
-    /// <summary>Each harness reveal adds one responsibility while retaining previous nodes.</summary>
+    /// <summary>Context management appears first, execution second, and the context aspects only in later reveals.</summary>
     [Fact]
     public void FoundationStory_HarnessAddsOneResponsibilityPerReveal()
     {
         var story = new FoundationStory();
         story.SetStage("inside-the-harness");
-        Assert.Equal(AgentTurnStory.Responsibilities.Count, story.Captions.Count);
-        for (var index = 0; index < AgentTurnStory.Responsibilities.Count; index++)
+        Assert.Equal(6, story.Captions.Count);
+        Assert.Equal(FoundationStory.ContextManagementSummary, story.Caption);
+        Assert.Empty(story.VisibleContextAspects);
+        story.Move(1);
+        Assert.Equal(AgentTurnStory.Execution.Summary, story.Caption);
+        Assert.Empty(story.VisibleContextAspects);
+        for (var index = 0; index < AgentTurnStory.ContextAspects.Count; index++)
         {
-            Assert.Equal(index, story.Beat);
-            Assert.Equal(AgentTurnStory.Responsibilities[index].Output, story.Caption);
             story.Move(1);
+            Assert.Equal(index + 2, story.Beat);
+            Assert.Equal(AgentTurnStory.ContextAspects[index].Summary, story.Caption);
+            Assert.Equal(AgentTurnStory.ContextAspects.Take(index + 1), story.VisibleContextAspects);
         }
         Assert.False(story.CanNext);
         story.Restart();
         Assert.Equal(0, story.Beat);
+    }
+
+    /// <summary>Example toggles are independent of reveals and cannot open unreached nodes.</summary>
+    [Fact]
+    public void FoundationStory_HarnessExamplesAreIndependent()
+    {
+        var story = new FoundationStory();
+        story.ToggleHarnessExample("instructions");
+        Assert.False(story.IsHarnessExampleOpen("instructions"));
+        story.SetStage("inside-the-harness");
+        story.ToggleHarnessExample("harness-context");
+        story.ToggleHarnessExample("instructions");
+        story.ToggleHarnessExample("execution-controls");
+        story.ToggleHarnessExample("unknown");
+        Assert.False(story.IsHarnessExampleOpen("harness-context"));
+        Assert.False(story.IsHarnessExampleOpen("instructions"));
+        Assert.False(story.IsHarnessExampleOpen("execution-controls"));
+        Assert.False(story.IsHarnessExampleOpen("unknown"));
+        Assert.Equal(0, story.Beat);
+        story.Move(1);
+        story.ToggleHarnessExample("execution-controls");
+        Assert.True(story.IsHarnessExampleOpen("execution-controls"));
+        story.Move(1);
+        story.ToggleHarnessExample("instructions");
+        story.Move(1);
+        story.ToggleHarnessExample("harness-context");
+        Assert.True(story.IsHarnessExampleOpen("instructions"));
+        Assert.True(story.IsHarnessExampleOpen("harness-context"));
+        story.ToggleHarnessExample("instructions");
+        Assert.False(story.IsHarnessExampleOpen("instructions"));
+        Assert.True(story.IsHarnessExampleOpen("harness-context"));
+        Assert.Equal(3, story.Beat);
+        story.Complete();
+        Assert.True(story.IsHarnessExampleOpen("harness-context"));
+        Assert.True(story.IsHarnessExampleOpen("execution-controls"));
+        Assert.False(story.IsHarnessExampleOpen("harness-memory"));
+        Assert.Equal(6, story.Captions.Count);
+    }
+
+    /// <summary>Backward reveals, restart and lesson changes clear only the example state they invalidate.</summary>
+    [Fact]
+    public void FoundationStory_HarnessExamplesResetWithNavigation()
+    {
+        var story = new FoundationStory();
+        story.SetStage("inside-the-harness");
+        story.Complete();
+        foreach (var item in AgentTurnStory.Responsibilities) story.ToggleHarnessExample(item.NodeId);
+        story.Move(-4);
+        Assert.Equal(1, story.Beat);
+        Assert.True(story.IsHarnessExampleOpen("execution-controls"));
+        Assert.All(AgentTurnStory.ContextAspects, item => Assert.False(story.IsHarnessExampleOpen(item.NodeId)));
+        story.Complete();
+        Assert.All(AgentTurnStory.ContextAspects, item => Assert.False(story.IsHarnessExampleOpen(item.NodeId)));
+        story.Restart();
+        Assert.All(AgentTurnStory.Responsibilities, item => Assert.False(story.IsHarnessExampleOpen(item.NodeId)));
+        story.Move(2);
+        story.ToggleHarnessExample("instructions");
+        story.SetStage("inside-the-harness");
+        Assert.True(story.IsHarnessExampleOpen("instructions"));
+        story.SetStage("model-to-agent");
+        story.SetStage("inside-the-harness");
+        Assert.All(AgentTurnStory.Responsibilities, item => Assert.False(story.IsHarnessExampleOpen(item.NodeId)));
     }
 
     /// <summary>Task and trigger selection are independent of presentation progress and each other.</summary>

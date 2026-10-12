@@ -532,7 +532,17 @@ async function checkLearnKeyboard(page, width) {
 }
 
 async function checkFoundationReveals(page, width) {
-    for (const [stage, lastBeat] of [["model-to-agent", 6], ["inside-the-harness", 4], ["anatomy-of-agent", 7]]) {
+    await page.goto(new URL("/learn?stage=model-to-agent", baseUrl).href, { waitUntil: "networkidle" });
+    const overview = page.locator('.foundation-lesson[data-story="model-to-agent"][data-beat="0"]');
+    assert.deepEqual(await overview.locator("[data-node]:visible").evaluateAll(elements => elements.map(element => element.dataset.node)), ["harness", "model"]);
+    assert.equal(await overview.locator(".story-toolbar, [data-connection], .application-tools, .exchange-paths").count(), 0);
+    assert.match(await overview.innerText(), /Agent = Harness \+ Model/);
+    assert.match(await overview.locator('[data-node="harness"]').innerText(), /Handles input, manages context and controls execution/);
+    assert.match(await overview.locator('[data-node="model"]').innerText(), /Generates responses from the supplied input/);
+    await capture(page, `learn-model-to-agent-complete-${width}`);
+
+    const harnessNodes = ["instructions", "harness-context", "available-tools", "harness-memory", "execution-controls"];
+    for (const [stage, lastBeat] of [["inside-the-harness", 5], ["anatomy-of-agent", 7]]) {
         await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
         const lesson = page.locator(".foundation-lesson");
         const next = lesson.getByRole("button", { name: "Next reveal", exact: true });
@@ -545,13 +555,13 @@ async function checkFoundationReveals(page, width) {
             await page.locator(`.foundation-lesson[data-beat="${beat}"]`).waitFor();
             const nodes = await lesson.locator("[data-node]:visible").evaluateAll(elements => elements.map(element => element.dataset.node));
             for (const id of previousNodes) assert.ok(nodes.includes(id), `${stage}: previous nodes remain visible`);
-            if (stage === "model-to-agent") {
-                assert.deepEqual(nodes, beat === 0 ? ["model"] : beat === 1 ? ["harness", "model"] : ["harness", "model", "file-tool"]);
-                assert.equal(await lesson.locator('[data-connection="model-request"]').count(), Number(beat >= 3));
-                assert.equal(await lesson.locator('[data-connection="model-response"]').count(), Number(beat >= 4));
-                assert.equal(await lesson.locator('[data-connection="tool-result"]').count(), Number(beat >= 5));
-            } else {
-                assert.equal(nodes.length, beat + 1, `${stage}: one new node per reveal`);
+            assert.equal(nodes.length, beat + 1, `${stage}: one new node per reveal`);
+            if (stage === "inside-the-harness") {
+                assert.deepEqual(nodes, ["context-management", ...harnessNodes.slice(0, Math.max(0, beat - 1)), ...(beat >= 1 ? ["execution-controls"] : [])]);
+                assert.equal(await lesson.locator('.harness-context-aspects [data-node]').count(), Math.max(0, beat - 1));
+                assert.equal(await lesson.locator('button[data-node="context-management"]').count(), 0, "Context management is a static parent");
+                assert.equal(await lesson.locator('.harness-node[aria-expanded="true"], .harness-example:visible').count(), 0);
+                if (beat <= 1) await capture(page, `learn-harness-reveal-${beat}-${width}`);
             }
             if (stage === "anatomy-of-agent") {
                 assert.equal(await lesson.locator('[data-node="anatomy-settings"]').isVisible(), beat >= 4);
@@ -563,10 +573,16 @@ async function checkFoundationReveals(page, width) {
         assert.ok(await next.isDisabled());
         assert.equal(await lesson.locator("details[open]").count(), 0, "Optional details start collapsed");
         await capture(page, `learn-${stage}-complete-${width}`);
+        if (stage === "inside-the-harness") await checkHarnessExamples(page, lesson, harnessNodes, width);
         await lesson.getByRole("button", { name: "Previous reveal", exact: true }).click();
         await page.locator(`.foundation-lesson[data-beat="${lastBeat - 1}"]`).waitFor();
         await lesson.getByRole("button", { name: "Show complete diagram", exact: true }).click();
         await page.locator(`.foundation-lesson[data-beat="${lastBeat}"]`).waitFor();
+        if (stage === "inside-the-harness") {
+            assert.equal(await lesson.locator('[data-node="harness-memory"]').getAttribute("aria-expanded"), "false");
+            assert.equal(await lesson.locator('[data-node="execution-controls"]').getAttribute("aria-expanded"), "true");
+            assert.equal(await lesson.locator('[data-node="harness-context"]').getAttribute("aria-expanded"), "true");
+        }
         if (stage === "anatomy-of-agent") {
             assert.match(await lesson.locator('[data-node="anatomy-task"]').innerText(), /Read meeting-notes.txt and list the agreed actions/);
             await lesson.getByText("Other agent configurations", { exact: true }).click();
@@ -582,14 +598,48 @@ async function checkFoundationReveals(page, width) {
         await lesson.getByRole("button", { name: "Restart", exact: true }).click();
         await page.locator('.foundation-lesson[data-beat="0"]').waitFor();
         assert.equal(await lesson.locator("[data-node]:visible").count(), 1);
+        if (stage === "inside-the-harness") {
+            assert.equal(await lesson.locator('[data-node="context-management"]').count(), 1);
+            assert.equal(await lesson.locator('.harness-node[aria-expanded="true"], .harness-example:visible').count(), 0);
+        }
         await capture(page, `learn-${stage}-start-${width}`);
     }
+}
+
+async function checkHarnessExamples(page, lesson, nodeIds, width) {
+    for (const [index, nodeId] of nodeIds.entries()) {
+        const node = lesson.locator(`[data-node="${nodeId}"]`);
+        const exampleId = await node.getAttribute("aria-controls");
+        const example = lesson.locator(`#${exampleId}`);
+        assert.equal(await example.count(), 1, "Each node controls its own example");
+        if (index === 0) await node.click();
+        else {
+            await node.focus();
+            await page.keyboard.press(index % 2 ? "Enter" : "Space");
+        }
+        await example.waitFor({ state: "visible" });
+        assert.equal(await node.getAttribute("aria-expanded"), "true");
+        assert.equal(await lesson.getAttribute("data-beat"), "5", "Example toggles do not change reveal progress");
+        const nodeBox = await node.boundingBox();
+        const exampleBox = await example.boundingBox();
+        if (width >= 900) {
+            assert.ok(exampleBox.x >= nodeBox.x + nodeBox.width - 1, "Example is to the right of its node");
+            assert.ok(Math.abs(exampleBox.y - nodeBox.y) < 2, "Example aligns with its own row");
+        }
+    }
+    assert.equal(await lesson.locator(".harness-example:visible").count(), 5, "Examples stay open independently");
+    await capture(page, `learn-harness-examples-${width}`);
+    const first = lesson.locator(`[data-node="${nodeIds[0]}"]`);
+    await first.focus();
+    await page.keyboard.press("Enter");
+    await lesson.locator(`#${await first.getAttribute("aria-controls")}`).waitFor({ state: "hidden" });
+    assert.equal(await lesson.locator(".harness-example:visible").count(), 4, "Closing one example leaves the others open");
 }
 
 async function checkTurnOutcomes(page, width) {
     await page.goto(new URL("/learn?stage=agent-loop", baseUrl).href, { waitUntil: "networkidle" });
     const lesson = page.locator(".turn-lesson");
-    assert.equal(await lesson.locator("[data-loop-node]").count(), 5);
+    assert.deepEqual(await lesson.locator("[data-loop-node]").evaluateAll(elements => elements.map(element => element.dataset.loopNode)), ["context", "model", "execute", "answer"]);
     await lesson.getByText("Other outcomes", { exact: true }).click();
     for (const [scenario, lastBeat] of [["read", 7], ["denied", 7], ["missing", 7], ["cancelled", 3], ["limit", 3], ["provided", 3]]) {
         await lesson.locator("select").selectOption(scenario);
@@ -599,16 +649,18 @@ async function checkTurnOutcomes(page, width) {
                 await lesson.getByRole("button", { name: "Next step", exact: true }).click();
                 await page.locator(`.turn-lesson[data-beat="${beat}"]`).waitFor();
             }
-            assert.equal(await lesson.locator('[data-loop-node="model"][aria-current="step"]').count(), 1);
+            assert.equal(await lesson.locator('[data-loop-node="context"][aria-current="step"]').count(), 1);
             assert.equal(await lesson.locator(".return-edge.traversed").count(), 1);
             assert.equal(await lesson.locator(".request-summary dd").last().innerText(), "Yes");
         }
         await lesson.getByRole("button", { name: "Show all steps", exact: true }).click();
         await page.locator(`.turn-lesson[data-beat="${lastBeat}"]`).waitFor();
-        const executedBranch = ["read", "denied", "missing"].includes(scenario);
-        assert.equal(await lesson.locator('[data-loop-node="observation"]').getAttribute("class").then(value => value.includes("reached")), executedBranch);
-        assert.equal(await lesson.locator('[data-loop-node="answer"]').getAttribute("class").then(value => value.includes("reached")), !["cancelled", "limit"].includes(scenario));
-        assert.equal(await lesson.locator('[data-loop-node="execute"]').getAttribute("class").then(value => value.includes("reached")), scenario !== "provided");
+        assert.equal(await lesson.locator('[data-loop-node="answer"]').getAttribute("class").then(value => value.includes("reached")), true);
+        assert.equal(await lesson.locator('[data-loop-node="execute"]').getAttribute("class").then(value => value.includes("reached")), true);
+        const overflowingNodes = await lesson.locator("[data-loop-node]").evaluateAll(elements => elements
+            .filter(element => element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1)
+            .map(element => element.dataset.loopNode));
+        assert.deepEqual(overflowingNodes, [], `${scenario}: loop node text fits`);
         if (scenario === "denied" || scenario === "missing") {
             assert.doesNotMatch(await lesson.locator(".text-evidence").allTextContents().then(values => values.join("\n")), /Priya will send/);
         }

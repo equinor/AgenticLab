@@ -48,8 +48,8 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 | Number | Topic | ID | Focus |
 | --- | --- | --- | --- |
 | 1 | Intro | `why-agents` | Purpose and bounded autonomy, then what makes an agent possible. |
-| 2 | Agent | `model-to-agent` | Harness + model, their responsibilities, and the exchange between them. |
-| 2.1 | Inside the harness | `inside-the-harness` | Assemble context, load instruction text, describe tools, retain session messages, check tool requests. |
+| 2 | Agent | `model-to-agent` | Harness + model and their responsibilities, shown together. |
+| 2.1 | Inside the harness | `inside-the-harness` | Context management and execution, then four context aspects with examples on demand. |
 | 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
 | 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
 | 3 | One foundation, many systems | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
@@ -71,7 +71,7 @@ Restart preserves example selections. Intro returns to **Purpose** when revisite
 **Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;
 after the last reveal it opens the next lesson at its first reveal. Left goes back one reveal;
 from the first reveal it opens the previous lesson at its final reveal. Both directions visit
-all ten lessons, including subtopics: Agent at `7/7` advances to `2.1`, not directly to `3`.
+all ten lessons, including subtopics: Agent advances directly to the first reveal of `2.1`, not to `3`.
 Lessons without reveal controls take one key press to leave. The journey does not wrap at either
 end. Backward entry shows the loop's final explanation, not **Show all steps**. Lesson URLs change
 only when crossing a lesson boundary; reveal progress is not saved in the URL.
@@ -87,26 +87,36 @@ The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of
 **Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
 visits every lesson in order, including the subtopics; the progress counter counts all ten lessons.
 
-Inside the harness, each reveal adds one responsibility while earlier nodes remain visible.
-The examples use the same meeting-notes task as Agent and the loop. **Example and limits** expands
-the input, output and boundary of a responsibility; these details start closed.
+Inside the harness has six cumulative reveals: **Context management**, then **Execution**, then
+**Instructions**, **Context**, **Tool descriptions** and **Memory** beneath Context management.
+Earlier nodes remain visible. Context management is a static parent; the other five nodes each
+toggle an independent example when clicked or activated with Enter/Space. On desktop the box
+appears to that node's right; constrained layouts stack the example beneath its node.
+Examples use the loop's meeting-notes task and distinguish guidance from enforced controls,
+tool descriptions from implementations, and retained memory from selected context.
+Examples start closed, can remain open independently and do not advance the reveals.
+Earlier examples stay open when advancing; stepping back clears examples for unreached nodes.
+**Show complete diagram** reveals all nodes without opening examples. Restart and lesson reentry
+close examples. Unreached nodes and closed examples take no focus or assistive-technology space.
 
-Agent starts with the model alone, then adds the harness and its file-reading tool. Separate reveals
-add the model request, response and returned text for a later request, before completing the
-**Agent = Harness + Model** boundary. Unreached nodes and connections take no layout space.
+Agent shows **Agent = Harness + Model** immediately, with two matching responsibility boxes.
+The harness handles input, manages context and controls execution; the model generates responses
+from the supplied input. This overview has no tool example, exchange paths or reveal controls.
 
-The loop keeps five boxes and their connecting paths visible from the start: Context, Model decision,
-Harness executes, Observation and Final answer. **Next step** reveals the latest reached step inside
+The loop keeps four boxes and their connecting paths visible from the start: **Context management**,
+**Model**, **Execution** and **Response or stop**. **Next step** reveals the latest reached step inside
 its box and shows its explanation below; unreached boxes show only their headings with dashed borders.
-The active box is outlined, and traversed paths are highlighted. The second model request returns
-along the observation loop to the same Model decision box. On narrow screens the answer sits below
-the loop with its own branch from the model. **Messages and tool definitions** expands the supplied
+The active box is outlined, and traversed paths are highlighted. Tool results return from Execution
+to Context management, which assembles the next model request. Responses and stops exit through
+Execution. On narrow screens the exit sits below Execution. **Messages and tool definitions** expands the supplied
 request content. **Show all steps** reveals all reached boxes and the full sequence of explanations;
 **Restart** clears the reveals back to the user message. Changing stages or reloading resets the sequence.
-Branches that are not taken remain unrevealed, including tool execution when notes are already supplied.
+Unreached steps remain unrevealed; Execution still handles completion when notes are already supplied.
 
-The first model request contains instructions, the task and a `read_file` definition, but no
-file content. A model tool request is checked before invocation. Only after the result is included
+The first model request contains instructions, the task, selected session state and a `read_file`
+description, but no file content. A new session has no earlier messages. Tool descriptions are
+model input, not invocations. Execution applies configured checks before every tool invocation,
+including a request from the first model response. Only after Context management includes the result
 in a second request does the model receive the notes. The answer preserves unstated owners and
 deadlines as **not stated**. Retention is separate from selecting context, and does not retrain
 the model. Responses can include text, tool requests or both; ending a run does not prove success.

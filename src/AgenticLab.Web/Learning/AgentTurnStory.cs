@@ -13,16 +13,15 @@ internal sealed record LearningTurnStep(
 {
     internal string LoopNodeId => Id switch
     {
-        "task" => "context",
-        "request-1" or "tool-request" or "request-2" => "model",
-        "permission" or "stop" => "execute",
-        "result" => "observation",
-        "answer" or "finish" => "answer",
+        "task" or "request-1" or "request-2" => "context",
+        "tool-request" or "answer" => "model",
+        "permission" or "result" => "execute",
+        "stop" or "finish" => "answer",
         _ => throw new InvalidOperationException($"No loop node for step '{Id}'."),
     };
 }
 internal sealed record LearningTurnScenario(string Id, string Title, IReadOnlyList<LearningTurnStep> Steps);
-internal sealed record HarnessResponsibility(string NodeId, string Input, string Operation, string Output, string Boundary);
+internal sealed record HarnessResponsibility(string NodeId, string Title, string Summary, string Input, string Operation, string Output, string Boundary);
 
 internal sealed class AgentTurnStory
 {
@@ -41,26 +40,34 @@ internal sealed class AgentTurnStory
 
     internal static IReadOnlyList<HarnessResponsibility> Responsibilities { get; } = Array.AsReadOnly<HarnessResponsibility>(
     [
-        new("harness-context", "The user's request and any selected earlier messages.",
+        new("instructions", "Instructions", "Guidance supplied to the model.",
+            "Standing guidance and any applicable project instructions.",
+            "Insert the selected instruction text into the model request.", Instructions,
+            "Instruction text can ask the model not to edit files. Only executable controls can prevent a write."),
+        new("harness-context", "Context", "Information supplied for this model request.",
+            "Instructions, the user's request, tool definitions and any selected earlier messages.",
             "Select the messages for the next model request. Add retrieved content only after it is available.",
             "The first request includes the task but not the file's contents. The second also includes the read result.",
             "Context is the input supplied for one request. The model does not automatically see the workspace or all stored history."),
-        new("instructions", "Standing guidance and any applicable project instructions.",
-            "Insert the selected instruction text into the model request.", Instructions,
-            "Instruction text can ask the model not to edit files. Only executable controls can prevent a write."),
-        new("available-tools", "An enabled read_file implementation and its argument definition.",
-            "Supply the tool name, description and expected arguments to the model. Map accepted requests to the implementation.",
+        new("available-tools", "Tool descriptions", "Tool names, descriptions and expected arguments supplied to the model.",
+            "An enabled read_file implementation and its argument definition.",
+            "Supply the tool name, description and expected arguments in the model request.",
             "read_file(path: string). The model supplies a file name; the implementation reads the file.",
             "A tool description is not its code, and advertising a tool does not authorize every invocation."),
-        new("harness-memory", "Messages, tool requests and results from the session.",
+        new("harness-memory", "Memory", "Information retained for possible use later.",
+            "Messages, tool requests and results from the session.",
             "Store selected messages and results. Choose which stored items to include in a later request.",
             "The retained read request and file result can be included when the user asks a follow-up question.",
             "Retaining a conversation does not retrain the model or give it unlimited context. Storage and selection depend on the harness."),
-        new("execution-controls", "The requested tool name and path, plus the configured execution policy.",
-            "Check that the tool is enabled and the path is allowed. Apply approval rules and limits before invoking it.",
+        new("execution-controls", "Execution", "Calls the model, handles tool requests, and controls when to continue or stop.",
+            "The model response and the configured execution rules.",
+            "Call the model and handle its response. Check requested tools and paths before invocation, applying configured approvals and limits. Include results in a later request, then continue or stop.",
             "In this example, read_file may read meeting-notes.txt. No file-writing or terminal tool is enabled.",
             "An allowed request can still fail because the file is missing or the operating system denies access. These example checks are not a filesystem sandbox."),
     ]);
+
+    internal static IReadOnlyList<HarnessResponsibility> ContextAspects { get; } = Array.AsReadOnly(Responsibilities.Take(4).ToArray());
+    internal static HarnessResponsibility Execution => Responsibilities[^1];
 
     internal static IReadOnlyList<LearningTurnScenario> Scenarios { get; } = Array.AsReadOnly<LearningTurnScenario>(
     [
@@ -131,12 +138,12 @@ internal sealed class AgentTurnStory
         return new(id, title,
         [
             Received(Task),
-            RequestStep("request-1", "Send the first model request", FirstRequest,
-                "The harness supplies instruction text, the user message and a tool definition. The file name is present; its contents are not. Context means the input supplied for this request."),
+            RequestStep("request-1", "Assemble context and send the first request", FirstRequest,
+                "Context management assembles instructions, the user message, selected session state and tool descriptions. This new session has no earlier messages. The harness sends that input to the model; the file name is present but its contents are not."),
             CallStep(),
             new("permission", "Harness", executes ? "Allow the requested read" : "Deny the requested read",
-                executes ? "The harness checks the enabled tool, the required path argument and the configured allowed path. This example permits this read without an approval prompt."
-                    : "The model can request a file even when the execution policy forbids it. The harness refuses the invocation before any file-reading code runs.",
+                executes ? "Execution handles the model response and checks the enabled tool, argument and allowed path before invocation. Every requested tool call needs its configured checks, including one from the first model response. This example permits the read without an approval prompt."
+                    : "Execution checks the requested action before invoking a tool. The harness refuses this read before any file-reading code runs; a model request does not grant permission.",
                 "Configured decision", executes ? "Tool: read_file enabled\nArgument: path is a string\nAllowed path: meeting-notes.txt\nDecision: allow\nFile writes and terminal commands: no enabled tools"
                     : "Tool: read_file enabled\nRequested path: meeting-notes.txt\nAllowed paths: none\nDecision: deny"),
             new("result", executes ? "File-reading tool" : "Harness", executes ? "Return the read result" : "Return the denial",
@@ -144,8 +151,8 @@ internal sealed class AgentTurnStory
                     : executes ? "Permission to attempt a read does not guarantee success. The tool returns a missing-file error, not invented notes."
                     : "The harness produces an error result for the denied request. No file was opened.",
                 succeeded ? "File content returned" : "Error returned", result, ExecutesTool: executes),
-            RequestStep("request-2", "Send the result in a second request", nextRequest,
-                "The harness includes the previous messages, the tool request and its matching result. The result identifier connects it to read-1. The model now receives the returned content or error."),
+            RequestStep("request-2", "Assemble the next context and call the model", nextRequest,
+                "Context management selects the previous messages, tool request and matching result for a new model request. Execution calls the model again. The returned content or error only affects the response when it is supplied in this new context."),
             new("answer", "Model", succeeded ? "Generate the action list" : "Report the missing evidence",
                 succeeded ? "The model generates text from the supplied notes. Unstated owners and deadlines remain not stated. A generated answer still needs checking against its sources."
                     : "The model receives an error instead of notes. This example reports the limitation rather than claiming to have completed the task.",

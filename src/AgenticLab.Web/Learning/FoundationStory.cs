@@ -155,6 +155,8 @@ internal sealed class FoundationStory
             "An in-house equipment monitoring agent or a custom business application"),
     ]);
 
+    private readonly HashSet<string> _openHarnessExamples = new(StringComparer.Ordinal);
+
     internal string StageId { get; private set; } = "agent-landscape";
     internal int Beat { get; private set; }
     internal AgentExample Example { get; private set; } = Examples[1];
@@ -176,18 +178,40 @@ internal sealed class FoundationStory
     internal bool CanPrevious => Beat > 0;
     internal bool CanNext => Beat < Captions.Count - 1;
     internal string Caption => Captions[Beat];
+    internal IEnumerable<HarnessResponsibility> VisibleContextAspects => StageId == "inside-the-harness"
+        ? AgentTurnStory.ContextAspects.Take(Math.Max(0, Beat - 1))
+        : [];
 
     internal void SetStage(string stageId)
     {
         if (StageId == stageId) return;
         StageId = stageId;
         Beat = 0;
+        _openHarnessExamples.Clear();
         if (stageId == "anatomy-of-agent") SelectAnatomyPurpose("meeting-notes");
     }
 
-    internal void Move(int offset) => Beat = (int)Math.Clamp((long)Beat + offset, 0, Captions.Count - 1);
+    internal void Move(int offset)
+    {
+        Beat = (int)Math.Clamp((long)Beat + offset, 0, Captions.Count - 1);
+        if (StageId == "inside-the-harness")
+            _openHarnessExamples.RemoveWhere(nodeId => !IsHarnessResponsibilityVisible(nodeId));
+    }
     internal void Complete() => Beat = Captions.Count - 1;
-    internal void Restart() => Beat = 0;
+    internal void Restart()
+    {
+        Beat = 0;
+        _openHarnessExamples.Clear();
+    }
+    internal bool IsHarnessExampleOpen(string nodeId) => _openHarnessExamples.Contains(nodeId);
+    internal void ToggleHarnessExample(string nodeId)
+    {
+        if (!IsHarnessResponsibilityVisible(nodeId)) return;
+        if (!_openHarnessExamples.Add(nodeId)) _openHarnessExamples.Remove(nodeId);
+    }
+    private bool IsHarnessResponsibilityVisible(string nodeId) => StageId == "inside-the-harness"
+        && (VisibleContextAspects.Any(item => item.NodeId == nodeId)
+            || Beat >= 1 && nodeId == AgentTurnStory.Execution.NodeId);
     internal void SelectExample(string id) => Example = Examples.FirstOrDefault(example => example.Id == id) ?? Example;
     internal void SelectAnatomy(string id)
     {
@@ -223,8 +247,14 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> BasicAnatomyCaptions = Array.AsReadOnly(AnatomyCaptions.Take(8).ToArray());
 
-    private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly(
-        AgentTurnStory.Responsibilities.Select(item => item.Output).ToArray());
+    internal const string ContextManagementSummary = "Selects and assembles the information supplied to the model.";
+
+    private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly<string>(
+    [
+        ContextManagementSummary,
+        AgentTurnStory.Execution.Summary,
+        .. AgentTurnStory.ContextAspects.Select(item => item.Summary),
+    ]);
 
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
     [
@@ -234,13 +264,7 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "A language model generates a response from the supplied input. It does not independently read files on your computer.",
-        "The harness is software that supplies input to the model and handles its response. The model does not run this software.",
-        "A tool is code the harness can invoke. Here, read_file can read meeting-notes.txt when the configured checks allow it. No file-writing tool is enabled.",
-        "The harness sends a model request containing selected messages and tool definitions. The supplied input is called context. The first request names the file but does not contain its text.",
-        "The model's response can contain text, tool requests or both. It does not execute tools itself. The harness checks a requested tool call before invoking it.",
-        "After a permitted read returns file text, the harness can include it in a new model request. Only then does the model receive that text.",
-        "Agent = Harness + Model. The harness presents the response. An answer, configured limit or cancellation can end the turn; ending it does not prove the task succeeded.",
+        "Agent = Harness + Model. The harness handles input, manages context and controls execution. The model generates responses from the supplied input.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(
