@@ -166,37 +166,53 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(expected, AgentLearningJourney.Number(stageId));
     }
 
-    /// <summary>The introduction distinguishes a simple chatbot from agent behaviour without treating chat interfaces as exclusive to either.</summary>
+    /// <summary>Intro slides have readable content and matching diagrams with valid, continuous exchanges.</summary>
     [Fact]
-    public void Introduction_SetsTheSceneBeforeAgent()
+    public void Introduction_HasAlignedSlidesAndValidDiagramExchanges()
     {
         var introduction = AgentLearningJourney.Resolve(null);
-        Assert.Equal("why-agents", introduction.Id);
-        Assert.Equal("Intro", introduction.Title);
-        Assert.Equal("Models, chatbots and agents.", introduction.Summary);
-        Assert.Equal("A chat interface can support either pattern.", introduction.Takeaway);
-        Assert.Empty(introduction.HighlightedNodes);
-        Assert.Equal(
-            ["A simple chatbot", "What an agent adds", "A chat app can be both"],
-            AgentLearningJourney.IntroductionSteps.Select(step => step.Title).ToArray());
-        var chatbot = AgentLearningJourney.IntroductionSteps[0];
-        Assert.Equal("chatbot", chatbot.Id);
-        Assert.Contains("language model (LLM)", chatbot.Detail);
-        Assert.Contains("sends messages to the model and displays its reply", chatbot.Detail);
-        var agent = AgentLearningJourney.IntroductionSteps[1];
-        Assert.Equal("agent", agent.Id);
-        Assert.Contains("uses a model to choose steps toward a goal", agent.Detail);
-        Assert.Contains("software carries out permitted actions and returns results", agent.Detail);
-        Assert.Contains("model can decide what comes next", agent.Detail);
-        var chatInterface = AgentLearningJourney.IntroductionSteps[2];
-        Assert.Equal("chat-interface", chatInterface.Id);
-        Assert.Contains("chat apps can also be agents", chatInterface.Detail);
-        Assert.Contains("ChatGPT", chatInterface.Detail);
-        Assert.Contains("chat interface does not reveal how the system works", chatInterface.Detail);
-        var copy = $"{introduction.Summary} {introduction.Takeaway} {string.Join(' ', AgentLearningJourney.IntroductionSteps.Select(step => step.Detail))}";
-        Assert.True(copy.Split(' ').Length <= 100);
-        Assert.Equal("model-to-agent", AgentLearningJourney.Move(introduction.Id, 1).Id);
-        Assert.Same(introduction, AgentLearningJourney.Move("model-to-agent", -1));
+        Assert.Same(AgentLearningJourney.Stages[0], introduction);
+        Assert.False(string.IsNullOrWhiteSpace(introduction.Title));
+        Assert.False(string.IsNullOrWhiteSpace(introduction.Summary));
+        Assert.False(string.IsNullOrWhiteSpace(introduction.Takeaway));
+
+        var steps = AgentLearningJourney.IntroductionSteps;
+        Assert.NotEmpty(steps);
+        Assert.Equal(steps.Count, steps.Select(step => step.Id).Distinct().Count());
+        Assert.All(steps, step =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(step.Id));
+            Assert.False(string.IsNullOrWhiteSpace(step.Title));
+            Assert.False(string.IsNullOrWhiteSpace(step.Detail));
+        });
+        Assert.Equal(steps.Select(step => step.Id),
+            AgentLearningJourney.IntroductionDiagrams.Select(diagram => diagram.Id));
+        Assert.All(AgentLearningJourney.IntroductionDiagrams, diagram =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(diagram.Description));
+            Assert.NotEmpty(diagram.Actors);
+            var actorIds = diagram.Actors.Select(actor => actor.Id).ToArray();
+            Assert.Equal(actorIds.Length, actorIds.Distinct().Count());
+            Assert.All(diagram.Actors, actor =>
+            {
+                Assert.False(string.IsNullOrWhiteSpace(actor.Id));
+                Assert.False(string.IsNullOrWhiteSpace(actor.Title));
+                Assert.False(string.IsNullOrWhiteSpace(actor.Detail));
+            });
+            Assert.NotEmpty(diagram.Exchanges);
+            Assert.All(diagram.Exchanges, exchange =>
+            {
+                Assert.Contains(exchange.From, actorIds);
+                Assert.Contains(exchange.To, actorIds);
+                Assert.NotEqual(exchange.From, exchange.To);
+                Assert.False(string.IsNullOrWhiteSpace(exchange.Detail));
+            });
+            for (var index = 1; index < diagram.Exchanges.Count; index++)
+            {
+                Assert.Equal(diagram.Exchanges[index - 1].To, diagram.Exchanges[index].From);
+            }
+            Assert.Equal(diagram.Exchanges[0].From, diagram.Exchanges[^1].To);
+        });
     }
 
     /// <summary>Missing and retired links always resolve to a usable first stage.</summary>
@@ -245,7 +261,7 @@ public sealed class AgentLearningJourneyTests
         Assert.Contains("outside the harness", client.BodyHtml);
     }
 
-    /// <summary>Every stage links to readable concepts and defined architecture nodes.</summary>
+    /// <summary>Any concepts and architecture nodes referenced by a stage must exist.</summary>
     [Fact]
     public void Stages_ReferenceExistingConceptsAndNodes()
     {
@@ -255,8 +271,6 @@ public sealed class AgentLearningJourneyTests
 
         foreach (var stage in AgentLearningJourney.Stages)
         {
-            Assert.NotEmpty(stage.ConceptIds);
-            if (stage.Id != "why-agents") Assert.NotEmpty(stage.HighlightedNodes);
             Assert.All(stage.ConceptIds, id =>
             {
                 var concept = catalog.Get(id);

@@ -81,7 +81,7 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .intro-link { display: flex; flex-direction: column; justify-content: space-between; padding: .35rem .25rem; text-align: center; font-size: 12px; line-height: 1.4; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
 .intro-request-label { display: grid; align-items: center; min-height: 36px; margin-top: -.35rem; }
 .intro-response-label { display: grid; align-items: center; min-height: 60px; margin-bottom: -.35rem; }
-.intro-label-active { display: flex; align-items: center; justify-content: center; height: 100%; background: var(--lab-accent-soft); color: var(--lab-accent); font-weight: 600; opacity: 0; animation: intro-step-highlight var(--intro-step-duration) steps(1, end) forwards; }
+.intro-label-active { display: flex; align-items: center; justify-content: center; height: 100%; background: var(--lab-accent-soft); color: var(--lab-accent); font-weight: 600; opacity: 0; visibility: hidden; animation: intro-step-highlight var(--intro-step-duration) steps(1, end); }
 .intro-action-label { animation: intro-label-emphasis var(--intro-step-duration) steps(1, end) forwards; }
 .intro-message-label { animation-delay: var(--intro-reading-duration); }
 .intro-reply-label { animation-delay: calc(var(--intro-completion-delay) - var(--intro-step-duration)); }
@@ -93,8 +93,8 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
     to { outline-color: transparent; background: var(--surface); }
 }
 @keyframes intro-step-highlight {
-    from { opacity: 1; }
-    to { opacity: 0; }
+    from { opacity: 1; visibility: visible; }
+    to { opacity: 0; visibility: hidden; }
 }
 @keyframes intro-result-reveal {
     from, to { opacity: 1; }
