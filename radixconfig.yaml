@@ -40,7 +40,12 @@ spec:
       ports:
         - name: http
           port: 8080
+      # Radix Prometheus scrapes /metrics on the http port; the component is internal, so the endpoint is
+      # not reachable from outside. Grafana dashboards are visible to all Radix users: metrics carry
+      # agent, host and model names only, never user or conversation data.
+      monitoring: true
       variables:
+        Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
         AzureOpenAI__Deployment: gpt-5.6-sol
         # Every user works on the bundled sample workspace with read-only tools only: nobody can choose

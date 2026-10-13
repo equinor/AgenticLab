@@ -265,6 +265,15 @@ root Dockerfile's stages.
   page shows a banner that only Open information may be entered. See [input limits](docs/agents.md#input-limits).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
+- `aiservice` sets `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix Prometheus
+  scrapes its `/metrics` endpoint and the metrics appear in Radix Grafana next to CPU and memory:
+  - `agenticlab_chat_messages_total` by `agent` and `host`
+  - `gen_ai_client_token_usage` by model and token type (input/output)
+  - `conversations_retained`, `conversations_expired`, `flow_active_sessions`
+  - `http_server_request_duration_seconds` by route and status code
+
+  Grafana dashboards are visible to every Radix user, so metrics never carry user, conversation or
+  message data. Token usage of the A2A specialists (`a2aserver`) is not exported yet.
 
 ### Learning Only
 

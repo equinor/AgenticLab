@@ -110,6 +110,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
         try
         {
+            ChatMetrics.RecordMessage(resolvedName, vendors.HostKey(vendor));
             await session.WaitForStepAsync(token);
             yield return Step("received", "Harness received the message", $"Agent: {resolvedName}");
 

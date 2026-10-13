@@ -126,12 +126,15 @@ internal static class ServiceRegistration
         return services;
     }
 
-    /// <summary>The flow tracer that projects a real agent run into paced flow events, and the session registry that drives it.</summary>
+    /// <summary>
+    /// The flow tracer that projects a real agent run into paced flow events, the session registry that drives
+    /// it, and their session and message metrics.
+    /// </summary>
     public static IServiceCollection AddFlowTracing(this IServiceCollection services)
     {
         services.AddSingleton<FlowControlRegistry>();
         services.AddOpenTelemetry()
-            .WithMetrics(metrics => metrics.AddMeter(FlowControlRegistry.MeterName));
+            .WithMetrics(metrics => metrics.AddMeter(FlowControlRegistry.MeterName, ChatMetrics.MeterName));
         services.AddSingleton<FlowTracer>();
         return services;
     }

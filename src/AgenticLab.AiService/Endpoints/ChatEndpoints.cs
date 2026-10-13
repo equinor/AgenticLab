@@ -86,7 +86,7 @@ internal static class ChatEndpoints
                     : "The workspace is not available on this server.");
             }
 
-            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, instructions, cancellationToken);
+            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
         }
 
         // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
@@ -111,13 +111,13 @@ internal static class ChatEndpoints
         }
 
         // Workspace-defined agents always support workspace skills (see WorkspaceDefinedAgent).
-        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, request, conversations, skills, instructions, cancellationToken);
+        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
     }
 
     // Runs one turn, continuing the supplied conversation, injecting the enabled custom instructions and
     // (when the agent uses skills) the skill catalogue, and hiding any tools the caller disabled. Any
     // required workspace scope must already be active on the calling context.
-    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
+    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, string host, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
     {
         // Continue the existing conversation when an id is supplied; otherwise mint a new one and return
         // it so the client can keep the conversation going.
@@ -131,6 +131,7 @@ internal static class ChatEndpoints
             conversationId: conversationId, agentName: resolvedName);
         var runOptions = RunScopeSet.BuildRunOptions(supportsSkills, skills, instructions);
 
+        ChatMetrics.RecordMessage(resolvedName, host);
         var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
         return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
     }

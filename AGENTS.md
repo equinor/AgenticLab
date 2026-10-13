@@ -188,7 +188,9 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `services__<name>__http__0` endpoints on internal port 8080, uses Production settings, and
   orders startup without readiness checks. See [README.md](README.md#run-with-docker).
 - Radix: [radixconfig.yaml](radixconfig.yaml) builds `dev` from `main` and promotes to `prod`; only
-  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. Radix has no Dockerfile target selection, so each component uses
+  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample` and exposes
+  Prometheus `/metrics` to Radix monitoring (`Metrics__PrometheusEndpoint`, off by default; internal
+  components only). Metric tags must stay bounded and free of user or conversation data. Radix has no Dockerfile target selection, so each component uses
   a single-service file under [docker/](docker) that must mirror its root Dockerfile stage.
   See [README.md](README.md#deploy-to-radix).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
