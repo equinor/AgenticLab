@@ -100,6 +100,10 @@ not explicitly enable sensitive prompt-content telemetry. This is not a guarante
 traces, dependencies, or collector configurations are free of sensitive data. Review collection,
 export, access, and retention before using real data.
 
+`Metrics:PrometheusEndpoint=true` maps an unauthenticated Prometheus `/metrics` endpoint. Enable it
+only on components that are not publicly reachable, as on Radix, where only the internal `aiservice`
+and `a2aserver` use it. Chat metrics are tagged with registered agent and host names only.
+
 For exploration without model calls, start only the Web project's
 [learning-only guide](README.md#learning-only). Do not start model/protocol services or use live
 chat/discovery for that workflow.

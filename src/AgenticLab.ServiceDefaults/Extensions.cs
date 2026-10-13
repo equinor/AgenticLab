@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -17,6 +18,15 @@ public static class Extensions
 {
     private const string HealthEndpointPath = "/health";
     private const string AlivenessEndpointPath = "/alive";
+
+    /// <summary>
+    /// Opt-in switch for a Prometheus <c>/metrics</c> scraping endpoint. Enable it only on internal components:
+    /// the endpoint is unauthenticated and Radix Prometheus scrapes it inside the cluster.
+    /// </summary>
+    public const string PrometheusEndpointKey = "Metrics:PrometheusEndpoint";
+
+    // Microsoft.Extensions.AI's chat client activity source and meter (token usage and duration per model).
+    private const string GenAiTelemetryName = "Experimental.Microsoft.Extensions.AI";
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
@@ -57,12 +67,13 @@ public static class Extensions
             {
                 metrics.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
+                    .AddRuntimeInstrumentation()
+                    .AddMeter(GenAiTelemetryName);
             })
             .WithTracing(tracing =>
             {
                 tracing.AddSource(builder.Environment.ApplicationName)
-                    .AddSource("Experimental.Microsoft.Extensions.AI")
+                    .AddSource(GenAiTelemetryName)
                     .AddAspNetCoreInstrumentation(tracing =>
                         // Exclude health check requests from tracing
                         tracing.Filter = context =>
@@ -86,6 +97,11 @@ public static class Extensions
         if (useOtlpExporter)
         {
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
+        }
+
+        if (builder.Configuration.GetValue<bool>(PrometheusEndpointKey))
+        {
+            builder.Services.AddOpenTelemetry().WithMetrics(metrics => metrics.AddPrometheusExporter());
         }
 
         // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
@@ -121,6 +137,12 @@ public static class Extensions
             {
                 Predicate = r => r.Tags.Contains("live")
             });
+        }
+
+        if (app.Configuration.GetValue<bool>(PrometheusEndpointKey))
+        {
+            // Scrapes every few seconds would otherwise dominate the request metrics.
+            app.MapPrometheusScrapingEndpoint().DisableHttpMetrics();
         }
 
         return app;

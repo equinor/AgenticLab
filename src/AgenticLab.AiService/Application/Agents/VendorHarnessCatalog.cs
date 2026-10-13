@@ -63,4 +63,17 @@ public sealed class VendorHarnessCatalog
         !string.IsNullOrWhiteSpace(vendor) && _harnesses.TryGetValue(vendor.Trim(), out var harness)
             ? harness
             : null;
+
+    /// <summary>
+    /// The registered key for a vendor, or <c>default</c> when it is null, blank or unknown. Telemetry uses it
+    /// so a client-supplied value can never create an unbounded set of metric tags.
+    /// </summary>
+    /// <param name="vendor">The vendor/brand key sent by the client.</param>
+    /// <returns>The vendor's registered key, or <c>default</c>.</returns>
+    public string HostKey(string? vendor) =>
+        string.IsNullOrWhiteSpace(vendor)
+            ? DefaultHostKey
+            : _vendors.FirstOrDefault(v => string.Equals(v.Key.Trim(), vendor.Trim(), StringComparison.OrdinalIgnoreCase))?.Key.Trim() ?? DefaultHostKey;
+
+    private const string DefaultHostKey = "default";
 }
