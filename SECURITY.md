@@ -102,7 +102,7 @@ export, access, and retention before using real data.
 
 `Metrics:PrometheusEndpoint=true` maps an unauthenticated Prometheus `/metrics` endpoint. Enable it
 only on components that are not publicly reachable, as on Radix, where only the internal `aiservice`
-uses it. Chat metrics are tagged with registered agent and host names only.
+and `a2aserver` use it. Chat metrics are tagged with registered agent and host names only.
 
 For exploration without model calls, start only the Web project's
 [learning-only guide](README.md#learning-only). Do not start model/protocol services or use live
