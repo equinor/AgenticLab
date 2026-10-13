@@ -166,24 +166,33 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(expected, AgentLearningJourney.Number(stageId));
     }
 
-    /// <summary>The introduction defines an agent and its bounded autonomy before explaining its parts and operation.</summary>
+    /// <summary>The introduction distinguishes a simple chatbot from agent behaviour without treating chat interfaces as exclusive to either.</summary>
     [Fact]
     public void Introduction_SetsTheSceneBeforeAgent()
     {
         var introduction = AgentLearningJourney.Resolve(null);
         Assert.Equal("why-agents", introduction.Id);
         Assert.Equal("Intro", introduction.Title);
+        Assert.Equal("Models, chatbots and agents.", introduction.Summary);
+        Assert.Equal("A chat interface can support either pattern.", introduction.Takeaway);
         Assert.Empty(introduction.HighlightedNodes);
         Assert.Equal(
-            ["Purpose", "What does this mean? / What makes this possible?"],
+            ["A simple chatbot", "What an agent adds", "A chat app can be both"],
             AgentLearningJourney.IntroductionSteps.Select(step => step.Title).ToArray());
-        var purpose = AgentLearningJourney.IntroductionSteps[0];
-        Assert.Equal("purpose", purpose.Id);
-        Assert.Contains("works toward a goal on your behalf", purpose.Detail);
-        Assert.Contains("choosing its next steps", purpose.Detail);
-        Assert.Contains("adjusting to results", purpose.Detail);
-        Assert.Contains("within the permissions and limits", purpose.Detail);
-        Assert.Contains("model", AgentLearningJourney.IntroductionSteps[1].Detail);
+        var chatbot = AgentLearningJourney.IntroductionSteps[0];
+        Assert.Equal("chatbot", chatbot.Id);
+        Assert.Contains("language model (LLM)", chatbot.Detail);
+        Assert.Contains("sends messages to the model and displays its reply", chatbot.Detail);
+        var agent = AgentLearningJourney.IntroductionSteps[1];
+        Assert.Equal("agent", agent.Id);
+        Assert.Contains("uses a model to choose steps toward a goal", agent.Detail);
+        Assert.Contains("software carries out permitted actions and returns results", agent.Detail);
+        Assert.Contains("model can decide what comes next", agent.Detail);
+        var chatInterface = AgentLearningJourney.IntroductionSteps[2];
+        Assert.Equal("chat-interface", chatInterface.Id);
+        Assert.Contains("chat apps can also be agents", chatInterface.Detail);
+        Assert.Contains("ChatGPT", chatInterface.Detail);
+        Assert.Contains("chat interface does not reveal how the system works", chatInterface.Detail);
         var copy = $"{introduction.Summary} {introduction.Takeaway} {string.Join(' ', AgentLearningJourney.IntroductionSteps.Select(step => step.Detail))}";
         Assert.True(copy.Split(' ').Length <= 100);
         Assert.Equal("model-to-agent", AgentLearningJourney.Move(introduction.Id, 1).Id);

@@ -22,6 +22,11 @@ public partial class Learn : IAsyncDisposable
     private LearningStage _stage = Stages[0];
     private int _stageIndex;
     private int _introStep;
+    private int _introReplayVersion;
+    private int _introPlaybackRate = 100;
+    private const int IntroReadingDurationMs = 2000;
+    private int IntroStepDurationMs => 100000 / _introPlaybackRate;
+    private bool _introFlowPaused;
     private bool _initialized;
     private Concept? _activeConcept;
     private ElementReference _stageHeading;
@@ -53,6 +58,7 @@ public partial class Learn : IAsyncDisposable
         {
             _pendingFocus = FocusTarget.Stage;
             _introStep = 0;
+            _introFlowPaused = false;
         }
 
         _activeConcept = null;
@@ -164,8 +170,19 @@ public partial class Learn : IAsyncDisposable
         return _introStep != previous;
     }
 
-    private void MoveIntroduction(int offset) =>
-        _introStep = Math.Clamp(_introStep + offset, 0, AgentLearningJourney.IntroductionSteps.Count - 1);
+    private void MoveIntroduction(int offset)
+    {
+        var next = Math.Clamp(_introStep + offset, 0, AgentLearningJourney.IntroductionSteps.Count - 1);
+        if (next == _introStep) return;
+        _introStep = next;
+        _introFlowPaused = false;
+    }
+
+    private void ReplayIntroduction()
+    {
+        _introFlowPaused = false;
+        _introReplayVersion++;
+    }
 
     private void OpenConcept(Concept concept)
     {

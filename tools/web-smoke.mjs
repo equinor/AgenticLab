@@ -372,13 +372,13 @@ async function checkA2ADetails(page, width) {
 async function checkLearning(page, width) {
     await page.goto(new URL("/learn", baseUrl).href, { waitUntil: "networkidle" });
     assert.equal(await page.getByRole("button", { name: "Discovery", exact: true }).count(), 0);
-    const introduction = ["Purpose", "What does this mean? / What makes this possible?"];
+    const introduction = ["A simple chatbot", "What an agent adds", "A chat app can be both"];
     for (const [index, title] of introduction.entries()) {
         if (index > 0) await page.getByRole("button", { name: "Next step", exact: true }).click();
         await page.waitForFunction(count => document.querySelector(".intro-count")?.textContent.trim() === count,
             `${index + 1} / ${introduction.length}`);
         assert.equal((await page.locator(".intro-step.current dt").textContent()).trim(), title);
-        if (title === "Purpose") await capture(page, `learn-${width}`);
+        await capture(page, index === 0 ? `learn-${width}` : `learn-intro-${index + 1}-${width}`);
     }
     assert.ok(await page.getByRole("button", { name: "Next step", exact: true }).isDisabled());
     if (width >= 900) await checkLearnKeyboard(page, width);

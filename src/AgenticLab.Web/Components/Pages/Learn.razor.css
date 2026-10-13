@@ -48,7 +48,9 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .reality.today { color: var(--accent); background: var(--lab-accent-soft); border-color: #b7d1c2; }
 .reality.conceptual { color: var(--blue); background: #edf2f9; border-color: #bdcde1; }
 .stage-summary { max-width: 90ch; line-height: 1.8; margin: 16px 0 24px; color: var(--lab-muted); }
-.intro-toolbar { display: flex; align-items: center; gap: .5rem; margin-bottom: .75rem; }
+.intro-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+.intro-speed { width: 5rem; height: 32px; padding: 0 .4rem; border: 1px solid var(--line); border-radius: var(--lab-radius-sm); background: var(--surface); color: var(--lab-text); font: var(--lab-text-sm) var(--lab-font-mono); }
+.intro-speed:focus-visible { outline: 2px solid var(--lab-accent); outline-offset: 2px; }
 .intro-count { min-width: 3rem; text-align: center; font: var(--lab-text-sm) var(--lab-font-mono); color: var(--muted); }
 .intro-steps { display: grid; margin: 0; max-width: 75ch; }
 .intro-step { grid-area: 1 / 1; }
@@ -56,6 +58,57 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .intro-steps > div { padding: 1rem 0; border-top: 1px solid var(--line); }
 .intro-steps dt { font-weight: 600; color: var(--accent); }
 .intro-steps dd { margin: .4rem 0 0; line-height: 1.65; }
+.intro-diagram { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin: .75rem 0 0; padding-top: 1.25rem; border-top: 1px solid var(--line); max-width: 900px; }
+.intro-task, .intro-answer { margin: 0; min-height: 3rem; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.intro-task { grid-area: 1 / 1; padding-bottom: .75rem; }
+.intro-answer { grid-area: 3 / 1; padding-top: .75rem; color: var(--muted); opacity: 0; animation: intro-result-reveal var(--intro-step-duration) steps(1, end) var(--intro-completion-delay) forwards; }
+.intro-flow { grid-area: 2 / 1 / 3 / -1; position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: 144px; }
+.intro-paths { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; fill: none; color: var(--lab-muted); stroke: currentColor; }
+.intro-paths marker path { stroke-width: 1.5; }
+.intro-path { stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.intro-trace { stroke: var(--lab-accent); stroke-width: 3; vector-effect: non-scaling-stroke; opacity: 0; animation: intro-step-highlight var(--intro-step-duration) steps(1, end) forwards; }
+.intro-actor { --actor: var(--lab-host); z-index: 1; align-self: start; height: 96px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .35rem; padding: .5rem; text-align: center; min-width: 0; border: 1px solid var(--line); border-top: 3px solid var(--actor); border-radius: var(--lab-radius-sm); background: var(--surface); }
+.intro-actor strong { font-size: 14px; line-height: 1.4; }
+.intro-actor span { font-size: 12px; line-height: 1.4; color: var(--muted); overflow-wrap: anywhere; }
+.actor-user { --actor: var(--lab-user); grid-area: 1 / 1; outline: 2px solid transparent; outline-offset: 2px; animation: intro-user-highlight var(--intro-reading-duration) steps(1, end) forwards; }
+.intro-user-detail { display: grid; align-items: center; min-height: 36px; width: 100%; }
+.intro-user-detail > span { grid-area: 1 / 1; }
+.intro-user-detail .intro-label-active { color: var(--lab-accent); animation-duration: var(--intro-reading-duration); }
+.intro-actor-detail { display: grid; align-items: center; min-height: 54px; width: 100%; }
+.intro-actor-detail > span { grid-area: 1 / 1; }
+.actor-app { grid-area: 1 / 3; }
+.actor-model { --actor: var(--lab-model); grid-area: 1 / 5; }
+.intro-link { display: flex; flex-direction: column; justify-content: space-between; padding: .35rem .25rem; text-align: center; font-size: 12px; line-height: 1.4; color: var(--muted); min-width: 0; overflow-wrap: anywhere; }
+.intro-request-label { display: grid; align-items: center; min-height: 36px; margin-top: -.35rem; }
+.intro-response-label { display: grid; align-items: center; min-height: 60px; margin-bottom: -.35rem; }
+.intro-label-active { display: flex; align-items: center; justify-content: center; height: 100%; background: var(--lab-accent-soft); color: var(--lab-accent); font-weight: 600; opacity: 0; animation: intro-step-highlight var(--intro-step-duration) steps(1, end) forwards; }
+.intro-action-label { animation: intro-label-emphasis var(--intro-step-duration) steps(1, end) forwards; }
+.intro-message-label { animation-delay: var(--intro-reading-duration); }
+.intro-reply-label { animation-delay: calc(var(--intro-completion-delay) - var(--intro-step-duration)); }
+.intro-diagram.paused .intro-trace, .intro-diagram.paused .intro-label-active, .intro-diagram.paused .actor-user, .intro-diagram.paused .intro-answer, .intro-diagram.paused .intro-action-label { animation-play-state: paused; }
+.intro-user-link { grid-area: 1 / 2; }
+.intro-model-link { grid-area: 1 / 4; }
+@keyframes intro-user-highlight {
+    from { outline-color: var(--lab-accent); background: var(--lab-accent-soft); }
+    to { outline-color: transparent; background: var(--surface); }
+}
+@keyframes intro-step-highlight {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+@keyframes intro-result-reveal {
+    from, to { opacity: 1; }
+}
+@keyframes intro-label-emphasis {
+    from { font-weight: 700; }
+    to { font-weight: 400; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .actor-user { animation: none; }
+    .intro-trace, .intro-label-active { animation: none; opacity: 0; }
+    .intro-answer { animation: none; opacity: 1; }
+    .intro-action-label { animation: none; }
+}
 .architecture { margin: 0; padding: 24px; border: 1px solid var(--line); background-color: var(--surface); background-image: var(--lab-grid-image); background-size: var(--lab-grid-size); }
 .boundary-label { color: var(--muted); font-size: 11px; font-weight: 600; margin: 0 0 .8rem; line-height: 1.5; text-transform: uppercase; }
 .ecosystem-connections { display: grid; grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr); row-gap: 1rem; max-width: 700px; margin: 0 auto; }

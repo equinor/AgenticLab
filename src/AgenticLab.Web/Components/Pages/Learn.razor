@@ -64,7 +64,17 @@
                     <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
                         <LabButton Label="Next step" Icon="next" IconOnly="true"
                                Disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" OnClick="() => MoveIntroduction(1)" />
-                        <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => _introStep = 0" />
+                        <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-_introStep)" />
+                           <LabButton Label="Replay flow" Icon="play" IconOnly="true" Variant="quiet" OnClick="ReplayIntroduction" />
+                    <select class="intro-speed" aria-label="Playback speed" title="Playback speed"
+                            @bind="_introPlaybackRate" @bind:after="ReplayIntroduction">
+                        <option value="100">1x</option>
+                        <option value="150">1.5x</option>
+                        <option value="200">2x</option>
+                    </select>
+                    <LabButton Label="@(_introFlowPaused ? "Resume flow" : "Pause flow")"
+                               Icon="@(_introFlowPaused ? "play" : "pause")" IconOnly="true" Variant="quiet"
+                               OnClick="() => _introFlowPaused = !_introFlowPaused" />
                 </div>
                 <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
                     @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
@@ -77,6 +87,93 @@
                         </div>
                     }
                 </dl>
+                @{
+                    var diagram = AgentLearningJourney.IntroductionDiagrams[_introStep];
+                    var actors = diagram.Actors.ToDictionary(actor => actor.Id);
+                    var paths = new Dictionary<(string From, string To), string>
+                    {
+                        [("user", "app")] = "M180 40 H360",
+                        [("app", "user")] = "M360 68 H180",
+                        [("app", "model")] = "M540 40 H720",
+                        [("model", "app")] = "M720 68 H540",
+                    };
+                }
+                <figure @key="(_introStep, _introReplayVersion)" class="intro-diagram @(_introFlowPaused ? "paused" : null)" data-diagram="intro"
+                    data-display="animated-flow" data-example="@diagram.Id" aria-label="@diagram.Description"
+                    style="--intro-step-duration: @(IntroStepDurationMs)ms; --intro-reading-duration: @(IntroReadingDurationMs)ms; --intro-completion-delay: @(IntroReadingDurationMs + diagram.Exchanges.Count * IntroStepDurationMs)ms;">
+                    <p class="intro-task">@diagram.Exchanges[0].Detail</p>
+                    <div class="intro-flow">
+                        <svg class="intro-paths" viewBox="0 0 900 144" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                            <defs>
+                                <marker id="intro-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                    <path d="M1 1 L9 5 L1 9" />
+                                </marker>
+                            </defs>
+                            @foreach (var exchange in diagram.Exchanges.DistinctBy(exchange => (exchange.From, exchange.To)))
+                            {
+                                <path class="intro-path" d="@paths[(exchange.From, exchange.To)]" marker-end="url(#intro-arrow)" />
+                            }
+                            @for (var index = 0; index < diagram.Exchanges.Count; index++)
+                            {
+                                var exchange = diagram.Exchanges[index];
+                                <path class="intro-trace" d="@paths[(exchange.From, exchange.To)]"
+                                      pathLength="1" data-from="@exchange.From" data-to="@exchange.To"
+                                      style="animation-delay: @(IntroReadingDurationMs + index * IntroStepDurationMs)ms;" />
+                            }
+                        </svg>
+                        @foreach (var actor in diagram.Actors)
+                        {
+                            <div class="intro-actor actor-@actor.Id" data-actor="@actor.Id">
+                                <strong>@actor.Title</strong>
+                                @if (actor.Id == "user")
+                                {
+                                    <span class="intro-user-detail" aria-hidden="true">
+                                        <span>@actor.Detail</span>
+                                        <span class="intro-label-active">@diagram.Exchanges[0].Detail</span>
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="intro-actor-detail" aria-hidden="true">
+                                        <span>@actor.Detail</span>
+                                        @for (var index = 0; index < diagram.Exchanges.Count; index++)
+                                        {
+                                            var exchange = diagram.Exchanges[index];
+                                            @if (exchange.From == actor.Id || exchange.To == actor.Id)
+                                            {
+                                                var content = exchange.From == "user" || exchange.To == "model"
+                                                    ? diagram.Exchanges[0].Detail
+                                                    : exchange.Detail;
+                                                <span class="intro-label-active" data-from="@exchange.From" data-to="@exchange.To"
+                                                      style="animation-delay: @(IntroReadingDurationMs + index * IntroStepDurationMs)ms;">@content</span>
+                                            }
+                                        }
+                                    </span>
+                                }
+                            </div>
+                        }
+                        <div class="intro-link intro-user-link" aria-hidden="true">
+                            <span class="intro-request-label intro-action-label intro-message-label">Message</span>
+                            <span class="intro-response-label intro-action-label intro-reply-label">Reply</span>
+                        </div>
+                        @if (actors.ContainsKey("model"))
+                        {
+                        <div class="intro-link intro-model-link" aria-hidden="true">
+                            <span class="intro-request-label intro-action-label"
+                                  style="animation-delay: @(IntroReadingDurationMs + IntroStepDurationMs)ms;">Request</span>
+                            <span class="intro-response-label intro-action-label"
+                                  style="animation-delay: @(IntroReadingDurationMs + 2 * IntroStepDurationMs)ms;">Response</span>
+                        </div>
+                        }
+                    </div>
+                    <figcaption class="intro-answer">@diagram.Exchanges[^1].Detail</figcaption>
+                    <ol class="sr-only">
+                        @foreach (var exchange in diagram.Exchanges)
+                        {
+                            <li>@actors[exchange.From].Title to @actors[exchange.To].Title: @exchange.Detail</li>
+                        }
+                    </ol>
+                </figure>
                 </div>
             }
 
@@ -143,8 +240,13 @@
             </figure>
             }
 
-            <blockquote class="takeaway">@_stage.Takeaway</blockquote>
+            @if (_stage.Id != "why-agents" || _introStep == AgentLearningJourney.IntroductionSteps.Count - 1)
+            {
+                <blockquote class="takeaway">@_stage.Takeaway</blockquote>
+            }
 
+            @if (_stage.ConceptIds.Count > 0)
+            {
             <section class="related-topics" aria-labelledby="related-title">
                 <h3 id="related-title" tabindex="-1" @ref="_relatedHeading">Related concepts</h3>
                 <div class="concept-links">
@@ -180,6 +282,7 @@
                     }
                 </div>
             </section>
+            }
 
             <footer class="stage-actions">
                 @if (_stageIndex == 0)

@@ -2,6 +2,8 @@ namespace AgenticLab.Web.Learning;
 
 internal sealed record LearningNode(string Id, string Title, string Detail);
 internal sealed record LearningExample(string NodeId, string Text);
+internal sealed record LearningExchange(string From, string To, string Detail);
+internal sealed record LearningDiagram(string Id, string Description, IReadOnlyList<LearningNode> Actors, IReadOnlyList<LearningExchange> Exchanges);
 
 internal sealed record LearningStage(
     string Id,
@@ -24,11 +26,19 @@ internal static class AgentLearningJourney
 
     internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
     [
-        // new("why", "Why", "Agents are becoming part of everyday work. Understanding them helps us see past the hype."),
-        // new("definition", "What is an agent?", "An agent is a system that can observe its environment, make decisions, and take actions."),
-        new("purpose", "Purpose", "An agent is a system that works toward a goal on your behalf, choosing its next steps and adjusting to results within the permissions and limits it has been given."),
-        new("what", "What does this mean? / What makes this possible?", "An agent combines a model with software that manages context, tools and controls."),
-        // new("how", "How does it work?", "Follow a task from request to model decision, tool use and result."),
+        new("chat-interface", "Talking with a chatbot app like ChatGPT", "You write your message in the chat interface. The app replies in the same conversation."),
+        new("chatbot", "What really ends up happening", "The app sends your message to a large language model (LLM) provider. The model generates a response, which is sent back and the app shows you this response."),
+    ]);
+
+    internal static IReadOnlyList<LearningDiagram> IntroductionDiagrams { get; } = Array.AsReadOnly<LearningDiagram>(
+    [
+        new("chat-interface", "The user sends a message to the chatbot app and receives a reply. This view shows only the conversation, not how the reply is generated.",
+            [new("user", "User", "Asks a question"), new("app", "Chatbot app", "Shows the reply")],
+            [new("user", "app", "Why is the sky blue?"), new("app", "user", "Air scatters blue light more.")]),
+        new("chatbot", "Behind the conversation, the chatbot app sends the question to the LLM. The model generates a response, which the app returns to the user.",
+            [new("user", "User", "Asks a question"), new("app", "Chatbot app", "Sends and receives"), new("model", "LLM", "Generates a response")],
+            [new("user", "app", "Why is the sky blue?"), new("app", "model", "Send the question"),
+             new("model", "app", "Air scatters blue light more."), new("app", "user", "Air scatters blue light more.")]),
     ]);
 
     internal static IReadOnlyList<LearningNode> Nodes { get; } = Array.AsReadOnly<LearningNode>(
@@ -71,10 +81,10 @@ internal static class AgentLearningJourney
     private static IReadOnlyList<LearningStage> AllStages { get; } = Array.AsReadOnly<LearningStage>(
     [
         new("why-agents", "Intro",
-            "AI agents, explained.",
-            "Understand the parts. See the possibilities and limits.",
+            "Lets take a step back to understand how apps that uses LLMs work.",
+            "You talk to the app. The LLM generates the response.",
             "Introduction", false,
-            ["agent", "guardrails"], []),
+            [], []),
         new("model-to-agent", "Agent",
             "An agent combines a harness that handles input, manages context and controls execution with a model that generates responses.",
             "Agent = Harness + Model. The harness manages the work. The model generates responses from the supplied input.",
