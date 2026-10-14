@@ -153,8 +153,8 @@ internal static class WorkspaceAgentFileParser
 
         if (tools.Any(t => t.Equals("RunCommand", StringComparison.OrdinalIgnoreCase)))
         {
-            guardrails.Add("Commands restricted to an allowlist of executables");
-            guardrails.Add("Shell-operator chaining (& | ; etc.) is rejected");
+            guardrails.Add("Commands restricted to an allowlist of exact command lines (whoami, date/time)");
+            guardrails.Add("Any other command, argument or shell-operator chaining is rejected");
             guardrails.Add("Commands time out after 60 seconds");
         }
 

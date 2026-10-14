@@ -125,7 +125,7 @@ and ownership, see [example modules](examples.md).
 | `ChatGpt` (opt-in `chatgpt` example) | Conversational assistant used by the ChatGPT demo's chat mode, with Wikipedia grounding and arithmetic. | `SearchWiki`, `GetWikiPage`, `Calculate` |
 | `Ask` | Read-only assistant that answers questions and explains code in the workspace without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles` |
 | `Plan` | Read-only planner that investigates the workspace and proposes an implementation plan without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles`, `AskQuestion` |
-| `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted commands. **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
+| `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted user and date/time commands (`whoami`, `date /t`/`time /t` or `date`). **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
 | `TimeKeeper` | Tells the current time using a tool **discovered from the MCP server** (real MCP client). | `GetCurrentTime` (MCP) |
 | `Orchestrator` | Solves arithmetic itself, but delegates general-knowledge/research/creative questions to **specialist agents over the A2A protocol** (real A2A client), routing by name. | `Calculate`, `DelegateToAgent` (A2A) |
 

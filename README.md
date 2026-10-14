@@ -74,7 +74,8 @@ ChatGPT product. Select an image to open it at full size.
 
 AiService, the React BFF, and the sample MCP/A2A services do not provide caller authentication or
 per-user authorization. Chat endpoints can invoke tools; control and workspace endpoints also need
-protection. The terminal allowlist and workspace working directory are **not a sandbox**: processes
+protection. The terminal allowlist (only `whoami` and the OS's date/time command) and workspace
+working directory are **not a sandbox**: processes
 run with the service account's permissions and can access files and networks outside that directory.
 Use only trusted workspaces and integrations. See the [security policy](SECURITY.md) for the full
 trust boundaries and private vulnerability-reporting channel.

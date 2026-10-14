@@ -54,9 +54,10 @@ not a symlink-resolving filesystem sandbox. Callers supply the root, so a worksp
 per-user permission boundary either.
 
 Terminal commands run with the service account's operating-system permissions and environment,
-using the workspace as their working directory. The executable allowlist, shell-operator checks,
-and timeout are limited safeguards, **not sandboxing**. Allowed interpreters, package managers,
-and build tools can execute code, access files outside that directory, and contact the network.
+using the workspace as their working directory. Only a fixed set of exact, read-only command lines
+is allowed (`whoami`, plus `date /t`/`time /t` on Windows or `date` on macOS/Linux); any other
+command or argument is rejected. This allowlist and the timeout are limited safeguards,
+**not sandboxing**: the allowed commands still inherit the service account and environment.
 Use operating-system isolation and least privilege for stronger protection; do not rely on prompts,
 manual stepping, or the working directory to constrain a process.
 

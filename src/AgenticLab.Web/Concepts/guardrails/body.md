@@ -20,8 +20,9 @@ Good guardrails are layered: even if one fails, another still contains the blast
 ## In this application (Agentic Lab)
 
 Turn on **Environment & risk** and the merged node lists the **guardrails** in force for
-the selected agent. They're not just labels — they're enforced in code: `Coder`'s commands
-are checked against an **allowlist**, shell-operator chaining is rejected, commands **time
+the selected agent. They're not just labels — they're enforced in code: `Coder` may run only
+an **allowlist** of exact commands (`whoami` and the OS's date/time command), any other
+command or argument is rejected, commands **time
 out after 60s**, and every file path is **confined to the workspace**. `Ask` and `Plan`
 use a **read-only** subset of the file tools; `Plan` can **ask you before assuming**. And
 for every agent, individual tools can be **toggled off per run**.

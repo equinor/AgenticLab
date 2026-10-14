@@ -1,36 +1,32 @@
 ---
 name: whoami
-description: Get the username of the currently logged in user on a Windows machine using the terminal.
+description: Get the username of the account the agent runs as, on Windows, macOS or Linux, using the terminal.
 allowed-tools: RunCommand
 ---
 
-# Get the current username (Windows)
+# Get the current username (Windows, macOS, Linux)
 
 Use this skill when the user asks who they are, what their username is, or which account is currently
-logged in on a Windows machine.
+running the agent.
 
 ## Steps
 
-1. Run the following command with the `RunCommand` tool:
+1. Call the `RunCommand` tool with `command` set to `whoami` and `arguments` left empty. This is the same
+   on every operating system:
 
    ```
-   powershell -NoProfile -Command "$env:USERNAME"
+   whoami
    ```
 
-   `$env:USERNAME` returns the name of the currently logged in user.
+   - On Windows it returns `DOMAIN\username` (or `MACHINE\username` for a local account).
+   - On macOS and Linux it returns just the username.
 
-2. If the user wants the full account name including the domain, use:
-
-   ```
-   powershell -NoProfile -Command "whoami"
-   ```
-
-   `whoami` returns the value in the form `DOMAIN\username`.
-
-3. Report the value from the command's output back to the user. Do not invent or guess the username —
+2. Report the value from the command's output back to the user. If the user only wants the username,
+   you may drop the `DOMAIN\` prefix from the output yourself. Do not invent or guess the username —
    only state what the command returned.
 
 ## Notes
 
-- This uses the `powershell` command, which is on the allowlist. Run a single command per call; do not
-  chain commands with shell operators.
+- `RunCommand` accepts only exact allowlisted command lines. `whoami` must be run with no arguments:
+  `whoami /all`, `whoami /user`, `powershell`, `$env:USERNAME`, `echo $USER` and `id` are all rejected.
+- The result is the account the agent service runs under, which may differ from the person chatting.

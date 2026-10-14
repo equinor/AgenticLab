@@ -14,7 +14,7 @@ A skill is a folder under the workspace's `skills/` directory with a `SKILL.md` 
 skills/get-date/SKILL.md
 ---
 name: get-date
-description: Get the current date and time on a Windows machine using the terminal.
+description: Get the current date and time on Windows, macOS or Linux using the terminal.
 ---
 (body with the steps the agent should follow)
 ```
