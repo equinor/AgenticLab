@@ -5,7 +5,7 @@
 
 <PageTitle>Agentic Lab - @_stage.Title</PageTitle>
 
-<div class="learn-app">
+<div class="learn-app" @ref="_root">
     <AppHeader Context="Agent guide">
         <a class="header-link" href="/flow">Live flow</a>
     </AppHeader>
@@ -17,92 +17,175 @@
                 <span class="stage-progress" role="status">@(_stageIndex + 1) / @Stages.Count</span>
             </div>
             <ol class="stage-list">
-                @for (var index = 0; index < Stages.Count; index++)
+                @foreach (var stage in AgentLearningJourney.RootStages)
                 {
-                    var stage = Stages[index];
                     var selected = stage.Id == _stage.Id;
+                    var children = AgentLearningJourney.Children(stage.Id).ToArray();
                     <li>
                         <a href="@AgentLearningJourney.Href(stage.Id)" aria-current="@(selected ? "step" : null)">
-                            <span class="stage-number" aria-hidden="true">@((index + 1).ToString("00"))</span>
+                            <span class="stage-number" aria-hidden="true">@AgentLearningJourney.Number(stage.Id)</span>
                             <span>@stage.Title</span>
                         </a>
+                        @if (children.Length > 0)
+                        {
+                            <ol class="stage-sublist" aria-label="@($"{stage.Title} subtopics")">
+                                @foreach (var child in children)
+                                {
+                                    <li>
+                                        <a href="@AgentLearningJourney.Href(child.Id)" aria-current="@(child.Id == _stage.Id ? "step" : null)">
+                                            <span class="stage-number" aria-hidden="true">@AgentLearningJourney.Number(child.Id)</span>
+                                            <span>@child.Title</span>
+                                        </a>
+                                    </li>
+                                }
+                            </ol>
+                        }
                     </li>
                 }
             </ol>
         </nav>
 
-        <section class="stage-main" aria-labelledby="stage-title">
+        <section class="stage-main" aria-labelledby="stage-title" aria-keyshortcuts="ArrowLeft ArrowRight">
             <header class="stage-heading">
                 <div>
-                    <p class="eyebrow">Stage @(_stageIndex + 1)</p>
+                    <p class="eyebrow">Stage @AgentLearningJourney.Number(_stage.Id)</p>
                     <h2 id="stage-title" tabindex="-1" @ref="_stageHeading">@_stage.Title</h2>
                 </div>
-                <span class="reality @(_stage.PlatformMap ? "conceptual" : "today")">@_stage.RealityLabel</span>
             </header>
             <p class="stage-summary">@_stage.Summary</p>
 
             @if (_stage.Id == "why-agents")
             {
                 <div class="architecture intro-lesson">
-                <div class="intro-toolbar" role="group" aria-label="Introduction steps">
-                        <LabButton Label="Previous step" Icon="prev" IconOnly="true"
-                               Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-1)" />
-                    <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
-                        <LabButton Label="Next step" Icon="next" IconOnly="true"
-                               Disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" OnClick="() => MoveIntroduction(1)" />
-                        <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => _introStep = 0" />
-                </div>
-                <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
-                    @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
-                    {
-                        var step = AgentLearningJourney.IntroductionSteps[index];
-                        var current = index == _introStep;
-                        <div class="@(current ? "intro-step current" : "intro-step")" aria-hidden="@(current ? "false" : "true")">
-                            <dt>@step.Title</dt>
-                            <dd>@step.Detail</dd>
-                        </div>
+                    @{ var lastIntroStep = AgentLearningJourney.IntroductionSteps.Count - 1; }
+                    <div class="intro-toolbar" role="group" aria-label="Diagram reveals">
+                        <LabButton Label="Previous reveal" Icon="prev" IconOnly="true"
+                                   Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-1)" />
+                        <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
+                        <LabButton Label="Next reveal" Icon="next" IconOnly="true"
+                                   Disabled="@(_introStep == lastIntroStep)" OnClick="() => MoveIntroduction(1)" />
+                        <LabButton Label="Show complete diagram" Icon="expand"
+                                   Disabled="@(_introStep == lastIntroStep)" OnClick="() => MoveIntroduction(lastIntroStep - _introStep)" />
+                        <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-_introStep)" />
+                    </div>
+                    <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
+                        @for (var index = 0; index < AgentLearningJourney.IntroductionSteps.Count; index++)
+                        {
+                            var step = AgentLearningJourney.IntroductionSteps[index];
+                            var current = index == _introStep;
+                            <div class="@(current ? "intro-step current" : "intro-step")" aria-hidden="@(current ? "false" : "true")">
+                                <dt>@step.Title</dt>
+                                <dd>@step.Detail</dd>
+                            </div>
+                        }
+                    </dl>
+                    @{
+                        var diagram = AgentLearningJourney.IntroductionDiagrams[_introStep];
+                        var actors = diagram.Actors.ToDictionary(actor => actor.Id);
+                        var hasSearch = actors.ContainsKey("search");
+                        var hasHarness = diagram.Id == "chat-to-agent";
+                        var paths = new Dictionary<(string From, string To), string>
+                        {
+                            [("user", "app")] = "M180 40 H360",
+                            [("app", "user")] = "M360 88 H180",
+                            [("app", "model")] = "M540 40 H720",
+                            [("model", "app")] = "M720 88 H540",
+                            [("app", "search")] = "M435 96 V184",
+                            [("search", "app")] = "M465 184 V96",
+                        };
                     }
-                </dl>
+                    <figure @key="_introStep" class="intro-diagram" data-diagram="intro"
+                            data-display="static" data-example="@diagram.Id" aria-label="@diagram.Description">
+                        <div class="intro-flow @(hasSearch ? "with-search" : null) @(hasHarness ? "with-harness" : null)">
+                            <svg class="intro-paths" viewBox="@(hasSearch ? "0 0 900 280" : "0 0 900 96")" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <marker id="intro-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                                        <path d="M1 1 L9 5 L1 9" />
+                                    </marker>
+                                </defs>
+                                @foreach (var exchange in diagram.Exchanges)
+                                {
+                                    @if (!hasHarness || (exchange.From != "search" && exchange.To != "search"))
+                                    {
+                                        <path class="intro-path" d="@paths[(exchange.From, exchange.To)]" marker-end="url(#intro-arrow)"
+                                              data-from="@exchange.From" data-to="@exchange.To" />
+                                    }
+                                }
+                            </svg>
+                            @foreach (var actor in diagram.Actors)
+                            {
+                                @if (hasHarness && actor.Id == "app")
+                                {
+                                    var search = actors["search"];
+                                    <div class="intro-actor actor-app intro-application" data-actor="app" role="group" aria-labelledby="intro-application-title">
+                                        <div class="intro-application-heading">
+                                            <strong id="intro-application-title">@actor.Title</strong>
+                                            <span>@actor.Detail</span>
+                                        </div>
+                                        <div class="intro-harness" role="group" aria-labelledby="intro-harness-title">
+                                            <strong id="intro-harness-title" class="intro-harness-title">Harness</strong>
+                                            <svg class="intro-paths intro-harness-paths" viewBox="0 0 180 88" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                                                <path class="intro-path" d="M75 32 V88" marker-end="url(#intro-arrow)" data-from="app" data-to="search" />
+                                                <path class="intro-path" d="M105 88 V32" marker-end="url(#intro-arrow)" data-from="search" data-to="app" />
+                                            </svg>
+                                            <div class="intro-link intro-search-link intro-harness-links" aria-hidden="true">
+                                                <span>Search</span><span>Results</span>
+                                            </div>
+                                            <div class="intro-actor actor-search" data-actor="search">
+                                                <strong>@search.Title</strong>
+                                                <span>@search.Detail</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else if (!hasHarness || actor.Id != "search")
+                                {
+                                    <div class="intro-actor actor-@actor.Id" data-actor="@actor.Id">
+                                        <strong>@actor.Title</strong>
+                                        <span>@actor.Detail</span>
+                                    </div>
+                                }
+                            }
+                            <div class="intro-link intro-user-link" aria-hidden="true">
+                                <span>Message</span><span>Reply</span>
+                            </div>
+                            @if (actors.ContainsKey("model"))
+                            {
+                                <div class="intro-link intro-model-link" aria-hidden="true">
+                                    <span>Request</span><span>Response</span>
+                                </div>
+                            }
+                            @if (hasSearch && !hasHarness)
+                            {
+                                <div class="intro-link intro-search-link" aria-hidden="true">
+                                    <span>Search</span><span>Results</span>
+                                </div>
+                            }
+                        </div>
+                        <ul class="sr-only">
+                            @foreach (var exchange in diagram.Exchanges)
+                            {
+                                <li>@actors[exchange.From].Title to @actors[exchange.To].Title: @exchange.Detail</li>
+                            }
+                        </ul>
+                    </figure>
                 </div>
             }
 
             @if (_stage.HighlightedNodes.Count > 0)
             {
             <figure class="architecture" aria-label="@($"Concept: {_stage.Title}")">
-                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "agents-everywhere" or "anatomy-of-agent")
+                @if (_stage.Id is "agent-landscape" or "model-to-agent" or "inside-the-harness" or "agents-everywhere" or "anatomy-of-agent")
                 {
-                    <FoundationLesson StageId="@_stage.Id" />
+                    <FoundationLesson StageId="@_stage.Id" @ref="_foundationLesson" />
                 }
                 else if (_stage.Id == "where-to-run")
                 {
-                    <HostingLesson />
-                }
-                else if (_stage.Id == "inside-the-harness")
-                {
-                    <p class="boundary-label">Agent host</p>
-                    <div class="harness-anatomy" data-diagram="harness">
-                        @foreach (var nodeId in _stage.HighlightedNodes)
-                        {
-                            @DiagramNode(nodeId)
-                        }
-                    </div>
+                    <HostingLesson @ref="_hostingLesson" />
                 }
                 else if (_stage.Id == "agent-loop")
                 {
-                    <div class="execution-loop" data-diagram="loop">
-                        <div class="loop-input">@DiagramNode("loop-context")</div>
-                        <div class="loop-feed loop-connector" aria-label="Context goes to the model"><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-decision">@DiagramNode("loop-decision")</div>
-                        <div class="loop-exit loop-connector" aria-label="Answer instead of using a tool"><span aria-hidden="true">&rarr;</span></div>
-                        <div class="loop-answer">@DiagramNode("loop-answer")</div>
-                        <div class="loop-request loop-connector"><span>Tool request</span><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-execute">@DiagramNode("loop-execute")</div>
-                        <div class="loop-result loop-connector"><span>Tool result</span><span aria-hidden="true">&darr;</span></div>
-                        <div class="loop-observe">@DiagramNode("loop-observe")</div>
-                        <div class="loop-return" role="img" aria-label="Observation returns to the model as updated context for another decision">
-                            <span class="sr-only">Repeat with updated context</span>
-                        </div>
-                    </div>
+                    <AgentTurnLesson @ref="_turnLesson" />
                 }
                 else if (_stage.Id == "wider-ecosystem")
                 {
@@ -152,8 +235,13 @@
             </figure>
             }
 
-            <blockquote class="takeaway">@_stage.Takeaway</blockquote>
+            @if (_stage.Id != "why-agents" || _introStep == AgentLearningJourney.IntroductionSteps.Count - 1)
+            {
+                <blockquote class="takeaway">@_stage.Takeaway</blockquote>
+            }
 
+            @if (_stage.ConceptIds.Count > 0)
+            {
             <section class="related-topics" aria-labelledby="related-title">
                 <h3 id="related-title" tabindex="-1" @ref="_relatedHeading">Related concepts</h3>
                 <div class="concept-links">
@@ -189,6 +277,7 @@
                     }
                 </div>
             </section>
+            }
 
             <footer class="stage-actions">
                 @if (_stageIndex == 0)

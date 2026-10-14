@@ -51,6 +51,26 @@ the UI smoke profile below.
 
 ## UI smoke
 
+### Standalone Agent Guide
+
+Use `--learn-only` against a standalone Web instance to check the guide without AiService,
+credentials or model/tool calls. This mode uses desktop viewports only (1440, 1024 and 1920 pixels).
+It checks Intro navigation and the nested Harness/Web search diagram,
+the static Harness + Model overview, six grouped harness reveals and cumulative Anatomy reveals,
+independent right-side example boxes and pointer/keyboard activation,
+Left/Right progression using the rendered lesson order and step counts, backward last-reveal landing, endpoint bounds,
+history/reload resets, focus recovery and native selector/modifier keys. It covers optional skills,
+persistent four-box loop and all six synthetic outcomes, including their different keyboard step
+counts. It also captures screenshots and checks fonts, overflow and browser errors.
+
+```sh
+AGENTICLAB_URL=http://127.0.0.1:5140 \
+NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+node tools/web-smoke.mjs --learn-only
+```
+
+### Full Application
+
 Use a **Development** Web instance with a reachable AI service catalogue. The script creates isolated
 browser contexts; it does not overwrite preferences in your own browser, send chat, reset server
 conversations, or invoke rediscovery. No Azure model request is made by the script.

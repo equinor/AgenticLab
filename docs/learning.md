@@ -4,10 +4,10 @@ Agentic Lab has two learning surfaces: a contextual **Learn** panel on the
 [Flow page](web-flow-page.md) at `/flow` and a standalone **Agent guide** at `/learn`.
 The front page at `/` offers direct links to both experiences.
 
-Both use **Agent = Agent host + Model**. The host manages context, instructions, tools, memory and
+Both use **Agent = Harness + Model**. The harness manages context, instructions, tools, memory and
 execution controls; the model reasons and chooses an answer or next step. A tool request is not
-permission: the host checks and executes permitted actions. **Harness** means the host's
-agent-running machinery, not the whole agent or a particular machine. Memory is retained state;
+permission: the harness checks and executes permitted actions. **Harness** means the
+agent-running software, not the whole agent or a particular machine. Memory is retained state;
 context is the input selected for a model request.
 
 ## In-app learning content (Learn panel)
@@ -40,29 +40,121 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Demystify** and follows these ten stages. Bookmark any stage with
+The guide opens at **Intro** and follows four root topics, with six subtopics grouped under
+**Agent**, **One foundation, many systems** and **Where agents run**.
+The ten lessons retain their reading order. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
-| Stage | ID | Focus |
-| --- | --- | --- |
-| Demystify | `why-agents` | Why agents matter; observing, deciding and acting; bounded autonomy; then what makes this possible and how it works. |
-| Agent | `model-to-agent` | Host + model, their responsibilities, and the exchange between them. |
-| The Agentic Landscape | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
-| Inside the agent host | `inside-the-harness` | Gather context, load instructions, make tools available, manage memory, enforce execution controls. |
-| Anatomy of an agent | `anatomy-of-agent` | Shared guidance, persona, tools, model settings and per-task context. |
-| The agent loop | `agent-loop` | Decide, execute, observe; a final answer can bypass tools. |
-| Same foundation, different setting | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
-| The wider ecosystem | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
-| Where should your agent run? | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
-| Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+| Number | Topic | ID | Focus |
+| --- | --- | --- | --- |
+| 1 | Intro | `why-agents` | The user and chat application, then the LLM, ChatGPT with web search, and the harness + model. |
+| 2 | Agent | `model-to-agent` | Harness + model and their responsibilities, shown together. |
+| 2.1 | Inside the harness | `inside-the-harness` | Context management and execution, then four context aspects with examples on demand. |
+| 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
+| 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
+| 3 | One foundation, many systems | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
+| 3.1 | Different purposes, same pattern | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
+| 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
+| 4 | Where agents run | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
+| 4.1 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+
+Shared foundations do not imply identical capabilities, tools or permissions. Hosting is a separate
+choice: a local harness can use a remote model, and observation and evaluation matter wherever it runs.
 
 ### Navigation and reveals
 
 Chapter navigation and lesson reveals are separate. **Previous/Next**, **Show complete diagram**
 where available, and **Restart** control the current lesson. There is no autoplay. Chapter changes
-or reloads reset progress; opening a related concept preserves it. Restart preserves example
-selections. Demystify returns to **Why** when revisited.
+through links, browser history or reloads reset progress; opening a related concept preserves it.
+Restart preserves example selections. Intro returns to **Talking with a chat application** when revisited through a link.
+
+Intro has four short reveals: **Talking with a chat application**, **How it actually looks like**,
+**How it looks like today** and **From chat to agent**. The first shows only the user-facing conversation. The second
+introduces the model that generates the response. The third shows that current ChatGPT can look
+up information online before answering, with the application managing the conversation and searches.
+The fourth introduces ChatGPT as an agentic chat application and names the part that manages context
+and tool use as the harness. Its takeaway below the diagram reads: **Together, the harness and the
+model form the agent.** This connects Intro to the next chapter. Intro has no related concept links; tool calls, execution checks,
+context management and memory are covered in detail later.
+
+Each Intro reveal has a static connection diagram beneath its text. The first shows **User** and
+**Chat application**, connected by **Message / Reply** arrows. This is a view of the conversation,
+not a claim that the application generates the reply without a model. The second adds **LLM**
+and **Request / Response** arrows, keeping the user and application in place. The third identifies
+the application as **ChatGPT** and adds **Web search** beneath it, with **Search / Results** arrows.
+This abstract search capability does not claim a particular model version, search provider or that
+every answer requires a search. These are simplified illustrations, not live integrations.
+The fourth keeps **Chat application** and **ChatGPT** as the middle box's labels and expands it
+downward around the search area. A **Harness** section inside the application contains **Web search**
+and its **Search / Results** arrows. The user and LLM stay in place outside the application.
+This groups the application's search capability, not an external search provider's infrastructure.
+There is no sample question or answer, changing text inside boxes, timed highlight or playback control.
+Earlier diagrams are replaced, not accumulated; Previous, Next, **Show complete diagram** (jumps to
+the fourth reveal), Restart and keyboard navigation also update the diagram. An accessible list describes the connections, not a numbered execution
+sequence. The guide does not make model or search calls.
+
+**Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;
+after the last reveal it opens the next lesson at its first reveal. Left goes back one reveal;
+from the first reveal it opens the previous lesson at its final reveal. Both directions visit
+all ten lessons, including subtopics: Agent advances directly to the first reveal of `2.1`, not to `3`.
+Lessons without reveal controls take one key press to leave. The journey does not wrap at either
+end. Backward entry shows the loop's final explanation, not **Show all steps**. Lesson URLs change
+only when crossing a lesson boundary; reveal progress is not saved in the URL.
+
+The shortcuts work while reading or focusing ordinary buttons and links. Editable fields,
+selectors and other controls with their own arrow-key behavior keep their native keys, as do
+modified arrows such as Alt+Left/Right for browser history. Held-key repeats do not advance the
+guide. Stage changes focus the lesson heading; hiding a focused reveal restores that focus.
+
+The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of an agent** beneath
+**Agent**, with matching `2.1`-`2.3` lesson labels. **Different purposes, same pattern** and
+**Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
+**Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
+visits every lesson in order, including the subtopics; the progress counter counts all ten lessons.
+
+Inside the harness has six cumulative reveals: **Context management**, then **Execution**, then
+**Instructions**, **Context**, **Tool descriptions** and **Memory** beneath Context management.
+Earlier nodes remain visible. Context management is a static parent; the other five nodes each
+toggle an independent example when clicked or activated with Enter/Space. On desktop the box
+appears to that node's right; constrained layouts stack the example beneath its node.
+Examples use the loop's meeting-notes task and distinguish guidance from enforced controls,
+tool descriptions from implementations, and retained memory from selected context.
+Examples start closed, can remain open independently and do not advance the reveals.
+Earlier examples stay open when advancing; stepping back clears examples for unreached nodes.
+**Show complete diagram** reveals all nodes without opening examples. Restart and lesson reentry
+close examples. Unreached nodes and closed examples take no focus or assistive-technology space.
+
+Agent shows **Agent = Harness + Model** immediately, with two matching responsibility boxes.
+The harness handles input, manages context and controls execution; the model generates responses
+from the supplied input. This overview has no tool example, exchange paths or reveal controls.
+
+The loop keeps four boxes and their connecting paths visible from the start: **Context management**,
+**Model**, **Execution** and **Response or stop**. **Next step** reveals the latest reached step inside
+its box and shows its explanation below; unreached boxes show only their headings with dashed borders.
+The active box is outlined, and traversed paths are highlighted. Tool results return from Execution
+to Context management, which assembles the next model request. Responses and stops exit through
+Execution. On narrow screens the exit sits below Execution. **Messages and tool definitions** expands the supplied
+request content. **Show all steps** reveals all reached boxes and the full sequence of explanations;
+**Restart** clears the reveals back to the user message. Changing stages or reloading resets the sequence.
+Unreached steps remain unrevealed; Execution still handles completion when notes are already supplied.
+
+The first model request contains instructions, the task, selected session state and a `read_file`
+description, but no file content. A new session has no earlier messages. Tool descriptions are
+model input, not invocations. Execution applies configured checks before every tool invocation,
+including a request from the first model response. Only after Context management includes the result
+in a second request does the model receive the notes. The answer preserves unstated owners and
+deadlines as **not stated**. Retention is separate from selecting context, and does not retrain
+the model. Responses can include text, tool requests or both; ending a run does not prove success.
+
+**Other outcomes** is optional and initially closed: denied access, a missing file, cancellation,
+a zero tool-call limit, or notes already supplied by the user. Selecting a case resets its steps;
+Restart preserves the selection. Denied/stopped cases never invoke a file tool; a missing-file
+case invokes it but returns an error. These are synthetic examples, not live operations, provider
+API formats, production policies or a filesystem sandbox.
+
+The content introduces one concept at a time, using explicit actors, inputs and outputs.
+More detail is available on demand rather than through a terminology-heavy first screen.
 
 The lesson and navigation scroll independently; navigation becomes a horizontal strip on narrow
 screens. Reveal controls stay visible while scrolling. Unrevealed content is excluded from focus
@@ -71,21 +163,28 @@ surfaces reuse the [Blazor design system](design-system.md).
 
 ### Illustrative configurations
 
-**Anatomy** builds up guidance, available capabilities, persona, selected tools and model/settings,
-task, custom instructions, skill descriptions and a loaded skill. **Chat / Office / Coding / Custom**
-changes the example, not the selected backend agent. Each persona explains its model trade-offs;
-neither model choice, persona, instructions nor skills grant permissions.
+**Anatomy** defaults to the Chat configuration. It builds up standing
+instruction text, registered tools, role instructions, selected tools, model choice, execution
+controls, task and custom instructions, then optional skill-description and skill-body reveals.
+Each reveal adds one node; tools, model and controls have separate steps.
+Cards keep fixed grid positions: the system prompt sits beside the registered tools, followed by
+role instructions, selected tools and a **Settings** card whose execution controls are revealed as
+their own step. Unrevealed cards take no layout space. The full system-prompt text and the model-selection
+considerations are shown inline. **Chat / Office / Coding / Custom** tabs change the
+example, not the selected backend agent.
+Reading a skill supplies instruction text, not permission or an executed workflow.
+Neither model choice, persona, instructions nor skills grant permissions.
 
 - Office contrasts a meeting assistant's confirmed communications with a read-only document reviewer.
 - Coding offers Ask, Plan, Implement and Review. Only Implement includes writes and terminal use,
   with approval or allowlisting, resource limits and no production access.
 - Chat researches questions; Custom reads equipment telemetry and manuals without controlling equipment.
 
-Changing purpose selects its first mode without resetting reveals. Restart keeps the selection;
-reentering Anatomy restores Coding / Ask. These are original teaching examples, not vendor prompts,
+Changing purpose selects its first mode without restarting reveals. Restart keeps the selection;
+reentering Anatomy restores Chat. These are original teaching examples, not vendor prompts,
 product replicas or claims about native connectors and enforcement.
 
-**Hosting** separates the agent host, model service, tools/data access and operational ownership.
+**Hosting** separates the harness, model service, tools/data access and operational ownership.
 Trigger and readiness selections are independent of hosting and reveal progress. Restart keeps
 selections; chapter reentry resets them. A local host can use a remote model, and moving to cloud
 does not guarantee portability or tool access.
@@ -115,7 +214,8 @@ explanations are product-agnostic. Put Agentic Lab-specific details in one trail
 `In this application (Agentic Lab)` section. Product topics are the exception.
 
 [AgentLearningJourney](../src/AgenticLab.Web/Learning/AgentLearningJourney.cs) owns stages and topic
-references; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
+references; [AgentTurnStory](../src/AgenticLab.Web/Learning/AgentTurnStory.cs) owns the synthetic
+meeting-notes trace, responsibility examples and outcome navigation; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
 [HostingStory](../src/AgenticLab.Web/Learning/HostingStory.cs) own illustrative content and reveal
 state. Keep source-review dates aligned with the curated hosting list when rechecking it.
 
@@ -124,3 +224,8 @@ Tests cover stage URLs, navigation, reveal/reset behavior and topic references:
 ```sh
 dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 ```
+
+For backend-free desktop interaction and screenshot checks, run
+`node tools/web-smoke.mjs --learn-only` against the standalone Web URL using the temporary
+Playwright setup in [tools/README.md](../tools/README.md). This checks keyboard reveals, cumulative
+nodes, optional configurations and all six synthetic loop outcomes without model or tool calls.

@@ -5,7 +5,7 @@
                 <button type="button" class="@(View.Diagram.Preset == DiagramPreset.Basic ? "selected" : "")"
                         aria-pressed="@(View.Diagram.Preset == DiagramPreset.Basic ? "true" : "false")"
                     @onclick="@(() => View.Diagram.ApplyPreset(DiagramPreset.Basic))"
-                    title="Reset display options to User and Agent host">Basic</button>
+                    title="Reset display options to User and Harness">Basic</button>
                 <button type="button" class="@(View.Diagram.Preset == DiagramPreset.Technical ? "selected" : "")"
                         aria-pressed="@(View.Diagram.Preset == DiagramPreset.Technical ? "true" : "false")"
                     @onclick="@(() => View.Diagram.ApplyPreset(DiagramPreset.Technical))"
@@ -32,7 +32,7 @@
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowSkills" /> Skills</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowMcp" /> MCP servers</label>
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowA2A" /> A2A agents</label>
-                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand agent host</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ExpandHarness" /> Expand harness</label>
                 </div>
             </fieldset>
 
@@ -40,7 +40,7 @@
                 <legend>Boundaries</legend>
                 <div class="boundary-toggles">
                     <label class="check"><input type="checkbox" @bind="View.Diagram.ShowAgentBoundary" /> Agent</label>
-                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowHarnessBoundary" /> Agent host</label>
+                    <label class="check"><input type="checkbox" @bind="View.Diagram.ShowHarnessBoundary" /> Harness</label>
                 </div>
             </fieldset>
 
@@ -66,13 +66,13 @@
     @if (View.Diagram.ShowHarnessBoundary)
     {
         <div class="boundary harness-b">
-            <span class="boundary-label">Agent host</span>
+            <span class="boundary-label">Harness</span>
         </div>
     }
     @if (View.Diagram.ShowAgentBoundary)
     {
         <div class="boundary agent-b">
-            <span class="boundary-label">Agent = Agent host + Model</span>
+            <span class="boundary-label">Agent = Harness + Model</span>
         </div>
     }
     @if (View.Diagram.ShowEnvironment)

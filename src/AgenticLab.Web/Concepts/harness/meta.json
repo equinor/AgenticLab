@@ -1,7 +1,7 @@
 {
-  "title": "Agent host (harness)",
+  "title": "Harness",
   "category": "core",
-  "summary": "The software that manages context, instructions, tools, memory and execution controls. The model proposes a next step; the agent host checks and executes it.",
+  "summary": "The software that manages context, instructions, tools, memory and execution controls. The model proposes a next step; the harness checks and executes it.",
   "links": [
     { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" },
     { "label": "Anthropic — Building effective agents", "url": "https://www.anthropic.com/research/building-effective-agents" }

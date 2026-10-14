@@ -15,5 +15,5 @@ client (web app, console, IDE) doesn't change how the agent thinks.
 
 Here the client is the **Blazor web app**: it posts your message to the AI service and
 streams the reply back as the flow animates. A console client or an IDE could use the same
-agent service. The client stays outside the agent host and is not an anatomy layer; the
-**Agent host** node represents the AI service.
+agent service. The client stays outside the harness and is not an anatomy layer; the
+**Harness** node represents the AI service.

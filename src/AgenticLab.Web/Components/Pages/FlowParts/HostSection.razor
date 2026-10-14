@@ -18,7 +18,7 @@ else
     [Parameter] public HostDetailSection Section { get; set; }
     /// <summary>An optional host-specific label; otherwise the shared section title is used.</summary>
     [Parameter] public string? Label { get; set; }
-    /// <summary>A remote agent inspected only while the agent host is expanded.</summary>
+    /// <summary>A remote agent inspected only while the harness is expanded.</summary>
     [Parameter] public string? A2AAgentName { get; set; }
 
     private readonly string _agentButtonId = $"host-section-a2a-{Guid.NewGuid():N}";

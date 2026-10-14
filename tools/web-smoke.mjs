@@ -7,6 +7,7 @@ import path from "node:path";
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
 const applicationVersion = readFileSync(new URL("../version.txt", import.meta.url), "utf8").trim();
+const learnOnly = process.argv.includes("--learn-only");
 const navigationOnly = process.argv.includes("--navigation-only");
 const markdownOnly = process.argv.includes("--markdown-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
@@ -20,8 +21,9 @@ let currentPage;
 
 try {
     for (const viewport of [{ width: 1440, height: 1000 }, { width: 1024, height: 900 }, { width: 390, height: 844 }, { width: 1920, height: 1080 }]) {
+        if (learnOnly && viewport.width < 900) continue;
         const context = await browser.newContext({ viewport });
-        if (!markdownOnly) {
+        if (!markdownOnly && !learnOnly) {
             const teaserPage = currentPage = await context.newPage();
             teaserPage.setDefaultTimeout(15000);
             teaserPage.on("pageerror", error => errors.push(error.message));
@@ -39,6 +41,18 @@ try {
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
+        if (learnOnly) {
+            page.on("request", request => {
+                const url = new URL(request.url());
+                assert.equal(url.origin, new URL(baseUrl).origin, "Guide requests stay on the local Web host");
+                assert.doesNotMatch(url.pathname, /^\/(chat|api|discovery)(\/|$)/, "Guide checks do not invoke execution or discovery");
+            });
+            await checkLearning(page, viewport.width);
+            await context.close();
+            currentPage = null;
+            console.log(`Agent guide ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
         page.on("request", request => {
             if (new URL(request.url()).hostname === "images.invalid") imageRequests.push(request.url());
         });
@@ -369,7 +383,7 @@ async function checkHome(page, viewport) {
     await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
     await page.locator(".home-app").waitFor();
     await followHomeLinkWithKeyboard(page, "Agent guide", "/learn");
-    await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Intro", exact: true }).waitFor();
     assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
     assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
     await page.getByRole("link", { name: "The agent loop", exact: true }).click();
@@ -378,7 +392,7 @@ async function checkHome(page, viewport) {
     await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
     assert.equal(await page.getByRole("link", { name: "Open live flow", exact: true }).getAttribute("href"), "/flow");
     await page.goBack({ waitUntil: "networkidle" });
-    await page.getByRole("heading", { name: "Demystify", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Intro", exact: true }).waitFor();
     await page.goForward({ waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
     await page.getByRole("link", { name: "Open live flow", exact: true }).click();
@@ -596,7 +610,7 @@ async function checkDocksAndDiscovery(page, width) {
     await page.locator(".side-bottom.collapsed").waitFor({ state: "hidden" });
     await page.getByRole("checkbox", { name: "Learn", exact: true }).check();
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).check();
     await page.keyboard.press("Escape");
     const anatomy = page.locator(".node.harness.anatomy");
     await anatomy.waitFor();
@@ -611,7 +625,7 @@ async function checkDocksAndDiscovery(page, width) {
     await learn.waitFor({ state: "visible" });
     await learn.getByRole("button", { name: /^Client\b/ }).click();
     await learn.getByRole("heading", { name: "Client", exact: true }).waitFor();
-    assert.match(await learn.locator(".concept-body").innerText(), /outside the agent host/);
+    assert.match(await learn.locator(".concept-body").innerText(), /outside the harness/);
     assert.equal(await page.locator("#host-detail-heading").innerText(), "System prompt", "Opening Client in Learn preserves Details");
     assert.equal(await page.locator("#message").inputValue(), "Preserved while inspecting");
     const regions = await page.evaluate(() => [".primary-workspace", ".details-dock", ".learn-dock"].map(selector => {
@@ -655,7 +669,7 @@ async function checkA2ADetails(page, width) {
     await page.locator("#agent").selectOption(selectedAgent);
     await page.getByRole("button", { name: "Technical", exact: true }).click();
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).uncheck();
     await page.getByRole("checkbox", { name: "A2A agents", exact: true }).check();
     await page.keyboard.press("Escape");
     const chips = page.locator(".a2a.node-inner .skill-chip .host-section");
@@ -664,7 +678,7 @@ async function checkA2ADetails(page, width) {
     assert.equal(await page.locator(".host-section").count(), 0, "Collapsed host shows plain labels, including A2A agents");
     assert.equal(await page.locator(".inspect-icon").count(), 0, "Collapsed host hides all inspect icons");
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).check();
     await page.keyboard.press("Escape");
     await chips.first().waitFor();
     const names = (await chips.allTextContents()).map(name => name.trim());
@@ -682,14 +696,14 @@ async function checkA2ADetails(page, width) {
     await capture(page, `a2a-details-${width}`);
 
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).uncheck();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).uncheck();
     await page.keyboard.press("Escape");
     await page.waitForFunction(() => document.querySelectorAll(".host-section").length === 0);
     assert.equal(await page.locator(".inspect-icon").count(), 0);
     assert.ok(await page.locator(".details-dock").isVisible(), "Collapsing the host keeps A2A Details open");
     assert.equal(await page.locator("#host-detail-heading").textContent(), firstAgent);
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).check();
     await page.keyboard.press("Escape");
     await chips.first().waitFor();
     assert.equal(await chips.first().getAttribute("aria-expanded"), "true");
@@ -718,7 +732,7 @@ async function checkA2ADetails(page, width) {
     assert.ok(await remoteHeading.evaluate(element => document.activeElement === element), "Closing A2A Details restores the remote heading's focus");
 
     await page.getByRole("button", { name: "View options", exact: true }).click();
-    await page.getByRole("checkbox", { name: "Expand agent host", exact: true }).check();
+    await page.getByRole("checkbox", { name: "Expand harness", exact: true }).check();
     await page.keyboard.press("Escape");
     const catalogueHeading = page.locator(".a2a.node-inner").getByRole("button", { name: "A2A agents", exact: true });
     await catalogueHeading.click();
@@ -736,16 +750,21 @@ async function checkA2ADetails(page, width) {
 async function checkLearning(page, width) {
     await page.goto(new URL("/learn", baseUrl).href, { waitUntil: "networkidle" });
     assert.equal(await page.getByRole("button", { name: "Discovery", exact: true }).count(), 0);
-    const introduction = ["Why", "What is an agent?", "Purpose", "What makes this possible?", "How does it work?"];
-    for (const [index, title] of introduction.entries()) {
-        if (index > 0) await page.getByRole("button", { name: "Next step", exact: true }).click();
+    const introductionCount = await page.locator(".intro-step").count();
+    for (let index = 0; index < introductionCount; index++) {
+        if (index > 0) await page.getByRole("button", { name: "Next reveal", exact: true }).click();
         await page.waitForFunction(count => document.querySelector(".intro-count")?.textContent.trim() === count,
-            `${index + 1} / ${introduction.length}`);
-        assert.equal((await page.locator(".intro-step.current dt").textContent()).trim(), title);
-        if (title === "What is an agent?") await capture(page, `learn-definition-${width}`);
-        if (title === "Purpose") await capture(page, `learn-${width}`);
+            `${index + 1} / ${introductionCount}`);
+        assert.equal(await page.locator(".intro-step.current").count(), 1);
+        assert.equal(await page.locator('.intro-diagram[data-display="static"]').count(), 1);
+        await capture(page, index === 0 ? `learn-${width}` : `learn-intro-${index + 1}-${width}`);
     }
-    assert.ok(await page.getByRole("button", { name: "Next step", exact: true }).isDisabled());
+    assert.equal(await page.locator(".intro-application .intro-harness .actor-search").count(), 1);
+    assert.ok(await page.getByRole("button", { name: "Next reveal", exact: true }).isDisabled());
+    assert.ok(await page.getByRole("button", { name: "Show complete diagram", exact: true }).isDisabled());
+    if (width >= 900) await checkLearnKeyboard(page, width);
+    await checkFoundationReveals(page, width);
+    await checkTurnOutcomes(page, width);
     const stages = ["model-to-agent", "anatomy-of-agent", "where-to-run", "agent-loop", "wider-ecosystem"];
     for (const stage of stages) {
         await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
@@ -755,6 +774,281 @@ async function checkLearning(page, width) {
             await page.waitForFunction(() => Number(document.querySelector("[data-beat]")?.dataset.beat) > 0);
         }
         await capture(page, `learn-${stage}-${width}`);
+    }
+}
+
+async function checkLearnKeyboard(page, width) {
+    const lessons = await page.locator(".stage-list a").evaluateAll(links => links.map(link => ({
+        stage: new URL(link.href).searchParams.get("stage")
+    })));
+    assert.ok(lessons.length > 0, "The guide advertises navigable lessons");
+    const position = async (stage, beat) => page.waitForFunction(({ stage, beat }) => {
+        const root = document.querySelector(".learn-app");
+        const current = new URL(location.href).searchParams.get("stage");
+        const introduction = document.querySelector(".intro-count");
+        const actualBeat = introduction ? Number(introduction.textContent.split("/")[0]) - 1 :
+            Number(document.querySelector("[data-beat]")?.dataset.beat ?? 0);
+        return root?.dataset.keyboardReady === "true" && !root.dataset.keyboardBusy && current === stage && actualBeat === beat;
+    }, { stage, beat });
+    const stepCount = async () => page.evaluate(() => {
+        const counter = document.querySelector(".intro-count, .beat-count, .step-count");
+        return counter ? Number(counter.textContent.split("/")[1]) : 1;
+    });
+    const load = async stage => {
+        await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
+        await position(stage, 0);
+    };
+    const move = async (key, stage, beat) => {
+        await page.keyboard.press(key);
+        await position(stage, beat);
+    };
+
+    const first = lessons[0];
+    const last = lessons.at(-1);
+    await load(first.stage);
+    assert.equal(await page.evaluate(() => document.activeElement === document.body), true);
+    await move("ArrowLeft", first.stage, 0);
+    for (const [index, lesson] of lessons.entries()) {
+        lesson.count = await stepCount();
+        lesson.hasSelector = await page.locator(".foundation-lesson select").count() > 0;
+        lesson.hasOutcomes = await page.locator("#turn-outcome").count() > 0;
+        for (let beat = 1; beat < lesson.count; beat++) await move("ArrowRight", lesson.stage, beat);
+        if (index < lessons.length - 1) {
+            await move("ArrowRight", lessons[index + 1].stage, 0);
+            await page.waitForFunction(() => document.activeElement?.id === "stage-title");
+        }
+    }
+    await move("ArrowRight", last.stage, last.count - 1);
+    await capture(page, `learn-keyboard-end-${width}`);
+    for (let index = lessons.length - 1; index >= 0; index--) {
+        const lesson = lessons[index];
+        for (let beat = lesson.count - 2; beat >= 0; beat--) await move("ArrowLeft", lesson.stage, beat);
+        if (index > 0) {
+            const previous = lessons[index - 1];
+            await move("ArrowLeft", previous.stage, previous.count - 1);
+            await page.waitForFunction(() => document.activeElement?.id === "stage-title");
+            if (previous.hasOutcomes) assert.equal(await page.locator(".step-evidence").count(), 1);
+        }
+    }
+    await move("ArrowLeft", first.stage, 0);
+
+    const progressive = lessons.find(lesson => lesson.count > 1);
+    if (progressive) {
+        await load(progressive.stage);
+        await page.getByRole("button", { name: /^Next (step|reveal)$/ }).focus();
+        const urlBeforeReveal = page.url();
+        for (let beat = 1; beat < progressive.count; beat++) await move("ArrowRight", progressive.stage, beat);
+        assert.equal(page.url(), urlBeforeReveal, "Reveals do not change the stage URL");
+        await page.waitForFunction(() => document.activeElement?.id === "stage-title");
+        await page.reload({ waitUntil: "networkidle" });
+        await position(progressive.stage, 0);
+        const next = lessons[lessons.indexOf(progressive) + 1];
+        if (next) {
+            for (let beat = 1; beat < progressive.count; beat++) await move("ArrowRight", progressive.stage, beat);
+            await move("ArrowRight", next.stage, 0);
+            await page.goBack();
+            await position(progressive.stage, 0);
+            await page.goForward();
+            await position(next.stage, 0);
+            await move("ArrowLeft", progressive.stage, progressive.count - 1);
+        }
+    }
+
+    const selectorLesson = lessons.find(lesson => lesson.hasSelector);
+    if (selectorLesson) {
+        await load(selectorLesson.stage);
+        for (let beat = 1; beat < selectorLesson.count; beat++) await move("ArrowRight", selectorLesson.stage, beat);
+        const selector = page.locator(".foundation-lesson select").first();
+        await selector.focus();
+        assert.equal(await selector.evaluate(element => element === document.activeElement), true);
+        assert.equal(await selector.evaluate(element => element.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true }))), true);
+        await page.keyboard.press("ArrowLeft");
+        await position(selectorLesson.stage, selectorLesson.count - 1);
+    }
+    const beforeIgnoredKeys = await page.evaluate(() => ({
+        stage: new URL(location.href).searchParams.get("stage"),
+        beat: document.querySelector(".intro-count") ?
+            Number(document.querySelector(".intro-count").textContent.split("/")[0]) - 1 :
+            Number(document.querySelector("[data-beat]")?.dataset.beat ?? 0)
+    }));
+    await page.locator("#stage-title").focus();
+    for (const options of [{ altKey: true }, { ctrlKey: true }, { shiftKey: true }, { metaKey: true }, { repeat: true }, { isComposing: true }]) {
+        const allowed = await page.locator("#stage-title").evaluate((element, options) => element.dispatchEvent(
+            new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true, ...options })), options);
+        assert.equal(allowed, true, "Modifiers, composition and held-key repeats remain untouched");
+    }
+    await position(beforeIgnoredKeys.stage, beforeIgnoredKeys.beat);
+
+    const outcomeLesson = lessons.find(lesson => lesson.hasOutcomes);
+    const following = lessons[lessons.indexOf(outcomeLesson) + 1];
+    if (outcomeLesson && following) {
+        await load(outcomeLesson.stage);
+        const scenarios = await page.locator("#turn-outcome option").evaluateAll(options => options.map(option => option.value));
+        for (const scenario of scenarios) {
+            await load(outcomeLesson.stage);
+            await page.getByText("Other outcomes", { exact: true }).click();
+            await page.locator("#turn-outcome").selectOption(scenario);
+            await page.locator(`.turn-lesson[data-scenario="${scenario}"][data-beat="0"]`).waitFor();
+            await page.locator("#stage-title").focus();
+            const count = await stepCount();
+            for (let beat = 1; beat < count; beat++) await move("ArrowRight", outcomeLesson.stage, beat);
+            assert.equal(await page.locator(".step-evidence").count(), 1);
+            await move("ArrowRight", following.stage, 0);
+            await move("ArrowLeft", outcomeLesson.stage, outcomeLesson.count - 1);
+            assert.equal(await page.locator(".step-evidence").count(), 1);
+        }
+    }
+
+    await load(first.stage);
+    await page.getByRole("link", { name: "Live flow", exact: true }).click();
+    await page.locator(".learn-app").waitFor({ state: "detached" });
+    const nativeArrow = await page.evaluate(() => document.body.dispatchEvent(
+        new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true, cancelable: true })));
+    assert.equal(nativeArrow, true, "Leaving Learn removes its arrow listener");
+    await page.goBack();
+    await position(first.stage, 0);
+    if (first.count > 1) await move("ArrowRight", first.stage, 1);
+    await capture(page, `learn-keyboard-return-${width}`);
+}
+
+async function checkFoundationReveals(page, width) {
+    await page.goto(new URL("/learn?stage=model-to-agent", baseUrl).href, { waitUntil: "networkidle" });
+    const overview = page.locator('.foundation-lesson[data-story="model-to-agent"][data-beat="0"]');
+    assert.deepEqual(await overview.locator("[data-node]:visible").evaluateAll(elements => elements.map(element => element.dataset.node)), ["harness", "model"]);
+    assert.equal(await overview.locator(".story-toolbar, [data-connection], .application-tools, .exchange-paths").count(), 0);
+    assert.match(await overview.innerText(), /Agent = Harness \+ Model/);
+    assert.match(await overview.locator('[data-node="harness"]').innerText(), /Handles input, manages context and controls execution/);
+    assert.match(await overview.locator('[data-node="model"]').innerText(), /Generates responses from the supplied input/);
+    await capture(page, `learn-model-to-agent-complete-${width}`);
+
+    const harnessNodes = ["instructions", "harness-context", "available-tools", "harness-memory", "execution-controls"];
+    for (const [stage, lastBeat] of [["inside-the-harness", 5], ["anatomy-of-agent", 9]]) {
+        await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
+        const lesson = page.locator(".foundation-lesson");
+        const next = lesson.getByRole("button", { name: "Next reveal", exact: true });
+        let previousNodes = [];
+        for (let beat = 0; beat <= lastBeat; beat++) {
+            if (beat > 0) {
+                await next.focus();
+                await page.keyboard.press("Enter");
+            }
+            await page.locator(`.foundation-lesson[data-beat="${beat}"]`).waitFor();
+            const nodes = await lesson.locator("[data-node]:visible").evaluateAll(elements => elements.map(element => element.dataset.node));
+            for (const id of previousNodes) assert.ok(nodes.includes(id), `${stage}: previous nodes remain visible`);
+            const loadedSkillBeat = stage === "anatomy-of-agent" && beat === 9;
+            assert.equal(nodes.length, loadedSkillBeat ? beat : beat + 1, `${stage}: one new node per reveal`);
+            if (stage === "inside-the-harness") {
+                assert.deepEqual(nodes, ["context-management", ...harnessNodes.slice(0, Math.max(0, beat - 1)), ...(beat >= 1 ? ["execution-controls"] : [])]);
+                assert.equal(await lesson.locator('.harness-context-aspects [data-node]').count(), Math.max(0, beat - 1));
+                assert.equal(await lesson.locator('button[data-node="context-management"]').count(), 0, "Context management is a static parent");
+                assert.equal(await lesson.locator('.harness-node[aria-expanded="true"], .harness-example:visible').count(), 0);
+                if (beat <= 1) await capture(page, `learn-harness-reveal-${beat}-${width}`);
+            }
+            if (stage === "anatomy-of-agent") {
+                assert.equal(await lesson.locator('[data-node="anatomy-settings"]').isVisible(), beat >= 4);
+                assert.equal(await lesson.locator('[data-node="execution-controls"]').isVisible(), beat >= 5);
+                assert.equal(await lesson.locator('[data-node="anatomy-skills"]').isVisible(), beat >= 8);
+                assert.equal(await lesson.locator(".anatomy-loaded").isVisible(), beat >= 9);
+            }
+            previousNodes = nodes;
+        }
+        assert.ok(await next.isDisabled());
+        assert.equal(await lesson.locator("details[open]").count(), 0, "Optional details start collapsed");
+        await capture(page, `learn-${stage}-complete-${width}`);
+        if (stage === "inside-the-harness") await checkHarnessExamples(page, lesson, harnessNodes, width);
+        await lesson.getByRole("button", { name: "Previous reveal", exact: true }).click();
+        await page.locator(`.foundation-lesson[data-beat="${lastBeat - 1}"]`).waitFor();
+        await lesson.getByRole("button", { name: "Show complete diagram", exact: true }).click();
+        await page.locator(`.foundation-lesson[data-beat="${lastBeat}"]`).waitFor();
+        if (stage === "inside-the-harness") {
+            assert.equal(await lesson.locator('[data-node="harness-memory"]').getAttribute("aria-expanded"), "false");
+            assert.equal(await lesson.locator('[data-node="execution-controls"]').getAttribute("aria-expanded"), "true");
+            assert.equal(await lesson.locator('[data-node="harness-context"]').getAttribute("aria-expanded"), "true");
+        }
+        if (stage === "anatomy-of-agent") {
+            assert.match(await lesson.locator('[data-node="anatomy-task"]').innerText(), /Compare heat pumps and electric heaters/);
+            await lesson.getByRole("button", { name: "Coding", exact: true }).click();
+            await page.locator('.anatomy-story[data-purpose="coding"]').waitFor();
+            await page.locator('.foundation-lesson[data-beat="9"]').waitFor();
+            assert.ok(await lesson.locator(".anatomy-loaded").isVisible());
+            await lesson.getByRole("button", { name: "Chat", exact: true }).click();
+            await page.locator('.anatomy-story[data-purpose="chat"]').waitFor();
+            await page.locator('.foundation-lesson[data-beat="9"]').waitFor();
+        }
+        await lesson.getByRole("button", { name: "Restart", exact: true }).click();
+        await page.locator('.foundation-lesson[data-beat="0"]').waitFor();
+        assert.equal(await lesson.locator("[data-node]:visible").count(), 1);
+        if (stage === "inside-the-harness") {
+            assert.equal(await lesson.locator('[data-node="context-management"]').count(), 1);
+            assert.equal(await lesson.locator('.harness-node[aria-expanded="true"], .harness-example:visible').count(), 0);
+        }
+        await capture(page, `learn-${stage}-start-${width}`);
+    }
+}
+
+async function checkHarnessExamples(page, lesson, nodeIds, width) {
+    for (const [index, nodeId] of nodeIds.entries()) {
+        const node = lesson.locator(`[data-node="${nodeId}"]`);
+        const exampleId = await node.getAttribute("aria-controls");
+        const example = lesson.locator(`#${exampleId}`);
+        assert.equal(await example.count(), 1, "Each node controls its own example");
+        if (index === 0) await node.click();
+        else {
+            await node.focus();
+            await page.keyboard.press(index % 2 ? "Enter" : "Space");
+        }
+        await example.waitFor({ state: "visible" });
+        assert.equal(await node.getAttribute("aria-expanded"), "true");
+        assert.equal(await lesson.getAttribute("data-beat"), "5", "Example toggles do not change reveal progress");
+        const nodeBox = await node.boundingBox();
+        const exampleBox = await example.boundingBox();
+        if (width >= 900) {
+            assert.ok(exampleBox.x >= nodeBox.x + nodeBox.width - 1, "Example is to the right of its node");
+            assert.ok(Math.abs(exampleBox.y - nodeBox.y) < 2, "Example aligns with its own row");
+        }
+    }
+    assert.equal(await lesson.locator(".harness-example:visible").count(), 5, "Examples stay open independently");
+    await capture(page, `learn-harness-examples-${width}`);
+    const first = lesson.locator(`[data-node="${nodeIds[0]}"]`);
+    await first.focus();
+    await page.keyboard.press("Enter");
+    await lesson.locator(`#${await first.getAttribute("aria-controls")}`).waitFor({ state: "hidden" });
+    assert.equal(await lesson.locator(".harness-example:visible").count(), 4, "Closing one example leaves the others open");
+}
+
+async function checkTurnOutcomes(page, width) {
+    await page.goto(new URL("/learn?stage=agent-loop", baseUrl).href, { waitUntil: "networkidle" });
+    const lesson = page.locator(".turn-lesson");
+    assert.deepEqual(await lesson.locator("[data-loop-node]").evaluateAll(elements => elements.map(element => element.dataset.loopNode)), ["context", "model", "execute", "answer"]);
+    await lesson.getByText("Other outcomes", { exact: true }).click();
+    for (const [scenario, lastBeat] of [["read", 7], ["denied", 7], ["missing", 7], ["cancelled", 3], ["limit", 3], ["provided", 3]]) {
+        await lesson.locator("select").selectOption(scenario);
+        await page.locator(`.turn-lesson[data-scenario="${scenario}"][data-beat="0"]`).waitFor();
+        if (scenario === "read") {
+            for (let beat = 1; beat <= 5; beat++) {
+                await lesson.getByRole("button", { name: "Next step", exact: true }).click();
+                await page.locator(`.turn-lesson[data-beat="${beat}"]`).waitFor();
+            }
+            assert.equal(await lesson.locator('[data-loop-node="context"][aria-current="step"]').count(), 1);
+            assert.equal(await lesson.locator(".return-edge.traversed").count(), 1);
+            assert.equal(await lesson.locator(".request-summary dd").last().innerText(), "Yes");
+        }
+        await lesson.getByRole("button", { name: "Show all steps", exact: true }).click();
+        await page.locator(`.turn-lesson[data-beat="${lastBeat}"]`).waitFor();
+        assert.equal(await lesson.locator('[data-loop-node="answer"]').getAttribute("class").then(value => value.includes("reached")), true);
+        assert.equal(await lesson.locator('[data-loop-node="execute"]').getAttribute("class").then(value => value.includes("reached")), true);
+        const overflowingNodes = await lesson.locator("[data-loop-node]").evaluateAll(elements => elements
+            .filter(element => element.scrollHeight > element.clientHeight + 1 || element.scrollWidth > element.clientWidth + 1)
+            .map(element => element.dataset.loopNode));
+        assert.deepEqual(overflowingNodes, [], `${scenario}: loop node text fits`);
+        if (scenario === "denied" || scenario === "missing") {
+            assert.doesNotMatch(await lesson.locator(".text-evidence").allTextContents().then(values => values.join("\n")), /Priya will send/);
+        }
+        await capture(page, `learn-loop-${scenario}-${width}`);
+        await lesson.getByRole("button", { name: "Restart", exact: true }).click();
+        await page.locator(`.turn-lesson[data-scenario="${scenario}"][data-beat="0"]`).waitFor();
+        assert.equal(await lesson.locator(".loop-node.reached").count(), 1);
     }
 }
 

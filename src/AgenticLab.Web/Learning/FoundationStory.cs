@@ -94,7 +94,7 @@ internal sealed class FoundationStory
                     ["Read the meeting agenda and relevant accessible work content.", "Summarize decisions, owners and unresolved questions with sources.", "Draft the briefing; confirm recipients and content before any send."]),
                  new("follow-up", "Turn meeting notes into an action-oriented follow-up.",
                     ["Identify actions and owners from the notes.", "Check names and dates against accessible sources.", "Draft a follow-up for user review."])],
-                     "Long-context model for synthesis and drafting", "Meeting briefs need accurate synthesis across work sources. Evaluate citations and tool use; the host supplies access-controlled grounding, not the model alone."),
+                     "Long-context model for synthesis and drafting", "Meeting briefs need accurate synthesis across work sources. Evaluate citations and tool use; the harness supplies access-controlled grounding, not the model alone."),
                  new("document-reviewer", "Document reviewer", "Compare accessible work documents. Identify material changes, conflicting statements and missing information with source references. Suggest revisions for human review; do not edit or send documents.",
                      "Compare the latest project proposal with the approved brief. Flag scope changes and unresolved commitments.",
                      ["documents", "skill"],
@@ -146,18 +146,21 @@ internal sealed class FoundationStory
             "An in-house equipment monitoring agent or a custom business application"),
     ]);
 
+    private readonly HashSet<string> _openHarnessExamples = new(StringComparer.Ordinal);
+
     internal string StageId { get; private set; } = "agent-landscape";
     internal int Beat { get; private set; }
     internal AgentExample Example { get; private set; } = Examples[1];
-    internal AnatomyExample Anatomy { get; private set; } = AnatomyExamples[0];
-    internal AnatomyPurpose AnatomyProfile { get; private set; } = AnatomyPurposes[2];
-    internal AnatomySkill LoadedSkill => Anatomy.Skills[0];
+    internal AnatomyExample Anatomy { get; private set; } = AnatomyPurposes[0].Examples[0];
+    internal AnatomyPurpose AnatomyProfile { get; private set; } = AnatomyPurposes[0];
+    internal AnatomySkill? LoadedSkill => Anatomy.Skills.FirstOrDefault();
     internal string Trigger { get; private set; } = "User request";
     internal static IReadOnlyList<string> Triggers { get; } = Array.AsReadOnly<string>(["User request", "Schedule", "Event"]);
 
     internal IReadOnlyList<string> Captions => StageId switch
     {
         "model-to-agent" => CompositionCaptions,
+        "inside-the-harness" => HarnessCaptions,
         "agents-everywhere" => EnvironmentCaptions,
         "anatomy-of-agent" => AnatomyCaptions,
         _ => LandscapeCaptions,
@@ -166,26 +169,53 @@ internal sealed class FoundationStory
     internal bool CanPrevious => Beat > 0;
     internal bool CanNext => Beat < Captions.Count - 1;
     internal string Caption => Captions[Beat];
+    internal IEnumerable<HarnessResponsibility> VisibleContextAspects => StageId == "inside-the-harness"
+        ? AgentTurnStory.ContextAspects.Take(Math.Max(0, Beat - 1))
+        : [];
 
     internal void SetStage(string stageId)
     {
         if (StageId == stageId) return;
         StageId = stageId;
         Beat = 0;
-        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose("coding");
+        _openHarnessExamples.Clear();
+        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose(AnatomyPurposes[0].Id);
     }
 
-    internal void Move(int offset) => Beat = (int)Math.Clamp((long)Beat + offset, 0, Captions.Count - 1);
+    internal void Move(int offset)
+    {
+        Beat = (int)Math.Clamp((long)Beat + offset, 0, Captions.Count - 1);
+        if (StageId == "inside-the-harness")
+            _openHarnessExamples.RemoveWhere(nodeId => !IsHarnessResponsibilityVisible(nodeId));
+    }
     internal void Complete() => Beat = Captions.Count - 1;
-    internal void Restart() => Beat = 0;
+    internal void Restart()
+    {
+        Beat = 0;
+        _openHarnessExamples.Clear();
+    }
+    internal bool IsHarnessExampleOpen(string nodeId) => _openHarnessExamples.Contains(nodeId);
+    internal void ToggleHarnessExample(string nodeId)
+    {
+        if (!IsHarnessResponsibilityVisible(nodeId)) return;
+        if (!_openHarnessExamples.Add(nodeId)) _openHarnessExamples.Remove(nodeId);
+    }
+    private bool IsHarnessResponsibilityVisible(string nodeId) => StageId == "inside-the-harness"
+        && (VisibleContextAspects.Any(item => item.NodeId == nodeId)
+            || Beat >= 1 && nodeId == AgentTurnStory.Execution.NodeId);
     internal void SelectExample(string id) => Example = Examples.FirstOrDefault(example => example.Id == id) ?? Example;
-    internal void SelectAnatomy(string id) => Anatomy = AnatomyProfile.Examples.FirstOrDefault(example => example.Id == id) ?? Anatomy;
+    internal void SelectAnatomy(string id)
+    {
+        Anatomy = AnatomyProfile.Examples.FirstOrDefault(example => example.Id == id) ?? Anatomy;
+        Beat = Math.Min(Beat, Captions.Count - 1);
+    }
     internal void SelectAnatomyPurpose(string id)
     {
         var purpose = AnatomyPurposes.FirstOrDefault(profile => profile.Id == id);
         if (purpose is null) return;
         AnatomyProfile = purpose;
         Anatomy = purpose.Examples[0];
+        Beat = Math.Min(Beat, Captions.Count - 1);
     }
     internal void SelectTrigger(string trigger)
     {
@@ -194,37 +224,42 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> AnatomyCaptions = Array.AsReadOnly<string>(
     [
-        "The system prompt supplies shared operating guidance. A prompt guides the model; it is not a security boundary.",
-        "The agent host has a catalogue of capabilities. It executes local functions, calls MCP tools and delegates tasks over A2A. Not every capability is exposed to every agent.",
-        "The persona defines the agent's purpose and approach. Chat, office, coding and custom agents need different context and capabilities. Coding offers Ask, Plan, Implement and Review modes.",
-        "A configuration pairs the persona with a tool subset and a model suited to its task. Model examples illustrate trade-offs, not fixed requirements. The host enforces permissions; neither a persona nor a model grants access.",
+        "The system prompt is standing instruction text supplied to the model. Its content depends on the selected configuration. It does not enforce file or network access.",
+        "The harness registers tool implementations and their descriptions. It can offer only a subset to a particular agent or task.",
+        "Role instructions describe the task and approach. In this example, choosing a role also changes the configured tools. The text and the tool configuration are separate settings.",
+        "Selected tools are the subset described to this agent. Registering a tool does not mean it is enabled for every agent or every request.",
+        "Model choice selects the model used for inference. Selecting a model does not grant it file access.",
+        "Execution controls are checks run by the harness before a tool invocation. They are code, not instruction text. An allowed invocation can still fail.",
         "The task prompt says what is wanted this time. It is a message, separate from the agent's standing instructions.",
         "Custom instructions add project guidance when applicable and enabled. Their text enters context directly; it is not a tool call.",
-        "Skills are reusable playbooks. Initially, only names and descriptions enter context, so the model can choose relevant guidance without loading every body.",
-        "An allowed Read skill call can load a relevant playbook into context. Its instructions guide the next decision; they do not execute actions or grant new tools.",
+        "Skills are optional packages of task instructions. This configuration initially supplies only their names and descriptions, not every package's full text.",
+        "An allowed Read skill call supplies the package's full instructions for a later model request. Loading this text neither executes its steps nor enables new tools.",
+    ]);
+
+    internal const string ContextManagementSummary = "Selects and assembles the information supplied to the model.";
+
+    private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly<string>(
+    [
+        ContextManagementSummary,
+        AgentTurnStory.Execution.Summary,
+        .. AgentTurnStory.ContextAspects.Select(item => item.Summary),
     ]);
 
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
     [
         "Agents serve many purposes. Chat, coding, office and custom agents are overlapping examples, not fixed categories.",
-        "Across these examples, the same foundation appears: Agent = Agent host + Model.",
+        "Across these examples, the same foundation appears: Agent = Harness + Model.",
     ]);
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Agent host + Model. An agent is the whole system, not the model alone.",
-        "The agent host manages context, instructions, tools, memory and execution controls. Its agent-running machinery is also called the harness.",
-        "The agent host executes tools such as search, calendar and file access. Model requests are subject to permissions, approvals and limits; a request is not permission.",
-        "The model reasons over the supplied context, plans and chooses a next step or final answer. It does not execute tools itself.",
-        "The agent host selects relevant memory and sends instructions, context, available tool definitions and previous tool results to the model.",
-        "The model returns an answer or a tool request. The host delivers the answer, or checks and executes a permitted request and returns the result to the model.",
-        "The model reasons. The agent host acts. Together, they form an agent. A trigger starts a turn; a final answer, enforced limit or cancellation ends it. A tool call is not required.",
+        "Agent = Harness + Model. The harness handles input, manages context and controls execution. The model generates responses from the supplied input.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(
     [
         "The shared foundation stays recognizable across different tasks. Purpose changes the context and capabilities an agent needs.",
-        "An agent host can run locally or in the cloud while using a remote model. Tools and permissions depend on its environment; portability is not automatic.",
+        "Harness, model and tools can run in different locations. Moving the harness does not automatically move its model or grant access to the same files and services.",
         "A user, schedule or event can start the work. The trigger is separate from the agent's purpose and where it runs. These are illustrative configurations, not product guarantees.",
     ]);
 }

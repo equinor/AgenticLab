@@ -95,12 +95,12 @@ available; agents work after discovery without a restart.
 ## Remote A2A agents
 
 Select Default's **orchestrator** mode and enable **A2A agents** in View options. Each discovered
-agent appears as **Agent host + Model** below the main flow. Research and Poet share one separate
+agent appears as **Harness + Model** below the main flow. Research and Poet share one separate
 A2A service process; their model nodes indicate roles, not separate known deployments.
 
 Arrows distinguish **Delegation requested** from **Result returned**. A request is not confirmation
 of a network send, and a returned result can contain an error. Remote model calls, prompts, tools,
-settings and token counts are not captured; internal links stay static. Expand the agent host to
+settings and token counts are not captured; internal links stay static. Expand the harness to
 open read-only remote-agent Details without delegating or changing the selected chat agent.
 
 [A2AFlowBuilder](../src/AgenticLab.Web/Flow/A2AFlowBuilder.cs) uses structured `FlowEvent.ToolCall`
