@@ -80,9 +80,11 @@ Discovery is a shared non-routed `Discovery` component: `DiscoveryPage` supplies
 `/discovery` route and render mode; Flow's `DiscoveryOverlay` hosts it in a native modal without
 disposing Flow or its conversation. Visibility lives in `FlowViewState.Layout` and is not persisted.
 Learn has no Discovery entry. Overlay re-discovery is disabled during the parent chat run, and
-closing cancels only Discovery's stream. The overlay passes the selected agent's name and its bounded
-remote-agent/tool names; the pure `DiscoveryGrouping` helper lists those first and collapses other
-owners' groups, while the standalone page shows every owner group. Rediscovery itself is never
+closing cancels only Discovery's stream. The overlay passes the selected agent's name and a
+per-protocol `DiscoveryScope` (exact MCP tool names, case-insensitive remote-agent names); the pure
+`DiscoveryGrouping` helper lists those first and collapses other owners' groups, while the standalone
+page shows every owner group. A completed rediscovery raises `OnRediscovered` so Flow reloads
+`GET /agents` and the catalogues while the modal stays open. Rediscovery itself is never
 scoped per agent. See [docs/protocols.md](docs/protocols.md).
 
 Flow has independent Details and Learn docks, visible simultaneously. `InspectorPanel` owns the

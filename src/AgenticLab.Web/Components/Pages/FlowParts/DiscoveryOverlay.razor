@@ -8,6 +8,6 @@
     </header>
     <div class="dialog-content">
         <Discovery @ref="_discovery" Embedded="true" AllowRediscovery="@(AllowRediscovery && !_closing)"
-                   AgentName="@AgentName" RelevantNames="@RelevantNames" />
+                   AgentName="@AgentName" Scope="@Scope" OnRediscovered="OnRediscovered" />
     </div>
 </dialog>

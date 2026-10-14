@@ -56,24 +56,61 @@ public sealed class ProtocolScopeTests
             new("windfarm-risk", "w", "windfarm"), new("other-tool", "o", "unknown"),
         ];
         string? Title(string id) => id == "windfarm" ? "Windfarm Operations" : null;
+        var a2a = DiscoveryGrouping.ComparerFor("a2a");
 
-        var scoped = DiscoveryGrouping.Group(items, ["poet", "research"], Title);
+        var scoped = DiscoveryGrouping.Group(items, ["poet", "Research"], Title, a2a);
         Assert.True(scoped.Scoped);
         Assert.Equal(new[] { "research", "poet" }, scoped.Available.Select(item => item.Name));
         Assert.Equal(new[] { "unknown", "Windfarm Operations" }, scoped.Groups.Select(group => group.Title));
         Assert.Equal("windfarm-risk", Assert.Single(scoped.Groups[1].Items).Name);
 
-        var unscoped = DiscoveryGrouping.Group(items, null, Title);
+        var unscoped = DiscoveryGrouping.Group(items, null, Title, a2a);
         Assert.False(unscoped.Scoped);
         Assert.Empty(unscoped.Available);
         Assert.Equal(new[] { DiscoveryGrouping.SharedTitle, "unknown", "Windfarm Operations" }, unscoped.Groups.Select(group => group.Title));
         Assert.Equal(new[] { "research", "poet" }, unscoped.Groups[0].Items.Select(item => item.Name));
-        Assert.False(DiscoveryGrouping.Group(items, [], Title).Scoped);
 
-        var nothingRelevant = DiscoveryGrouping.Group(items, ["GetCurrentTime"], Title);
+        var nothingRelevant = DiscoveryGrouping.Group(items, [], Title, a2a);
         Assert.True(nothingRelevant.Scoped);
         Assert.Empty(nothingRelevant.Available);
         Assert.Equal(items.Length, nothingRelevant.Groups.Sum(group => group.Items.Count));
+    }
+
+    [Fact]
+    public void DiscoveryScope_KeepsProtocolsApartWhenNamesOverlap()
+    {
+        // TimeKeeper holds the MCP time tool; an A2A specialist happens to share the name.
+        var timeKeeper = new DiscoveryScope(["GetCurrentTime"], []);
+        DiscoveryItemDto[] mcpItems = [new("GetCurrentTime", "t")];
+        DiscoveryItemDto[] a2aItems = [new("GetCurrentTime", "impostor"), new("research", "r")];
+        Assert.True(timeKeeper.IsScoped);
+        Assert.Single(DiscoveryGrouping.Group(mcpItems, timeKeeper.For("mcp"), _ => null, DiscoveryGrouping.ComparerFor("mcp")).Available);
+        var a2aView = DiscoveryGrouping.Group(a2aItems, timeKeeper.For("a2a"), _ => null, DiscoveryGrouping.ComparerFor("a2a"));
+        Assert.True(a2aView.Scoped);
+        Assert.Empty(a2aView.Available);
+
+        // Orchestrator delegates to the look-alike agent but holds no MCP tools.
+        var orchestrator = new DiscoveryScope([], ["GetCurrentTime"]);
+        Assert.Empty(DiscoveryGrouping.Group(mcpItems, orchestrator.For("mcp"), _ => null, DiscoveryGrouping.ComparerFor("mcp")).Available);
+        Assert.Equal("GetCurrentTime", Assert.Single(DiscoveryGrouping.Group(a2aItems, orchestrator.For("a2a"), _ => null, DiscoveryGrouping.ComparerFor("a2a")).Available).Name);
+
+        var chat = new DiscoveryScope([], []);
+        Assert.False(chat.IsScoped);
+        Assert.Null(chat.For("mcp"));
+        Assert.Null(chat.For("a2a"));
+    }
+
+    [Fact]
+    public void DiscoveryGrouping_MatchesMcpToolsExactlyAndA2AAgentsCaseInsensitively()
+    {
+        DiscoveryItemDto[] tools = [new("GetCurrentTime", "t"), new("getcurrenttime", "lower")];
+        var mcp = DiscoveryGrouping.Group(tools, ["GetCurrentTime"], _ => null, DiscoveryGrouping.ComparerFor("mcp"));
+        Assert.Equal("GetCurrentTime", Assert.Single(mcp.Available).Name);
+        Assert.Equal("getcurrenttime", Assert.Single(Assert.Single(mcp.Groups).Items).Name);
+
+        DiscoveryItemDto[] agents = [new("Research", "r")];
+        var a2a = DiscoveryGrouping.Group(agents, ["research"], _ => null, DiscoveryGrouping.ComparerFor("a2a"));
+        Assert.Equal("Research", Assert.Single(a2a.Available).Name);
     }
 
     private sealed class TestEnvironment : IWebHostEnvironment

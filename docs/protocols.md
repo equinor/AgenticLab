@@ -86,11 +86,14 @@ status here, configured by `Discovery:OnStartup` (default `true`) in
 
 Discovered items carry the `exampleId` of the enabled example claiming them (null when shared).
 The standalone page groups each source as **Shared** followed by one group per example; a single
-group renders as a plain list. Inside Flow the modal receives the selected agent's bounded remote
-agents and, for MCP-capable agents, its tool names: items the agent holds appear first under
-**Available to &lt;agent&gt;**, and the remaining owner groups collapse under **Not available to
-&lt;agent&gt;**. Agents without MCP or A2A support see every group expanded. This is presentation only:
-rediscovery remains process-wide and never filters by agent.
+group renders as a plain list. Inside Flow the modal receives the selected agent's capabilities per
+protocol — its MCP tool names (exact match, as the backend selects them) and its bounded remote
+agents (case-insensitive) — so a tool name never reads as an available A2A agent or vice versa.
+Items the agent holds appear first under **Available to &lt;agent&gt;**, and the remaining owner groups
+collapse under **Not available to &lt;agent&gt;**. Agents without MCP or A2A support see every group
+expanded. After each completed rediscovery the modal asks Flow to reload `GET /agents` and the
+harness catalogues, so a newly shared specialist shows as available without closing the dialog.
+This is presentation only: rediscovery remains process-wide and never filters by agent.
 
 The modal initially reads only the last snapshot. It preserves Flow's conversation, draft, settings
 and replay; an active chat continues. Rediscovery is disabled during that parent chat because it

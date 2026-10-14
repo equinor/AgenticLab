@@ -1,3 +1,4 @@
+using AgenticLab.Web.Flow;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
@@ -14,8 +15,11 @@ public partial class DiscoveryOverlay : IAsyncDisposable
     /// <summary>The selected chat agent, so Discovery lists its usable items first.</summary>
     [Parameter] public string? AgentName { get; set; }
 
-    /// <summary>The selected agent's bounded remote agents and tool names; empty shows every group expanded.</summary>
-    [Parameter] public IReadOnlyCollection<string>? RelevantNames { get; set; }
+    /// <summary>The selected agent's per-protocol capabilities; unscoped shows every group expanded.</summary>
+    [Parameter] public DiscoveryScope? Scope { get; set; }
+
+    /// <summary>Raised after each completed rediscovery so the host refreshes agent metadata while the dialog stays open.</summary>
+    [Parameter] public EventCallback OnRediscovered { get; set; }
 
     /// <summary>Dismisses without navigation and reports whether discovery may have changed catalogs.</summary>
     [Parameter] public EventCallback<bool> OnClose { get; set; }

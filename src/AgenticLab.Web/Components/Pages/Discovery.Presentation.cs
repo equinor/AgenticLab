@@ -26,7 +26,8 @@ public sealed partial class Discovery
         ?.Manifest.DisplayName;
 
     private DiscoveryGroupView GroupItems(string source) =>
-        DiscoveryGrouping.Group(_items.GetValueOrDefault(source) ?? [], RelevantNames, ExampleTitle);
+        DiscoveryGrouping.Group(_items.GetValueOrDefault(source) ?? [], Scope?.For(source), ExampleTitle,
+            DiscoveryGrouping.ComparerFor(source));
 
     private string ItemKind(string source) => source == "mcp" ? "tool" : "agent";
 

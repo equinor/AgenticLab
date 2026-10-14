@@ -1,4 +1,5 @@
 using AgenticLab.Extensibility.Examples;
+using AgenticLab.Web.Flow;
 using Microsoft.AspNetCore.Components;
 
 namespace AgenticLab.Web.Components.Pages;
@@ -32,11 +33,14 @@ public sealed partial class Discovery : ComponentBase, IDisposable
     /// <summary>The selected agent whose usable items are listed first; null for the standalone page.</summary>
     [Parameter] public string? AgentName { get; set; }
 
-    /// <summary>The names the selected agent holds (bounded remote agents and tools); null or empty shows every group expanded.</summary>
-    [Parameter] public IReadOnlyCollection<string>? RelevantNames { get; set; }
+    /// <summary>The selected agent's per-protocol capabilities; null or unscoped shows every group expanded.</summary>
+    [Parameter] public DiscoveryScope? Scope { get; set; }
 
     /// <summary>Prevents reconnecting shared tool clients while the parent conversation is running.</summary>
     [Parameter] public bool AllowRediscovery { get; set; } = true;
+
+    /// <summary>Raised after a discovery run finishes so the host can refresh agent capabilities while this view stays open.</summary>
+    [Parameter] public EventCallback OnRediscovered { get; set; }
 
     /// <summary>Whether this view started a discovery pass that may have changed the shared catalog.</summary>
     public bool HasRediscovered { get; private set; }
@@ -214,7 +218,11 @@ public sealed partial class Discovery : ComponentBase, IDisposable
             _lastRunUtc = DateTimeOffset.UtcNow;
             try
             {
-                if (!_disposed && !_closing) await LoadSnapshotAsync();
+                if (!_disposed && !_closing)
+                {
+                    await LoadSnapshotAsync();
+                    await OnRediscovered.InvokeAsync();
+                }
             }
             finally
             {
