@@ -250,15 +250,20 @@ public sealed class ExampleExtensionTests
         var definition = new DiscoveredDefinition();
         var catalog = new AgentCatalog(new ChatClientProvider(configuration), [definition]);
         Assert.Empty(Assert.Single(catalog.Agents).Tools);
+        Assert.Empty(Assert.Single(catalog.Agents).RemoteAgentNames!);
         Assert.True(catalog.TryResolve(definition.Name, out var before, out _));
         definition.CurrentTools = [AIFunctionFactory.Create(() => "result", "ParcelRead")];
+        definition.CurrentRemoteAgents = ["research"];
         catalog.RefreshDiscoveryAgents();
         Assert.Equal("ParcelRead", Assert.Single(Assert.Single(catalog.Agents).Tools));
+        Assert.Equal("research", Assert.Single(Assert.Single(catalog.Agents).RemoteAgentNames!));
         Assert.True(catalog.TryResolve(definition.Name, out var after, out _));
         Assert.NotSame(before, after);
         definition.CurrentTools = [];
+        definition.CurrentRemoteAgents = [];
         catalog.RefreshDiscoveryAgents();
         Assert.Empty(Assert.Single(catalog.Agents).Tools);
+        Assert.Empty(Assert.Single(catalog.Agents).RemoteAgentNames!);
     }
 
     private sealed class WikipediaHandler : HttpMessageHandler
@@ -289,8 +294,11 @@ public sealed class ExampleExtensionTests
         public override string Description => "Test discovery";
         protected override string Persona => "Test";
         public override bool SupportsMcp => true;
+        public override bool SupportsA2A => true;
         public IList<AITool> CurrentTools { get; set; } = [];
+        public IReadOnlyList<string> CurrentRemoteAgents { get; set; } = [];
         public override IList<AITool> Tools => CurrentTools;
+        public override IReadOnlyList<string> RemoteAgentNames => CurrentRemoteAgents;
     }
 
     public sealed class ParcelState;

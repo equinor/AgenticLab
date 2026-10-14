@@ -150,5 +150,6 @@
 
 @if (_view.Layout.DiscoveryOpen)
 {
-    <DiscoveryOverlay AllowRediscovery="@(!_run.Running)" OnClose="CloseDiscoveryAsync" />
+    <DiscoveryOverlay AllowRediscovery="@(!_run.Running)" OnClose="CloseDiscoveryAsync" OnRediscovered="RefreshAfterDiscoveryAsync"
+                      AgentName="@_view.SelectedAgent" Scope="@DiscoveryScope" />
 }

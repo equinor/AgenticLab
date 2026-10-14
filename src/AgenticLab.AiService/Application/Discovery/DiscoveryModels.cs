@@ -80,7 +80,8 @@ public sealed record DiscoveryEvent(
 /// <summary>A discovered tool (MCP) or agent (A2A): its name and description.</summary>
 /// <param name="Name">The tool/agent name.</param>
 /// <param name="Description">A short description of what it does.</param>
-public sealed record DiscoveryItem(string Name, string Description);
+/// <param name="ExampleId">The enabled example claiming this name, or null when it is shared with core agents.</param>
+public sealed record DiscoveryItem(string Name, string Description, string? ExampleId = null);
 
 /// <summary>
 /// The current status of a discovery source, returned by the discovery snapshot so a client can render

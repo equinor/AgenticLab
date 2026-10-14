@@ -288,7 +288,7 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null);
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record ChatLimitsInfo(int MaxMessageLength);
@@ -328,8 +328,8 @@ public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnly
 /// <summary>The last-known status of a discovery source (MCP or A2A).</summary>
 public sealed record DiscoverySourceStatusDto(string Source, string? Endpoint, string State, string? Error, DateTimeOffset? LastRunUtc, IReadOnlyList<DiscoveryItemDto> Items);
 
-/// <summary>A discovered tool (MCP) or agent (A2A): its name and description.</summary>
-public sealed record DiscoveryItemDto(string Name, string Description);
+/// <summary>A discovered tool (MCP) or agent (A2A): its name, description and the example claiming it (null when shared).</summary>
+public sealed record DiscoveryItemDto(string Name, string Description, string? ExampleId = null);
 
 /// <summary>A single streamed step of a live discovery run.</summary>
 public sealed record DiscoveryEventDto(string Source, string Kind, string Message, DiscoveryItemDto? Item = null, int Sequence = 0);

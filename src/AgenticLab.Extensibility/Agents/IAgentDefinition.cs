@@ -38,6 +38,8 @@ public interface IAgentDefinition
     bool SupportsMcp { get; }
     /// <summary>Whether the agent uses remote A2A specialists.</summary>
     bool SupportsA2A { get; }
+    /// <summary>The remote A2A specialists this agent may delegate to; empty when it does not delegate.</summary>
+    IReadOnlyList<string> RemoteAgentNames { get; }
     /// <summary>The impact permitted by the tool implementations.</summary>
     AgentRiskLevel RiskLevel { get; }
     /// <summary>Safety mechanisms enforced by code, not merely requested in instructions.</summary>

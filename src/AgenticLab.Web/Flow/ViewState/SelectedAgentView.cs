@@ -15,6 +15,9 @@ internal sealed class SelectedAgentView(FlowViewState owner)
     public bool SupportsMcp => Info?.SupportsMcp ?? false;
     public bool SupportsA2A => Info?.SupportsA2A ?? false;
 
+    /// <summary>The remote A2A agents the service bounds this agent to; empty when it does not delegate.</summary>
+    public IReadOnlyList<string> RemoteAgentNames => Info?.RemoteAgentNames ?? Array.Empty<string>();
+
     /// <summary>Custom instructions apply to any agent that runs with a workspace.</summary>
     public bool SupportsInstructions => Info?.RequiresWorkspace ?? false;
 

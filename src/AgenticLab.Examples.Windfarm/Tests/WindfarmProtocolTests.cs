@@ -154,6 +154,9 @@ public sealed class WindfarmProtocolTests
         using var scope = new AgentRunScope("scoped", "windfarmcoordinator");
         Assert.Contains("\"conversationId\":\"scoped\"", tools.WindfarmGetCase());
         Assert.DoesNotContain(tools.AsTools(), tool => tool.Name.Contains("Approve") || tool.Name.Contains("Decide") || tool.Name.Contains("Commit"));
+        var coordinator = new WindfarmCoordinator(tools, new EmptyMcp());
+        Assert.Equal(WindfarmProcess.Reviewers, coordinator.RemoteAgentNames);
+        Assert.Equal(new WindfarmExample().Manifest.RemoteAgentNames, coordinator.RemoteAgentNames);
     }
 
     [Fact]

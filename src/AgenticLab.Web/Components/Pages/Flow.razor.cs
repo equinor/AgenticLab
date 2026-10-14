@@ -85,6 +85,11 @@ public partial class Flow : IDisposable
     private string HostSummary => _view.Roster.CurrentVendorInfo is { } info
         ? $"{info.DisplayName}: {info.ModelLabel}; {info.Modes.Count} mode{(info.Modes.Count == 1 ? "" : "s")}" : _view.Roster.VendorName;
 
+    // Per-protocol sets: an MCP tool name must never read as an available A2A agent, or vice versa.
+    private DiscoveryScope DiscoveryScope => new(
+        _view.Agent.SupportsMcp ? _view.Agent.ToolNames : [],
+        _view.Agent.SupportsA2A ? _view.Agent.RemoteAgentNames : []);
+
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);
@@ -212,7 +217,13 @@ public partial class Flow : IDisposable
     private async Task CloseDiscoveryAsync(bool refreshCatalogs)
     {
         _view.Layout.DiscoveryOpen = false;
-        if (!refreshCatalogs) return;
+        if (refreshCatalogs) await RefreshAfterDiscoveryAsync();
+    }
+
+    // Rediscovery can change agents' tools and bounded rosters; reload them so the open Discovery
+    // modal and the harness boxes reflect the new capabilities.
+    private async Task RefreshAfterDiscoveryAsync()
+    {
         try
         {
             var response = await Ai.GetAgentsAsync();

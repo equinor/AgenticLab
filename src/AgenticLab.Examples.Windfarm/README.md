@@ -96,7 +96,9 @@ startup discovery before the operational API begins listening, without circular 
 
 The coordinator selects only `WindfarmTelemetry`, `WindfarmMaintenanceHistory`, `WindfarmWeather`,
 `WindfarmResources` and `WindfarmProcedure` from MCP discovery. The original TimeKeeper remains
-time-only. The example's selected A2A display contains only its three specialists.
+time-only. The coordinator's `RemoteAgentNames` are its three specialists, so its A2A display shows
+only them; because the manifest claims those names, Orchestrator's shared roster excludes them and
+Discovery lists them under a **Windfarm Operations** group.
 
 ## State and approval
 

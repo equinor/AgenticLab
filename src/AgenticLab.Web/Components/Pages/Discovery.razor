@@ -109,36 +109,92 @@
                         <span class="section-label">
                             Discovered (@_items.GetValueOrDefault(source)?.Count)
                         </span>
-                        @if (_items.GetValueOrDefault(source) is { Count: > 0 } items)
+                        @if (_items.GetValueOrDefault(source) is { Count: > 0 })
                         {
-                            <ul class="item-list">
-                                @foreach (var item in items)
-                                {
-                                    var itemKey = $"item:{source}:{item.Name}";
-                                    var hasDef = !string.IsNullOrWhiteSpace(item.Description);
-                                    <li class="item-row @(IsExpanded(itemKey) ? "open" : "")">
-                                        <button type="button" class="item-toggle" @onclick="() => Toggle(itemKey)" disabled="@(!hasDef)">
-                                            @if (hasDef)
-                                            {
-                                                <span class="chevron">@(IsExpanded(itemKey) ? "▾" : "▸")</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="chevron placeholder"></span>
-                                            }
-                                            <span class="item-name">@item.Name</span>
-                                            <span class="item-kind">@(source == "mcp" ? "tool" : "agent")</span>
-                                        </button>
-                                        @if (hasDef && IsExpanded(itemKey))
+                            var grouped = GroupItems(source);
+                            RenderFragment<DiscoveryItemDto> itemRow = item =>
+                                @<li class="item-row @(IsExpanded(ItemKey(source, item)) ? "open" : "")">
+                                    <button type="button" class="item-toggle" @onclick="() => Toggle(ItemKey(source, item))"
+                                            disabled="@(string.IsNullOrWhiteSpace(item.Description))">
+                                        @if (!string.IsNullOrWhiteSpace(item.Description))
                                         {
-                                            <div class="item-def">
-                                                <span class="def-label">Definition</span>
-                                                <p class="def-body">@item.Description</p>
-                                            </div>
+                                            <span class="chevron">@(IsExpanded(ItemKey(source, item)) ? "▾" : "▸")</span>
                                         }
-                                    </li>
+                                        else
+                                        {
+                                            <span class="chevron placeholder"></span>
+                                        }
+                                        <span class="item-name">@item.Name</span>
+                                        @if (item.ExampleId is { } owner)
+                                        {
+                                            <span class="item-owner" title="Claimed by the @(ExampleTitle(owner) ?? owner) example">@(ExampleTitle(owner) ?? owner)</span>
+                                        }
+                                        <span class="item-kind">@ItemKind(source)</span>
+                                    </button>
+                                    @if (!string.IsNullOrWhiteSpace(item.Description) && IsExpanded(ItemKey(source, item)))
+                                    {
+                                        <div class="item-def">
+                                            <span class="def-label">Definition</span>
+                                            <p class="def-body">@item.Description</p>
+                                        </div>
+                                    }
+                                </li>;
+                            RenderFragment<DiscoveryGroup> groupBlock = group =>
+                                @<div class="item-group">
+                                    <span class="group-label">@group.Title (@group.Items.Count)</span>
+                                    <ul class="item-list">
+                                        @foreach (var item in group.Items)
+                                        {
+                                            @itemRow(item)
+                                        }
+                                    </ul>
+                                </div>;
+
+                            @if (grouped.Scoped)
+                            {
+                                <div class="item-group relevant">
+                                    <span class="group-label">Available to @AgentName (@grouped.Available.Count)</span>
+                                    @if (grouped.Available.Count == 0)
+                                    {
+                                        <span class="empty">None of the discovered @(ItemKind(source))s are available to this agent.</span>
+                                    }
+                                    else
+                                    {
+                                        <ul class="item-list">
+                                            @foreach (var item in grouped.Available)
+                                            {
+                                                @itemRow(item)
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                                @if (grouped.Groups.Count > 0)
+                                {
+                                    <details class="item-group other">
+                                        <summary>Not available to @AgentName (@grouped.Groups.Sum(group => group.Items.Count))</summary>
+                                        @foreach (var group in grouped.Groups)
+                                        {
+                                            @groupBlock(group)
+                                        }
+                                    </details>
                                 }
-                            </ul>
+                            }
+                            else if (grouped.Groups.Count > 1)
+                            {
+                                @foreach (var group in grouped.Groups)
+                                {
+                                    @groupBlock(group)
+                                }
+                            }
+                            else
+                            {
+                                <ul class="item-list">
+                                    @foreach (var item in grouped.Groups.SelectMany(group => group.Items))
+                                    {
+                                        @itemRow(item)
+                                    }
+                                </ul>
+                            }
                         }
                         else
                         {
