@@ -18,7 +18,7 @@
             <div class="selection-bar">
                 <div class="selectors">
                     <span class="selected-vendor" aria-hidden="true"><VendorIcon IconPath="@_view.Roster.CurrentHostPresentation?.IconPath" /></span>
-                    <LabField For="host" Label="Host" Inline="true">
+                    <LabField For="host" Label="App" Inline="true">
                         <select id="host" value="@_view.HostKey" title="@HostSummary" disabled="@(_run.Running || !_catalogsLoaded)" @onchange="OnHostChangedAsync">
                             @foreach (var vendor in _view.Roster.AvailableHosts)
                             {

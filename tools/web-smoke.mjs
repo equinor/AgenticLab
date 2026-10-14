@@ -663,7 +663,7 @@ async function checkDocksAndDiscovery(page, width) {
 
 async function checkA2ADetails(page, width) {
     await openFlow(page);
-    await page.getByRole("combobox", { name: "Host", exact: true }).selectOption({ label: "Default" });
+    await page.getByRole("combobox", { name: "App", exact: true }).selectOption({ label: "Default" });
     await page.waitForFunction(() => [...document.querySelector("#agent").options].some(option => option.label.toLowerCase() === "orchestrator"));
     const selectedAgent = await page.locator("#agent").evaluate(element => [...element.options].find(option => option.label.toLowerCase() === "orchestrator").value);
     await page.locator("#agent").selectOption(selectedAgent);

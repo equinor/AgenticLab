@@ -39,8 +39,8 @@ Leaving Home clears the enhancement's timers and listeners. The guide itself rem
 
 ### Conversation and Settings
 
-Choose **Host** and **Agent** above the workspace, then send a message from **Conversation**.
-The host selects a representative prompt and available modes; the backend remains the startup-selected
+Choose **App** and **Agent** above the workspace, then send a message from **Conversation**.
+The app (host) selects a representative prompt and available modes; the backend remains the startup-selected
 [Azure OpenAI, OpenAI or Gemini provider](agents.md#model-providers). Host selection never changes keys.
 Default is always available. Other hosts require enabled [example modules](examples.md#default-startup).
 Unavailable saved hosts fall back to Default. Selectors are locked during a run.
