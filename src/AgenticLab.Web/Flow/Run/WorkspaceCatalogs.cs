@@ -23,12 +23,13 @@ internal sealed class WorkspaceCatalogs(AiServiceClient ai, FlowViewState view, 
     /// <summary>The workspace's custom instructions the caller may enable per run.</summary>
     public IReadOnlyList<InstructionChip> KnownInstructions => _instructionsVersion == view.ConfigurationVersion ? _knownInstructions : [];
 
+    /// <summary>The discovered MCP tools the selected agent actually holds, shown in the harness MCP box.</summary>
     public IReadOnlyList<McpChip> KnownMcp => _mcpVersion == view.ConfigurationVersion && view.Agent.SupportsMcp
-        ? _knownMcp.Where(tool => view.Roster.CurrentExample is null || view.Agent.ToolNames.Contains(tool.Name)).ToArray() : [];
+        ? _knownMcp.Where(tool => view.Agent.ToolNames.Contains(tool.Name, StringComparer.Ordinal)).ToArray() : [];
 
-    /// <summary>The agents the selected agent can delegate to over A2A, shown in the harness A2A box.</summary>
+    /// <summary>The agents the selected agent can delegate to over A2A (bounded by the service), shown in the harness A2A box.</summary>
     public IReadOnlyList<A2AChip> KnownA2A => _a2aVersion == view.ConfigurationVersion && view.Agent.SupportsA2A
-        ? _knownA2A.Where(agent => view.Roster.CurrentExample is not { } example || example.RemoteAgentNames.Contains(agent.Name)).ToArray() : [];
+        ? _knownA2A.Where(agent => view.Agent.RemoteAgentNames.Contains(agent.Name, StringComparer.OrdinalIgnoreCase)).ToArray() : [];
 
     public bool IsSkillLoaded(string name) => _skillsVersion == view.ConfigurationVersion && _loadedSkills.Contains(name);
 

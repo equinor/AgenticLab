@@ -33,10 +33,21 @@ The server's `GET /agents` returns `{ Agents: [{ Name, Path, Description }] }`.
 [A2AAgentProvider](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs) resolves
 `services:a2aserver:http:0` (or standalone `A2A:Endpoint`), discovers that roster, and creates named
 clients. Its `DelegateToAgent(agentName, question)` tool returns the remote reply; unknown names
-return the valid roster. Discovery failure leaves an empty tool list.
+return the tool's own roster. Discovery failure leaves an empty tool list.
+
+The discovered roster is split by ownership. Agents named in an enabled example's
+`ExampleManifest.RemoteAgentNames` belong to that example; everything else is the **shared roster**
+(`SharedAgentNames`). `GetTools()` builds the shared `DelegateToAgent` tool, whose description and
+unknown-agent reply list only shared agents, so core agents never see or reach example specialists.
+Examples call `GetTools(names)` for a tool bounded to their own specialists. Adding an unclaimed agent
+under `A2A:Agents` therefore reaches `Orchestrator` without a code change, while enabling Windfarm
+does not widen it. `IAgentDelegation.InvokeAsync` stays unbounded; examples enforce their allowlists.
 
 `Orchestrator` has `Calculate` plus delegation: arithmetic can stay local while specialist questions
-go to another agent. AiService's `GET /a2a` returns `{ Agents: [{ Name, Description }] }`.
+go to another agent. Its `RemoteAgentNames` is the shared roster, published per agent by
+`GET /agents` ([agents guide](agents.md#get-agents)) and used by Web to bound the harness A2A box,
+the remote-agent row and Details. AiService's `GET /a2a` still returns the full discovered
+`{ Agents: [{ Name, Description }] }`.
 "Sub-agent" describes the caller/callee relationship, not another A2A protocol type.
 
 ## Optional Example Contributions
@@ -47,8 +58,10 @@ MCP adapters may call it at invocation time, but must not create circular startu
 
 Discovery precedes catalogue construction; rediscovery refreshes executable agents and advertised
 tool lists. Examples enforce their own remote allowlists and receive typed delegation outcomes.
-Orchestrator keeps its text-returning contract. Flow shows a selected example's capabilities;
-Discovery shows the full server roster.
+Orchestrator keeps its text-returning contract. Names claimed by a manifest's `McpToolNames` or
+`RemoteAgentNames` are excluded from core agents' rosters and tag the matching `DiscoveryItem` with
+that `ExampleId`. Flow shows a selected agent's capabilities; Discovery shows the full server
+roster grouped by owner.
 
 ## Protocol integration tests
 
@@ -71,6 +84,14 @@ command, then use Auto/Step, Delay, Next, Pause/Resume and Stop. Startup discove
 status here, configured by `Discovery:OnStartup` (default `true`) in
 [AiService settings](../src/AgenticLab.AiService/appsettings.json).
 
+Discovered items carry the `exampleId` of the enabled example claiming them (null when shared).
+The standalone page groups each source as **Shared** followed by one group per example; a single
+group renders as a plain list. Inside Flow the modal receives the selected agent's bounded remote
+agents and, for MCP-capable agents, its tool names: items the agent holds appear first under
+**Available to &lt;agent&gt;**, and the remaining owner groups collapse under **Not available to
+&lt;agent&gt;**. Agents without MCP or A2A support see every group expanded. This is presentation only:
+rediscovery remains process-wide and never filters by agent.
+
 The modal initially reads only the last snapshot. It preserves Flow's conversation, draft, settings
 and replay; an active chat continues. Rediscovery is disabled during that parent chat because it
 reconnects shared clients. This is a local UI guard, not cross-client locking. Close, Escape or a
@@ -81,7 +102,7 @@ refreshes live catalogues without changing historical rosters or conversation id
 
 | Endpoint | Contract |
 | --- | --- |
-| `GET /discovery` | Snapshot: `{ DiscoverOnStartup, Sources: [DiscoverySourceStatus] }`. Each source includes endpoint, state, last-run time and items. |
+| `GET /discovery` | Snapshot: `{ DiscoverOnStartup, Sources: [DiscoverySourceStatus] }`. Each source includes endpoint, state, last-run time and items; each item is `{ Name, Description, ExampleId? }`. |
 | `POST /discovery/stream` | `{ SessionId, Source?, Manual, StepDelayMs }`; streams `DiscoveryEvent` records over SSE. Source is `mcp`, `a2a`, or `all`/null for both. |
 | `POST /chat/control` | Uses Discovery's session ID for `next`, `pause`, `resume`, `stop` and live pacing changes. See the [control API](execution-explorer.md#post-chatcontrol). |
 
@@ -94,9 +115,10 @@ available; agents work after discovery without a restart.
 
 ## Remote A2A agents
 
-Select Default's **orchestrator** mode and enable **A2A agents** in View options. Each discovered
-agent appears as **Harness + Model** below the main flow. Research and Poet share one separate
-A2A service process; their model nodes indicate roles, not separate known deployments.
+Select Default's **orchestrator** mode and enable **A2A agents** in View options. Each agent in the
+selected agent's `RemoteAgentNames` appears as **Harness + Model** below the main flow: Research and
+Poet for Orchestrator, only its three reviewers for the Windfarm coordinator. Research and Poet share
+one separate A2A service process; their model nodes indicate roles, not separate known deployments.
 
 Arrows distinguish **Delegation requested** from **Result returned**. A request is not confirmation
 of a network send, and a returned result can contain an error. Remote model calls, prompts, tools,

@@ -24,6 +24,10 @@ public sealed class OrchestratorAgent(CalculatorTool calculator, A2AAgentProvide
     public override bool SupportsA2A => true;
 
     /// <inheritdoc />
+    /// <remarks>Every discovered agent no enabled example claims; config-added specialists appear without code changes.</remarks>
+    public override IReadOnlyList<string> RemoteAgentNames => a2a.SharedAgentNames;
+
+    /// <inheritdoc />
     /// <remarks>Low risk: computes locally and delegates read-only questions over A2A with no side effects.</remarks>
     public override AgentRiskLevel RiskLevel => AgentRiskLevel.Low;
 

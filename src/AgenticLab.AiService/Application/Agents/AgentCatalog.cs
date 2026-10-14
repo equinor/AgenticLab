@@ -66,7 +66,8 @@ public sealed class AgentCatalog
             d.RiskLevel.ToString(),
             d.Guardrails,
             deployments[d.Name],
-            Array.Empty<ToolMapping>())).ToList();
+            Array.Empty<ToolMapping>(),
+            RemoteAgentNames: d.RemoteAgentNames)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>
@@ -101,7 +102,11 @@ public sealed class AgentCatalog
 
         Agents = Agents.Select(info => _builds.TryGetValue(info.Name, out var build)
             && (build.Definition.SupportsMcp || build.Definition.SupportsA2A)
-                ? info with { Tools = build.Definition.Tools.OfType<AIFunction>().Select(tool => tool.Name).ToArray() }
+                ? info with
+                {
+                    Tools = build.Definition.Tools.OfType<AIFunction>().Select(tool => tool.Name).ToArray(),
+                    RemoteAgentNames = build.Definition.RemoteAgentNames,
+                }
                 : info).ToArray();
     }
 

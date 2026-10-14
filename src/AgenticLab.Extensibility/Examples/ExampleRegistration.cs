@@ -17,6 +17,14 @@ public sealed class ExampleCatalog(IEnumerable<IExampleModule> modules)
     /// <summary>The public manifest owning the named agent, if any.</summary>
     public ExampleManifest? ForAgent(string name) => Modules.Select(module => module.Manifest)
         .FirstOrDefault(manifest => manifest.AgentNames.Contains(name, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>The manifest claiming the named remote A2A specialist, or null when it is shared.</summary>
+    public ExampleManifest? ForRemoteAgent(string name) => Modules.Select(module => module.Manifest)
+        .FirstOrDefault(manifest => manifest.RemoteAgentNames.Contains(name, StringComparer.OrdinalIgnoreCase));
+
+    /// <summary>The manifest claiming the named MCP tool, or null when it is shared.</summary>
+    public ExampleManifest? ForMcpTool(string name) => Modules.Select(module => module.Manifest)
+        .FirstOrDefault(manifest => manifest.McpToolNames.Contains(name, StringComparer.OrdinalIgnoreCase));
 }
 
 /// <summary>Explicit, default-off composition hooks shared by all executable roles.</summary>

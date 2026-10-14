@@ -16,4 +16,5 @@ namespace AgenticLab.AiService.Application.Agents;
 /// <param name="ToolMappings">For workspace agents, each declared tool token and the backend tool it mapped to; empty for built-in agents.</param>
 /// <param name="ExampleId">The enabled module owning this agent, or null for existing agents.</param>
 /// <param name="RequiresExampleUi">Whether clients must supply the module's panel before offering this agent.</param>
-public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId, IReadOnlyList<ToolMapping> ToolMappings, string? ExampleId = null, bool RequiresExampleUi = false);
+/// <param name="RemoteAgentNames">The remote A2A agents this agent may delegate to; null or empty unless <paramref name="SupportsA2A"/>.</param>
+public sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace, bool SupportsSkills, bool SupportsMcp, bool SupportsA2A, string RiskLevel, IReadOnlyList<string> Guardrails, string ModelId, IReadOnlyList<ToolMapping> ToolMappings, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null);

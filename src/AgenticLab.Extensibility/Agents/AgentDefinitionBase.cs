@@ -34,6 +34,8 @@ public abstract class AgentDefinitionBase : IAgentDefinition
     /// <inheritdoc />
     public virtual bool SupportsA2A => false;
     /// <inheritdoc />
+    public virtual IReadOnlyList<string> RemoteAgentNames => Array.Empty<string>();
+    /// <inheritdoc />
     public virtual AgentRiskLevel RiskLevel => AgentRiskLevel.None;
     /// <inheritdoc />
     public virtual IReadOnlyList<string> Guardrails => Array.Empty<string>();

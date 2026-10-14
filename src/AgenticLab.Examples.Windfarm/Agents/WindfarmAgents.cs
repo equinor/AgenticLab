@@ -1,6 +1,7 @@
 using AgenticLab.Extensibility.Agents;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.Extensibility.Runtime;
+using AgenticLab.Examples.Windfarm.Process;
 using AgenticLab.Examples.Windfarm.Protocols;
 using AgenticLab.Examples.Windfarm.Tools;
 using Microsoft.Extensions.AI;
@@ -14,6 +15,7 @@ internal sealed class WindfarmCoordinator(WindfarmTools tools, IMcpToolSource mc
     public override string Description => "Investigates a synthetic wind-farm alarm and prepares a specialist-reviewed maintenance proposal for human approval.";
     public override bool SupportsMcp => true;
     public override bool SupportsA2A => true;
+    public override IReadOnlyList<string> RemoteAgentNames => WindfarmProcess.Reviewers;
     public override AgentRiskLevel RiskLevel => AgentRiskLevel.Medium;
     public override IReadOnlyList<string> Guardrails =>
     [

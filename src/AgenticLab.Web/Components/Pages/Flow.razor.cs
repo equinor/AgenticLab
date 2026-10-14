@@ -85,6 +85,12 @@ public partial class Flow : IDisposable
     private string HostSummary => _view.Roster.CurrentVendorInfo is { } info
         ? $"{info.DisplayName}: {info.ModelLabel}; {info.Modes.Count} mode{(info.Modes.Count == 1 ? "" : "s")}" : _view.Roster.VendorName;
 
+    // Only protocol-capable agents scope Discovery; others see every group expanded.
+    private IReadOnlyCollection<string> DiscoveryRelevantNames =>
+        (_view.Agent.SupportsA2A ? _view.Agent.RemoteAgentNames : [])
+        .Concat(_view.Agent.SupportsMcp ? _view.Agent.ToolNames : [])
+        .ToArray();
+
     protected override void OnInitialized()
     {
         _view = new FlowViewState(Concepts);

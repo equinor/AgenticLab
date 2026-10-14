@@ -1,3 +1,5 @@
+using AgenticLab.Web.Flow;
+
 namespace AgenticLab.Web.Components.Pages;
 
 /// <summary>The Discovery page's presentation helpers: labels, CSS classes per source/phase/step and the expand state of detail rows.</summary>
@@ -18,6 +20,17 @@ public sealed partial class Discovery
         "a2a" => "Agent2Agent — agents this service can delegate to.",
         _ => string.Empty,
     };
+
+    private string? ExampleTitle(string exampleId) => Examples
+        .FirstOrDefault(example => string.Equals(example.Manifest.Id, exampleId, StringComparison.OrdinalIgnoreCase))
+        ?.Manifest.DisplayName;
+
+    private DiscoveryGroupView GroupItems(string source) =>
+        DiscoveryGrouping.Group(_items.GetValueOrDefault(source) ?? [], RelevantNames, ExampleTitle);
+
+    private string ItemKind(string source) => source == "mcp" ? "tool" : "agent";
+
+    private static string ItemKey(string source, DiscoveryItemDto item) => $"item:{source}:{item.Name}";
 
     private string ServerLabel(string source) => source switch
     {

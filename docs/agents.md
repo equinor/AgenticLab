@@ -15,6 +15,9 @@ are implemented in [AgentEndpoints](../src/AgenticLab.AiService/Endpoints/AgentE
 
 Returns `agents` and a `default` name (`ChatAgent`). Each entry describes tools, workspace/skills
 support, model, risk and guardrails, plus optional `exampleId`/`requiresExampleUi` metadata.
+A2A-capable agents also list `remoteAgentNames`, the remote specialists the service bounds them to
+(see [protocols](protocols.md#a2a-server-the-orchestrator-agent)); clients should render that list
+rather than the global `GET /a2a` roster.
 Enabled [examples](examples.md) can add agents; discover the roster rather than hardcoding it.
 `POST /agents/workspace` lists workspace-defined agents separately. `GET /examples` returns public
 module manifests, not component types or remote prompts.
@@ -127,7 +130,7 @@ and ownership, see [example modules](examples.md).
 | `Plan` | Read-only planner that investigates the workspace and proposes an implementation plan without changing anything. **Requires a workspace.** | `ReadFile`, `ListFiles`, `AskQuestion` |
 | `Coder` | Workspace-scoped coding agent that generates and edits code and runs allowlisted commands. **Requires a workspace.** | `ReadFile`, `ListFiles`, `WriteFile`, `DeleteFile`, `RunCommand`, `ReadSkill` |
 | `TimeKeeper` | Tells the current time using a tool **discovered from the MCP server** (real MCP client). | `GetCurrentTime` (MCP) |
-| `Orchestrator` | Solves arithmetic itself, but delegates general-knowledge/research/creative questions to **specialist agents over the A2A protocol** (real A2A client), routing by name. | `Calculate`, `DelegateToAgent` (A2A) |
+| `Orchestrator` | Solves arithmetic itself, but delegates general-knowledge/research/creative questions to **specialist agents over the A2A protocol** (real A2A client), routing by name. Its roster is every discovered agent no enabled example claims. | `Calculate`, `DelegateToAgent` (A2A) |
 
 The first definition registered by `AddDemoAgents` is the default. `Ask` and `Plan` never write,
 delete or run commands. Which workspace agents are registered depends on the

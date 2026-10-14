@@ -456,6 +456,59 @@
     gap: .3rem;
 }
 
+.item-group + .item-group {
+    margin-top: .7rem;
+}
+
+.group-label {
+    display: block;
+    font-size: .72rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: .35rem;
+}
+
+.item-group.relevant .group-label {
+    color: var(--accent);
+}
+
+details.item-group.other {
+    margin-top: .7rem;
+    border-top: 1px dashed var(--border-soft);
+    padding-top: .5rem;
+}
+
+details.item-group.other > summary {
+    cursor: pointer;
+    font-size: .72rem;
+    color: var(--text-faint);
+    margin-bottom: .35rem;
+}
+
+details.item-group.other > summary:focus-visible {
+    outline: var(--lab-focus-ring);
+    outline-offset: var(--lab-focus-offset);
+}
+
+details.item-group.other .item-row {
+    opacity: .8;
+}
+
+.item-owner {
+    margin-left: auto;
+    font-size: .66rem;
+    color: var(--text-muted);
+    background: var(--code-bg);
+    border: 1px solid var(--border-soft);
+    padding: .08rem .4rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.item-owner + .item-kind {
+    margin-left: 0;
+}
+
 .item-row {
     border: 1px solid var(--border);
     border-radius: 8px;

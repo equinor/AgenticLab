@@ -11,6 +11,12 @@ public partial class DiscoveryOverlay : IAsyncDisposable
     /// <summary>Disallows reconnecting tools while the live conversation is running.</summary>
     [Parameter] public bool AllowRediscovery { get; set; }
 
+    /// <summary>The selected chat agent, so Discovery lists its usable items first.</summary>
+    [Parameter] public string? AgentName { get; set; }
+
+    /// <summary>The selected agent's bounded remote agents and tool names; empty shows every group expanded.</summary>
+    [Parameter] public IReadOnlyCollection<string>? RelevantNames { get; set; }
+
     /// <summary>Dismisses without navigation and reports whether discovery may have changed catalogs.</summary>
     [Parameter] public EventCallback<bool> OnClose { get; set; }
 

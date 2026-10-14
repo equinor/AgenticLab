@@ -1,5 +1,6 @@
 using Microsoft.Extensions.AI;
 using ModelContextProtocol.Client;
+using AgenticLab.Extensibility.Examples;
 using AgenticLab.Extensibility.Runtime;
 
 namespace AgenticLab.AiService.Application.Discovery;
@@ -11,9 +12,10 @@ namespace AgenticLab.AiService.Application.Discovery;
 /// down any existing connection and clears the cached tools before discovering again). The discovered
 /// tools are cached and shared as a singleton so every agent that opts into MCP reuses the same client.
 /// When the server is unavailable the provider degrades gracefully to an empty tool list instead of
-/// failing the service.
+/// failing the service. Discovered items are tagged with the enabled example claiming them via
+/// <see cref="ExampleManifest.McpToolNames"/> so clients can group shared and example-owned tools.
 /// </summary>
-public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToolProvider> logger) : IAsyncDisposable, IMcpToolSource
+public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToolProvider> logger, ExampleCatalog? examples = null) : IAsyncDisposable, IMcpToolSource
 {
     private McpClient? _client;
     private IList<AITool> _tools = [];
@@ -113,7 +115,7 @@ public sealed class McpToolProvider(IConfiguration configuration, ILogger<McpToo
         var items = new List<DiscoveryItem>();
         foreach (var info in _toolInfos)
         {
-            var item = new DiscoveryItem(info.Name, info.Description);
+            var item = new DiscoveryItem(info.Name, info.Description, examples?.ForMcpTool(info.Name)?.Id);
             items.Add(item);
             yield return new DiscoveryEvent("mcp", DiscoveryEventKind.Item, $"Discovered tool '{info.Name}'.", item, seq++);
         }

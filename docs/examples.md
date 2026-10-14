@@ -97,6 +97,9 @@ React excludes unsupported UI-required agents and does not forward module APIs.
 - `IAgentDelegation.InvokeAsync` returns a typed success/failure outcome and propagates cancellation.
    Examples enforce specialist allowlists and validate evidence/results. Missing dependencies are
    failures, not successful review receipts. Orchestrator's `DelegateToAgent` contract is unchanged.
+- Names listed in a manifest's `McpToolNames` and `RemoteAgentNames` are claimed: core agents'
+   shared A2A roster excludes claimed specialists, and Discovery tags claimed items with the
+   `ExampleId`. A2A-capable agents declare their bounded `RemoteAgentNames`, surfaced by `GET /agents`.
 
 Discovery precedes agent construction; rediscovery refreshes executable tools and advertised metadata.
 MCP can call AiService through service discovery **at invocation time only**. Constructors and tool
