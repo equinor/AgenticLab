@@ -19,7 +19,7 @@ For example, Client appears in the index but not in the host anatomy because it 
 
 Opening a concept enables Learn and expands its dock. The dock can be resized or collapsed;
 turning Learn off hides it and clears the selected topic. It is independent of the read-only
-**Details** dock, so both can remain open. Product info beside the Host selector comes from the
+**Details** dock, so both can remain open. Product info beside the App selector comes from the
 enabled example's metadata; Default has no product topic.
 
 ## Guided agent learning

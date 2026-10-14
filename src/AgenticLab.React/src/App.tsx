@@ -75,8 +75,8 @@ export default function App() {
       </header>
       <div className={styles.selectionBar}>
         <div className={styles.selectors}>
-          <label>Host
-            <select aria-label="Host" value={selection.vendor} disabled={locked || !vendors.length}
+          <label>App
+            <select aria-label="App" value={selection.vendor} disabled={locked || !vendors.length}
               onChange={event => void changeVendor(event.target.value)}>
               {!vendors.length && <option value="">{catalogError ? 'Unavailable' : catalogs ? 'No supported hosts' : 'Loading...'}</option>}
               {vendors.map(item => <option key={item.key} value={item.key}>{item.displayName}</option>)}

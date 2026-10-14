@@ -129,7 +129,7 @@ Chat POSTs **never retry/reconnect automatically**. Each send snapshots agent/ve
 session UUID. Conversation IDs last until successful reset, without persistence or sharing between
 tabs. Selectors lock during runs/reset; generation guards reject late events and unmount cancels work.
 
-Changing Host resets before committing the new host/default agent, clearing transcript/activity but
+Changing App resets before committing the new host/default agent, clearing transcript/activity but
 preserving draft and mode. Agent-only changes and initial loading do not reset. Failed reset preserves
 the current host, agent and conversation and allows retry. Switching back to an earlier host starts fresh.
 

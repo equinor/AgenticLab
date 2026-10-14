@@ -38,7 +38,7 @@ try {
         });
         await page.goto(new URL('/flow', baseUrl).href, { waitUntil: 'networkidle' });
         await page.waitForFunction(() => document.querySelector('.chat-log')?._tsStickInit === true);
-        await page.getByRole('combobox', { name: 'Host', exact: true }).selectOption('windfarm');
+        await page.getByRole('combobox', { name: 'App', exact: true }).selectOption('windfarm');
         const panel = page.getByRole('region', { name: 'Windfarm maintenance case' });
         await panel.getByRole('button', { name: 'Start case', exact: true }).waitFor();
         assert.ok(await panel.locator('img').evaluate(image => image.complete && image.naturalWidth > 0));

@@ -62,7 +62,7 @@ owns `--lab-*` tokens and locally served IBM Plex fonts; shared Razor controls u
 [Components/Shared](src/AgenticLab.Web/Components/Shared) own reusable presentation and accessibility.
 `AppHeader` is reused by Home, Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
 catalogue and returns 404 in Production. Feature CSS owns layout, not another generic palette.
-Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
+Flow places App (host) / Agent selectors above a conversation/live-flow split, with Settings beside Conversation
 and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
 adaptive conversation sizing; dragging selects pixels. `PanelState` reads legacy six-field preferences
 and writes a seventh adaptive-width flag under the `agenticlab-panels` key. Reflow never
