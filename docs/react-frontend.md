@@ -19,6 +19,13 @@ Vite forwards `/api` to the BFF through server-only `BFF_URL`. The BFF uses serv
 (`https+http://aiservice`) or standalone `AiService:Url`. After build, it serves static React assets
 and the same API routes without a Node runtime.
 
+The application version comes from the repository's [version.txt](../version.txt), shared with all
+.NET projects. Vite embeds it into the top-bar label and an `application-version` meta tag in both
+development and built HTML. Vite development/preview responses and the BFF's shared middleware expose
+`X-AgenticLab-Version`; the BFF preserves the upstream version on proxied responses. There is no version
+API call or independent npm package version. Restart Vite after a version bump, and rebuild both
+React and the .NET services before releasing them together.
+
 The BFF uses YARP direct forwarding and an explicit path/method allowlist:
 
 | Browser route | Unchanged AiService route |

@@ -1,8 +1,13 @@
+@inject AgenticLab.ServiceDefaults.ApplicationVersionInfo AppVersion
+
 <header class="app-header">
-    <a class="brand" href="/" aria-label="@($"{Title} home")">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <h1>@Title</h1>
-    </a>
+    <div class="brand-group">
+        <a class="brand" href="/" aria-label="@($"{Title} home")">
+            <span class="brand-mark" aria-hidden="true"><span></span></span>
+            <h1>@Title</h1>
+        </a>
+        <span class="version" title="@($"Application version {AppVersion.Version}")">@($"v{AppVersion.Version}")</span>
+    </div>
     <div class="header-actions">
         <span class="edition">@Context <span>Blazor</span></span>
         @ChildContent

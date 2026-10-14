@@ -64,6 +64,7 @@ foreach (var config in configuredAgents)
 
 var app = builder.Build();
 
+app.UseAppVersion();
 app.MapDefaultEndpoints();
 
 // Expose each agent over the A2A protocol (JSON-RPC binding) so other agents can delegate to it.

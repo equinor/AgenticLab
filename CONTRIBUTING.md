@@ -41,6 +41,17 @@ project's [license](LICENSE), retaining any required third-party notices. Record
 license, and relevant provenance of new icons, fonts, images, copied snippets, and generated assets.
 Vendor names and logos must not imply endorsement.
 
+## Application version
+
+Change [version.txt](version.txt) to bump the single release version for the whole application.
+[Directory.Build.props](Directory.Build.props) embeds it into every .NET build; Vite reads the same
+file for React. Rebuild and restart the services, restart Vite during development, and rebuild React
+before publishing the BFF. Do not maintain a separate version in appsettings or the private npm package.
+
+The top bar shows `v<version>`. HTML includes an `application-version` meta tag, and shared middleware
+adds the `X-AgenticLab-Version` response header, preserving an upstream version when proxying.
+These values identify the built release, without requiring Git or the version file at runtime.
+
 ## Verification
 
 Run from the repository root. The solution includes the main tests and nested example test projects.

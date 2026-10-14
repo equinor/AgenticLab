@@ -17,6 +17,7 @@ builder.Services
 
 var app = builder.Build();
 
+app.UseAppVersion();
 app.MapDefaultEndpoints();
 
 // Streamable-HTTP MCP endpoint; clients connect here to discover and call tools.

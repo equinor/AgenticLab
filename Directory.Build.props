@@ -1,0 +1,12 @@
+<Project>
+  <PropertyGroup>
+    <ApplicationVersion>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)version.txt').Trim())</ApplicationVersion>
+    <Version>$(ApplicationVersion)</Version>
+  </PropertyGroup>
+  <ItemGroup>
+    <AssemblyMetadata Include="ApplicationVersion" Value="$(ApplicationVersion)" />
+  </ItemGroup>
+  <Target Name="ValidateApplicationVersion" BeforeTargets="PrepareForBuild">
+    <Error Condition="'$(ApplicationVersion)' == ''" Text="version.txt must contain the application release version, such as 1.0.0." />
+  </Target>
+</Project>
