@@ -23,6 +23,40 @@ internal sealed record LearningTurnStep(
 internal sealed record LearningTurnScenario(string Id, string Title, IReadOnlyList<LearningTurnStep> Steps);
 internal sealed record HarnessResponsibility(string NodeId, string Title, string Summary, string Input, string Operation, string Output, string Boundary);
 
+internal sealed class AgentLoopStory
+{
+    internal static IReadOnlyList<LearningNode> Steps { get; } = Array.AsReadOnly<LearningNode>(
+    [
+        new("context", "Assemble context", "The harness selects instructions, the task, relevant conversation state and tool descriptions for this model request."),
+        new("model", "Call the model", "The harness sends the assembled input. The model generates a response: text, tool requests or both. A turn can finish without using a tool."),
+        new("execute", "Handle the response", "Execution handles the returned response. Before invoking any requested tool, the harness applies its configured checks. A tool request is not permission."),
+        new("execute", "Collect results", "Permitted tools return content or an error to the harness. A denied request can produce an error without invoking the tool. Results are not yet model input."),
+        new("context", "Build the next request", "The harness selects the returned results for the next context, then calls the model again. This return path is the loop; the next response depends on the information supplied."),
+        new("answer", "Respond or stop", "Execution can deliver a response or stop because of cancellation, a limit or a failure. An answer can also take this exit without any tool calls. Ending the turn does not prove the task succeeded."),
+    ]);
+
+    internal int Beat { get; private set; }
+    internal bool ShowAll { get; private set; }
+    internal LearningNode Step => Steps[Beat];
+    internal bool CanPrevious => Beat > 0;
+    internal bool CanNext => Beat < Steps.Count - 1;
+    internal void Move(int offset)
+    {
+        Beat = (int)Math.Clamp((long)Beat + offset, 0, Steps.Count - 1);
+        ShowAll = false;
+    }
+    internal void Complete()
+    {
+        Beat = Steps.Count - 1;
+        ShowAll = true;
+    }
+    internal void Restart()
+    {
+        Beat = 0;
+        ShowAll = false;
+    }
+}
+
 internal sealed class AgentTurnStory
 {
     internal const string Task = "Read meeting-notes.txt and list the agreed actions.";

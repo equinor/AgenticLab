@@ -1,0 +1,52 @@
+@using AgenticLab.Web.Learning
+
+<section class="tool-lesson" aria-label="Read a Wikipedia article with a tool" data-diagram="tool-calling" data-beat="@_story.Beat">
+    <div class="tool-toolbar" role="group" aria-label="Tool calling steps">
+        <LabButton Label="Previous step" Icon="prev" IconOnly="true" Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
+        <span class="step-count">@(_story.Beat + 1) / @ToolCallingStory.Steps.Count</span>
+        <LabButton Label="Next step" Icon="next" IconOnly="true" Disabled="@(!_story.CanNext)" OnClick="() => _story.Move(1)" />
+        <LabButton Label="Show complete diagram" Icon="expand" Disabled="@(!_story.CanNext)" OnClick="_story.Complete" />
+        <LabButton Label="Restart" Variant="quiet" Disabled="@(!_story.CanPrevious)" OnClick="_story.Restart" />
+    </div>
+    <p class="task"><strong>User</strong> @ToolCallingStory.Task</p>
+    <div class="tool-actors" role="group" aria-label="The model exchanges requests and results with the harness, which invokes the Wikipedia tool">
+        <div class="tool-actor model" data-node="model" aria-current="@(_story.Step.Actor == "Model" ? "step" : null)"><strong>Model</strong><span>Proposes a tool request or answer</span></div>
+        <div class="exchange" aria-hidden="true"><span>Request / result</span><span>&harr;</span></div>
+        <div class="tool-actor harness" data-node="harness" aria-current="@(_story.Step.Actor == "Harness" ? "step" : null)"><strong>Harness</strong><span>Checks, invokes and supplies context</span></div>
+        <div class="exchange" aria-hidden="true"><span>Call / return</span><span>&harr;</span></div>
+        <div class="tool-actor wikipedia" data-node="wikipedia-tool" aria-current="@(_story.Step.Actor == "Wikipedia tool" ? "step" : null)"><strong>Wikipedia tool</strong><span>Reads an article's summary extract</span></div>
+    </div>
+    <section class="tool-step" data-step="@_story.Step.Id" aria-live="polite" aria-atomic="true">
+        <p class="actor-label">@_story.Step.Actor</p>
+        <h3>@_story.Step.Title</h3>
+        <p>@_story.Step.Explanation</p>
+        <h4>@_story.Step.EvidenceLabel</h4>
+        <pre>@_story.Step.Evidence</pre>
+        @if (_story.Step.Request is { } request)
+        {
+            <p class="article-supplied">Article content supplied to model: <strong>@(request.Messages.Any(message => message.Role == "tool") ? "Yes" : "No")</strong></p>
+            <details @key="_story.Step.Id"><summary>Messages and tool definitions</summary><pre>@AgentTurnStory.Json(request)</pre></details>
+        }
+    </section>
+    <p class="fixture-note">Illustrative content, not a live Wikipedia read. The tool returns a summary extract, not the full article. A model can also answer without a tool when the supplied information is sufficient.</p>
+</section>
+
+@code {
+    private readonly ToolCallingStory _story = new();
+
+    /// <summary>Moves one reveal, or returns false so the page can cross a lesson boundary.</summary>
+    public bool TryMoveStep(int direction)
+    {
+        if (!(direction == -1 ? _story.CanPrevious : direction == 1 && _story.CanNext)) return false;
+        _story.Move(direction);
+        StateHasChanged();
+        return true;
+    }
+
+    /// <summary>Enters the final reveal when navigating backward from the next lesson.</summary>
+    public void MoveToLastStep()
+    {
+        _story.Move(int.MaxValue);
+        StateHasChanged();
+    }
+}

@@ -1,0 +1,31 @@
+.tool-lesson { min-width: 0; }
+.tool-lesson * { box-sizing: border-box; }
+.tool-toolbar { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
+.step-count { min-width: 3rem; text-align: center; font: var(--lab-text-sm) var(--lab-font-mono); color: var(--muted); }
+.task { line-height: 1.7; margin: 1.25rem 0; }
+.task strong { display: block; color: var(--muted); font-size: 12px; }
+.tool-actors { display: grid; grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr) 80px minmax(0, 1fr); align-items: stretch; margin: 1.5rem 0; }
+.tool-actor { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-height: 120px; padding: .85rem; border: 1px solid var(--line); border-left: 3px solid var(--lab-model); background: var(--surface); overflow-wrap: anywhere; }
+.tool-actor strong { font-size: 16px; }
+.tool-actor > span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.harness { border-left-color: var(--lab-host); }
+.wikipedia { border-left-color: var(--lab-tool); }
+.tool-actor[aria-current='step'] { outline: 2px solid var(--accent); outline-offset: 3px; }
+.exchange { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: .35rem; color: var(--muted); font-size: 11px; text-align: center; }
+.exchange > span:last-child { color: var(--accent); font-size: 26px; }
+.tool-step { border-top: 1px solid var(--line); padding-top: 1rem; min-width: 0; }
+.actor-label { font: var(--lab-text-xs) var(--lab-font-mono); color: var(--muted); margin: 0 0 .5rem; }
+h3 { font-size: 19px; font-weight: 500; margin: 0 0 .75rem; }
+h4 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 1rem 0 .5rem; }
+.tool-step > p:not(.actor-label) { max-width: 85ch; line-height: 1.7; }
+pre { font: 12px/1.7 var(--lab-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: .85rem; border-left: 3px solid var(--line); background: var(--lab-surface-muted); max-width: 100%; }
+details { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .75rem; }
+summary { cursor: pointer; font-size: 13px; padding: .25rem 0; }
+summary:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
+details pre { margin-top: .75rem; }
+.fixture-note { color: var(--muted); font-size: 12px; line-height: 1.6; border-top: 1px solid var(--line); margin: 1.25rem 0 0; padding-top: .75rem; }
+@container (max-width: 620px) {
+    .tool-actors { grid-template-columns: minmax(0, 1fr) 45px minmax(0, 1fr) 45px minmax(0, 1fr); }
+    .tool-actor { padding: .5rem; }
+    .exchange { padding: .15rem; font-size: 10px; }
+}

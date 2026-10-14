@@ -106,10 +106,10 @@ public sealed class AgentLearningJourneyTests
     {
         var stage = AgentLearningJourney.Resolve("model-to-agent");
         Assert.Contains("Agent = Harness + Model", stage.Takeaway);
-        Assert.Contains("handles input, manages context and controls execution", stage.Summary);
-        Assert.Contains("model that generates responses", stage.Summary);
+        Assert.Contains("model proposes the next step", stage.Summary);
+        Assert.Contains("harness supplies context and controls execution", stage.Summary);
         Assert.Equal("Harness", AgentLearningJourney.Node("harness").Title);
-        Assert.Equal("Inside the harness", AgentLearningJourney.Resolve("inside-the-harness").Title);
+        Assert.Equal("What makes up the harness", AgentLearningJourney.Resolve("inside-the-harness").Title);
         Assert.Equal("Execution", AgentLearningJourney.Node("loop-execute").Title);
         Assert.Contains("Generates responses", AgentLearningJourney.Node("model").Detail);
     }
@@ -119,7 +119,7 @@ public sealed class AgentLearningJourneyTests
     public void Stages_PreserveOrderedPermalinks()
     {
         Assert.Equal(
-                ["why-agents", "model-to-agent", "inside-the-harness", "agent-loop", "anatomy-of-agent", "agents-everywhere", "agent-landscape", "wider-ecosystem", "where-to-run", "run-and-improve"],
+                ["why-agents", "model-to-agent", "tool-calling", "inside-the-harness", "agent-loop", "anatomy-of-agent", "agents-everywhere", "agent-landscape", "wider-ecosystem", "where-to-run", "run-and-improve"],
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
     }
 
@@ -131,17 +131,17 @@ public sealed class AgentLearningJourneyTests
             ["why-agents", "model-to-agent", "agents-everywhere", "where-to-run"],
             AgentLearningJourney.RootStages.Select(stage => stage.Id).ToArray());
         Assert.Equal(
-            ["inside-the-harness", "agent-loop", "anatomy-of-agent"],
+            ["tool-calling", "inside-the-harness", "agent-loop", "anatomy-of-agent"],
             AgentLearningJourney.Children("model-to-agent").Select(stage => stage.Id).ToArray());
         Assert.Equal(
             ["agent-landscape", "wider-ecosystem"],
             AgentLearningJourney.Children("agents-everywhere").Select(stage => stage.Id).ToArray());
         Assert.Equal("run-and-improve", Assert.Single(AgentLearningJourney.Children("where-to-run")).Id);
         Assert.Empty(AgentLearningJourney.Children("why-agents"));
-        Assert.Equal(10, AgentLearningJourney.Stages.Count);
+        Assert.Equal(11, AgentLearningJourney.Stages.Count);
         Assert.Equal(AgentLearningJourney.Stages,
             AgentLearningJourney.RootStages.SelectMany(root => new[] { root }.Concat(AgentLearningJourney.Children(root.Id))).ToArray());
-        Assert.Equal("inside-the-harness", AgentLearningJourney.Move("model-to-agent", 1).Id);
+        Assert.Equal("tool-calling", AgentLearningJourney.Move("model-to-agent", 1).Id);
         Assert.Equal("agents-everywhere", AgentLearningJourney.Move("anatomy-of-agent", 1).Id);
         Assert.Equal("anatomy-of-agent", AgentLearningJourney.Move("agents-everywhere", -1).Id);
     }
@@ -150,15 +150,16 @@ public sealed class AgentLearningJourneyTests
     [Theory]
     [InlineData("why-agents", "1")]
     [InlineData("model-to-agent", "2")]
-    [InlineData("inside-the-harness", "2.1")]
-    [InlineData("agent-loop", "2.2")]
-    [InlineData("anatomy-of-agent", "2.3")]
+    [InlineData("tool-calling", "2.1")]
+    [InlineData("inside-the-harness", "2.2")]
+    [InlineData("agent-loop", "2.3")]
+    [InlineData("anatomy-of-agent", "2.4")]
     [InlineData("agents-everywhere", "3")]
     [InlineData("agent-landscape", "3.1")]
     [InlineData("wider-ecosystem", "3.2")]
     [InlineData("where-to-run", "4")]
     [InlineData("run-and-improve", "4.1")]
-    [InlineData("AGENT-LOOP", "2.2")]
+    [InlineData("AGENT-LOOP", "2.3")]
     [InlineData("map-to-foundry", "1")]
     [InlineData(null, "1")]
     public void Hierarchy_NumbersRootsAndSubtopics(string? stageId, string expected)
@@ -318,7 +319,7 @@ public sealed class AgentLearningJourneyTests
     {
         Assert.Equal("run-and-improve", AgentLearningJourney.Move("where-to-run", 1).Id);
         Assert.Equal("where-to-run", AgentLearningJourney.Move("run-and-improve", -1).Id);
-        Assert.Equal(9, AgentLearningJourney.IndexOf("run-and-improve"));
+        Assert.Equal(10, AgentLearningJourney.IndexOf("run-and-improve"));
         Assert.All(AgentLearningJourney.Stages, stage => Assert.False(stage.Hidden));
     }
 
@@ -327,6 +328,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-landscape", "harness,model")]
     [InlineData("agents-everywhere", "harness,model")]
     [InlineData("model-to-agent", "harness,model")]
+    [InlineData("tool-calling", "harness,model,wikipedia-tool")]
     [InlineData("inside-the-harness", "context-management,instructions,harness-context,available-tools,harness-memory,execution-controls")]
     [InlineData("anatomy-of-agent", "instructions,available-tools,anatomy-persona,anatomy-selected-tools,anatomy-settings,execution-controls,anatomy-task,anatomy-custom-instructions,anatomy-skills")]
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-answer")]
@@ -487,25 +489,99 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(0, story.Beat);
     }
 
-    /// <summary>The Agent overview presents responsibilities in one static view, without tool or flow examples.</summary>
+    /// <summary>The Agent overview continues Intro before distinguishing responsibilities and naming the partnership.</summary>
     [Fact]
-    public void FoundationStory_AgentShowsResponsibilitiesImmediately()
+    public void FoundationStory_AgentContinuesIntroAcrossThreeReveals()
     {
         var story = new FoundationStory();
         story.SetStage("model-to-agent");
 
-        Assert.Single(story.Captions);
-        Assert.Contains("Agent = Harness + Model", story.Caption);
-        Assert.Contains("handles input, manages context and controls execution", story.Caption);
-        Assert.Contains("generates responses from the supplied input", story.Caption);
-        Assert.DoesNotContain("read_file", story.Caption);
-        Assert.DoesNotContain("tool requests", story.Caption);
-        story.Move(int.MaxValue);
+        Assert.Equal(3, story.Captions.Count);
+        Assert.Contains("chat application", story.Caption);
         Assert.Equal(0, story.Beat);
+        story.Move(1);
+        Assert.Contains("supplies context and calls the model", story.Caption);
+        Assert.Contains("harness handles that request", story.Caption);
         story.Complete();
+        Assert.Equal(2, story.Beat);
+        Assert.Contains("Agent = Harness + Model", story.Caption);
+        Assert.Contains("user remains outside", story.Caption);
+        Assert.True(story.CanPrevious);
+        Assert.False(story.CanNext);
+        story.Restart();
         Assert.Equal(0, story.Beat);
         Assert.False(story.CanPrevious);
+        Assert.True(story.CanNext);
+    }
+
+    /// <summary>Article content reaches the model only after a matching tool result is supplied.</summary>
+    [Fact]
+    public void ToolCallingStory_SuppliesWikipediaResultOnlyInNextRequest()
+    {
+        Assert.Equal("GetWikiPage", ToolCallingStory.Tool.Name);
+        Assert.Equal("title", Assert.Single(ToolCallingStory.Tool.Arguments).Name);
+        Assert.Equal("Alan Turing", ToolCallingStory.Call.Arguments["title"]);
+        Assert.DoesNotContain(ToolCallingStory.FirstRequest.Messages, message => message.Text.Contains(ToolCallingStory.ArticleContent));
+        Assert.All(ToolCallingStory.Steps.Take(3), step => Assert.DoesNotContain(ToolCallingStory.ArticleContent, step.Evidence));
+        Assert.Equal("result", Assert.Single(ToolCallingStory.Steps, step => step.ExecutesTool).Id);
+        var result = Assert.Single(ToolCallingStory.NextRequest.Messages, message => message.Role == "tool");
+        Assert.Equal(ToolCallingStory.Call.Id, result.ToolCallId);
+        Assert.Equal(ToolCallingStory.ArticleContent, result.Text);
+        Assert.Equal(ToolCallingStory.Call, Assert.Single(ToolCallingStory.NextRequest.Messages, message => message.ToolCall is not null).ToolCall);
+        Assert.Same(ToolCallingStory.FirstRequest, ToolCallingStory.Steps[0].Request);
+        Assert.Same(ToolCallingStory.NextRequest, ToolCallingStory.Steps[4].Request);
+        Assert.Contains("https://en.wikipedia.org/wiki/Alan_Turing", ToolCallingStory.Answer);
+    }
+
+    /// <summary>Tool calling has six manual steps, bounded navigation and a restart without external activity.</summary>
+    [Fact]
+    public void ToolCallingStory_NavigationIsBoundedAndRestarts()
+    {
+        var story = new ToolCallingStory();
+        Assert.Equal(6, ToolCallingStory.Steps.Count);
+        Assert.False(story.CanPrevious);
+        Assert.Equal("description", story.Step.Id);
+        story.Move(1);
+        Assert.Equal("tool-request", story.Step.Id);
+        story.Move(int.MaxValue);
         Assert.False(story.CanNext);
+        Assert.Equal("answer", story.Step.Id);
+        story.Move(int.MinValue);
+        Assert.Equal(0, story.Beat);
+        story.Complete();
+        Assert.Equal(5, story.Beat);
+        story.Restart();
+        Assert.Equal(0, story.Beat);
+        Assert.True(story.CanNext);
+    }
+
+    /// <summary>The conceptual cycle returns to context and separates stopping from success, without task fixtures.</summary>
+    [Fact]
+    public void AgentLoopStory_ExplainsReturnAndExitWithoutExamples()
+    {
+        var story = new AgentLoopStory();
+        Assert.Equal(["context", "model", "execute", "execute", "context", "answer"], AgentLoopStory.Steps.Select(step => step.Id).ToArray());
+        Assert.False(story.CanPrevious);
+        story.Move(4);
+        Assert.Equal("context", story.Step.Id);
+        Assert.Contains("next context", story.Step.Detail);
+        story.Complete();
+        Assert.True(story.ShowAll);
+        Assert.False(story.CanNext);
+        Assert.Contains("does not prove", story.Step.Detail);
+        story.Move(int.MinValue);
+        Assert.False(story.ShowAll);
+        Assert.Equal(0, story.Beat);
+        story.Move(int.MaxValue);
+        Assert.Equal(5, story.Beat);
+        Assert.False(story.ShowAll);
+        story.Restart();
+        Assert.Equal(0, story.Beat);
+        Assert.All(AgentLoopStory.Steps, step =>
+        {
+            Assert.DoesNotContain("meeting-notes", step.Detail);
+            Assert.DoesNotContain("GetWikiPage", step.Detail);
+        });
     }
 
     /// <summary>Context management appears first, execution second, and the context aspects only in later reveals.</summary>

@@ -187,6 +187,10 @@
                 {
                     <AgentTurnLesson @ref="_turnLesson" />
                 }
+                else if (_stage.Id == "tool-calling")
+                {
+                    <ToolCallingLesson @ref="_toolLesson" />
+                }
                 else if (_stage.Id == "wider-ecosystem")
                 {
                     <div class="ecosystem-connections" data-diagram="ecosystem">

@@ -253,7 +253,9 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Harness + Model. The harness handles input, manages context and controls execution. The model generates responses from the supplied input.",
+        "The conversation continues through the chat application. Inside it, the harness connects the user, the model and available tools.",
+        "The harness supplies context and calls the model. The model interprets that input and returns a response, which can include a request to use a tool. The harness handles that request.",
+        "Agent = Harness + Model. The model proposes the next step. The harness manages context and controls execution. The user remains outside this partnership.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(

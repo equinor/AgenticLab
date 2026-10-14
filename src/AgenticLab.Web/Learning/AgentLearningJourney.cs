@@ -27,8 +27,8 @@ internal static class AgentLearningJourney
     [
         new("chatbot", "Chatbot application", "You input a message to the chatbot application and receive a reply in the same conversation."),
         new("agent", "Chatbot application", "Earlier versions of the ChatGPT application sends your message to a large language model (LLM) endpoint. The model generates a response, and the application shows it to you."),
-        new("chat-interface", "Chat Agent", "Chat applications like ChatGPT can use tools like web search before answering. The application manages the conversation, runs web searches when needed, and uses the LLM to reason and generate a reply."),
-        new("chat-to-agent", "Chat Agent", "This is what makes ChatGPT an agentic chat application. The part of the application that manages context and tools is often referred to as the harness."),
+        new("chat-interface", "Chat Agent", "Applications like ChatGPT can use tools like web search. The application manages the conversation, runs web searches when instructed by the LLM, and uses the LLM to generate a reply."),
+        new("chat-to-agent", "Chat Agent", "What makes ChatGPT agentic is that the LLM reasons about what to do next, including when to request a web search from the application. The part of the application that manages context and executes tools is often referred to as the harness."),
     ]);
 
     private static IReadOnlyList<LearningExchange> IntroductionConversationExchanges { get; } = Array.AsReadOnly<LearningExchange>(
@@ -73,6 +73,7 @@ internal static class AgentLearningJourney
     [
         new("harness", "Harness", "Supplies model input, checks tool requests and invokes permitted tools"),
         new("model", "Model", "Generates responses from supplied input, including text and, when enabled, tool requests"),
+        new("wikipedia-tool", "Wikipedia tool", "Reads a Wikipedia article's summary extract when invoked by the harness"),
         new("context-management", "Context management", "Selects and assembles the information supplied to the model"),
         new("instructions", "Load instruction text", "Insert standing and task-specific guidance into the model request"),
         new("harness-context", "Assemble context", "Select messages and retrieved information for one model request"),
@@ -109,16 +110,22 @@ internal static class AgentLearningJourney
     private static IReadOnlyList<LearningStage> AllStages { get; } = Array.AsReadOnly<LearningStage>(
     [
         new("why-agents", "Intro",
-            "Lets take a step back to understand how apps that uses LLMs work.",
+            "What makes an application agentic?",
             "Together, the harness and the model form the agent.",
             false,
             [], []),
         new("model-to-agent", "Agent",
-            "An agent combines a harness that handles input, manages context and controls execution with a model that generates responses.",
-            "Agent = Harness + Model. The harness manages the work. The model generates responses from the supplied input.",
+            "The model proposes the next step. The harness supplies context and controls execution. See how they work together inside the conversation.",
+            "Agent = Harness + Model. The model generates responses and requests actions. The harness manages context and executes permitted actions.",
             false,
             ["agent", "llm", "harness"], ["harness", "model"]),
-        new("inside-the-harness", "Inside the harness",
+        new("tool-calling", "Tool calling",
+            "A model can request information it has not received. Follow a request to read a Wikipedia article, from tool description to returned content.",
+            "A tool request is not execution. The harness invokes the tool and supplies the result in a later model request.",
+            false,
+            ["tools", "llm", "harness"], ["harness", "model", "wikipedia-tool"],
+            ParentId: "model-to-agent"),
+        new("inside-the-harness", "What makes up the harness",
             "Two responsibilities: context management and execution. Discover their parts one step at a time.",
             "Instruction text guides the model. Executable rules control which tool requests the harness allows.",
             false,

@@ -1,8 +1,6 @@
 @using AgenticLab.Web.Learning
 
 <section class="foundation-lesson" aria-label="@LessonLabel" data-story="@StageId" data-beat="@_story.Beat">
-    @if (StageId != "model-to-agent")
-    {
     <div class="story-toolbar" role="group" aria-label="Diagram reveals">
         <LabButton Label="Previous reveal" Icon="prev" IconOnly="true"
                Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
@@ -13,7 +11,6 @@
         <LabButton Label="Restart" Variant="quiet" Disabled="@(!_story.CanPrevious)" OnClick="_story.Restart" />
     </div>
     <p class="story-caption" role="status" aria-live="polite" aria-atomic="true">@_story.Caption</p>
-    }
 
     @if (StageId == "agent-landscape")
     {
@@ -43,74 +40,94 @@
     }
     else if (StageId == "model-to-agent")
     {
-        <div class="composition agent-overview" data-diagram="composition">
-            <div class="agent-boundary complete">
-                <p class="section-label">Agent = Harness + Model</p>
-                <div class="composition-grid">
-                    <div class="application-node story-node" data-node="harness">
-                        <span class="story-icon application-icon" aria-hidden="true"></span>
-                        <h3>Harness</h3>
-                        <p>Handles input, manages context and controls execution.</p>
-                    </div>
-                    <span class="plus" aria-hidden="true">+</span>
-                    <div class="model-node story-node" data-node="model">
-                        <span class="story-icon model-icon" aria-hidden="true"></span>
-                        <h3>Model</h3>
-                        <p>Generates responses from the supplied input.</p>
+        <div class="partnership" data-diagram="composition">
+            <div class="partnership-flow" role="group" aria-label="User connected to the chat application, its harness and tools, and the model">
+                @if (_story.Beat >= 2)
+                {
+                    <div class="partnership-boundary" aria-hidden="true"><span>Agent = Harness + Model</span></div>
+                }
+                <svg class="partnership-paths" viewBox="0 0 900 280" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+                    <defs><marker id="partnership-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" /></marker></defs>
+                    <path d="M180 40 H360 M540 40 H720" marker-end="url(#partnership-arrow)" />
+                    <path d="M360 88 H180 M720 88 H540" marker-end="url(#partnership-arrow)" />
+                </svg>
+                <div class="partnership-actor partnership-user" data-actor="user"><strong>User</strong><span>Sends a message</span></div>
+                <div class="partnership-link partnership-user-link" aria-hidden="true"><span>Message</span><span>Reply</span></div>
+                <div class="partnership-application" data-actor="app">
+                    <div class="partnership-actor partnership-heading"><strong>Chat application</strong><span>ChatGPT</span></div>
+                    <div class="partnership-harness" data-node="harness">
+                        <strong>Harness</strong>
+                        <div class="partnership-search-link" aria-label="Harness sends search requests and receives results"><span>Search</span><span aria-hidden="true">&darr; &uarr;</span><span>Results</span></div>
+                        <div class="partnership-actor partnership-search" data-actor="search"><strong>Web search tool</strong><span>Finds online information</span></div>
                     </div>
                 </div>
+                <div class="partnership-link partnership-model-link" aria-hidden="true"><span>Request</span><span>Response</span></div>
+                <div class="partnership-actor partnership-model" data-node="model" data-actor="model"><strong>LLM</strong><span>Generates responses</span></div>
+            </div>
+            @if (_story.Beat >= 1)
+            {
+                <dl class="partnership-roles">
+                    <div><dt>Harness</dt><dd>Selects context, calls the model and handles its responses. Checks tool requests before executing permitted actions.</dd></div>
+                    <div><dt>Model</dt><dd>Interprets supplied input and generates a response, including a proposed next action or an answer.</dd></div>
+                </dl>
+            }
+            @if (_story.Beat >= 2)
+            {
+                <p class="partnership-note">The agent is this partnership, not just the model. This grouping describes responsibilities, not where the software runs.</p>
+            }
+            <div class="anatomy-sr-only">
+                The user sends a message to the application and receives its reply. The harness supplies a request to the model and handles its response. The harness invokes tools and receives their results.
             </div>
         </div>
     }
     else if (StageId == "inside-the-harness")
     {
-        RenderFragment<HarnessResponsibility> responsibilityNode = responsibility => @<li class="harness-row" @key="responsibility.NodeId">
-            @{
-                var isOpen = _story.IsHarnessExampleOpen(responsibility.NodeId);
-                var exampleId = $"harness-example-{responsibility.NodeId}";
-            }
-                    <button type="button" class="story-node harness-node" data-node="@responsibility.NodeId"
-                            aria-label="@($"{responsibility.Title}: example and limits")"
-                            aria-expanded="@(isOpen ? "true" : "false")" aria-controls="@exampleId"
-                            @onclick="() => _story.ToggleHarnessExample(responsibility.NodeId)">
-                        <span class="harness-node-title">@responsibility.Title</span>
-                        <span class="harness-example-icon" aria-hidden="true"><MiniIcon Name="@(isOpen ? "close" : "expand")" /></span>
-                        <span class="harness-node-summary">@responsibility.Summary</span>
-                    </button>
-                    <section id="@exampleId" class="story-node harness-example" hidden="@(!isOpen)"
-                             aria-label="@($"{responsibility.Title} example")" data-example="@responsibility.NodeId">
-                        <h3>@responsibility.Title example</h3>
-                        <dl>
-                            <dt>Input</dt><dd>@responsibility.Input</dd>
-                            <dt>What the harness does</dt><dd>@responsibility.Operation</dd>
-                            <dt>Output</dt><dd>@responsibility.Output</dd>
-                            <dt>Limit</dt><dd>@responsibility.Boundary</dd>
-                        </dl>
-                    </section>
-        </li>;
-        <ol class="harness-responsibilities" data-diagram="harness">
-            <li class="harness-context-group">
-                <div class="harness-row">
-                    <section class="story-node" data-node="context-management">
-                        <h3>Context management</h3>
-                        <p>@FoundationStory.ContextManagementSummary</p>
-                    </section>
-                </div>
+        <div class="harness-columns" data-diagram="harness">
+            <section class="harness-context-group">
+                <header class="harness-responsibility" data-node="context-management">
+                    <span class="story-icon application-icon" aria-hidden="true"></span>
+                    <h3>Context management</h3>
+                    <p>@FoundationStory.ContextManagementSummary</p>
+                </header>
                 @if (_story.Beat >= 2)
                 {
                     <ol class="harness-context-aspects" aria-label="Context management aspects">
                         @foreach (var aspect in _story.VisibleContextAspects)
                         {
-                            @responsibilityNode(aspect)
+                            <li data-node="@aspect.NodeId">
+                                <h4>@aspect.Title</h4>
+                                <p>@aspect.Summary</p>
+                                @if (aspect.NodeId == "harness-memory")
+                                {
+                                    <p class="harness-boundary-note">Memory is retained information. Context is what is selected for this request; the model does not automatically receive all stored history.</p>
+                                }
+                                else if (aspect.NodeId == "available-tools")
+                                {
+                                    <p class="harness-boundary-note">Descriptions enter model input. Implementations run only when invoked.</p>
+                                }
+                            </li>
                         }
                     </ol>
                 }
-            </li>
+            </section>
             @if (_story.Beat >= 1)
             {
-                @responsibilityNode(AgentTurnStory.Execution)
+                <section class="harness-execution">
+                    <header class="harness-responsibility" data-node="execution-controls">
+                        <span class="story-icon application-icon" aria-hidden="true"></span>
+                        <h3>Execution</h3>
+                        <p>@AgentTurnStory.Execution.Summary</p>
+                    </header>
+                    <ol class="harness-execution-parts">
+                        <li>Call the model with the assembled context.</li>
+                        <li>Handle the returned text and any tool requests.</li>
+                        <li>Apply configured checks before invoking tools.</li>
+                        <li>Continue with results, deliver a response or stop.</li>
+                    </ol>
+                    <p class="harness-boundary-note">Instructions guide the model. Executable controls enforce configured rules. Tools may run locally or in another service.</p>
+                </section>
             }
-        </ol>
+        </div>
     }
     else if (StageId == "anatomy-of-agent")
     {
