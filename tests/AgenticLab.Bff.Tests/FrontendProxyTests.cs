@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using AgenticLab.AiService.Application.Flow;
 using AgenticLab.Bff.Endpoints;
 using AgenticLab.Bff.Startup;
+using AgenticLab.ServiceDefaults;
 using Xunit;
 
 namespace AgenticLab.Bff.Tests;
@@ -17,6 +19,8 @@ namespace AgenticLab.Bff.Tests;
 /// <summary>Checks the real HTTP streaming boundary, including the first manually released backend step.</summary>
 public sealed class FrontendProxyTests
 {
+    private const string VersionHeader = "X-AgenticLab-Version";
+
     [Fact]
     public async Task ManualStreamAcceptsControlBeforeHeadersAndPropagatesDisconnect()
     {
@@ -55,8 +59,10 @@ public sealed class FrontendProxyTests
         Assert.False(pendingResponse.IsCompleted);
         using var control = await client.PostAsJsonAsync("/api/chat/control", new { sessionId = "manual", action = "next" }, timeout.Token);
         Assert.Equal(HttpStatusCode.NoContent, control.StatusCode);
+        Assert.Equal(new ApplicationVersionInfo().Version, Assert.Single(control.Headers.GetValues(VersionHeader)));
         using var response = await pendingResponse.WaitAsync(timeout.Token);
         Assert.Equal("text/event-stream", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal(new ApplicationVersionInfo().Version, Assert.Single(response.Headers.GetValues(VersionHeader)));
         using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(timeout.Token));
         string? line;
         do { line = await reader.ReadLineAsync(timeout.Token); } while (line is not null && !line.StartsWith("data:"));
@@ -78,7 +84,14 @@ public sealed class FrontendProxyTests
     [Fact]
     public async Task OnlyAllowedMethodsAndPathsForwardAndUpstreamErrorsSurvive()
     {
+        const string upstreamVersion = "9.9.9-upstream";
+        var localVersion = new ApplicationVersionInfo().Version;
         await using var upstream = CreateBuilder().Build();
+        upstream.Use((context, next) =>
+        {
+            context.Response.Headers[VersionHeader] = upstreamVersion;
+            return next(context);
+        });
         upstream.MapGet("/agents", () => TypedResults.Json(new { agents = Array.Empty<object>(), @default = "" }));
         upstream.MapPost("/chat/reset", () => TypedResults.BadRequest("invalid conversation"));
         await upstream.StartAsync();
@@ -90,16 +103,24 @@ public sealed class FrontendProxyTests
         using var agents = await client.GetAsync("/api/agents");
         Assert.Equal(HttpStatusCode.OK, agents.StatusCode);
         Assert.Contains("\"agents\":[]", await agents.Content.ReadAsStringAsync());
+        Assert.Equal(upstreamVersion, Assert.Single(agents.Headers.GetValues(VersionHeader)));
         using var unknown = await client.GetAsync("/api/unknown");
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
         Assert.DoesNotContain("frontend index", await unknown.Content.ReadAsStringAsync());
+        Assert.Equal(localVersion, Assert.Single(unknown.Headers.GetValues(VersionHeader)));
         using var wrongMethod = await client.GetAsync("/api/chat/stream");
         Assert.Equal(HttpStatusCode.MethodNotAllowed, wrongMethod.StatusCode);
+        Assert.Equal(localVersion, Assert.Single(wrongMethod.Headers.GetValues(VersionHeader)));
         using var invalidType = await client.PostAsync("/api/chat/reset", new StringContent("{}"));
         Assert.Equal(HttpStatusCode.UnsupportedMediaType, invalidType.StatusCode);
+        Assert.Equal(localVersion, Assert.Single(invalidType.Headers.GetValues(VersionHeader)));
         using var reset = await client.PostAsJsonAsync("/api/chat/reset", new { conversationId = "" });
         Assert.Equal(HttpStatusCode.BadRequest, reset.StatusCode);
         Assert.Equal("\"invalid conversation\"", await reset.Content.ReadAsStringAsync());
+        Assert.Equal(upstreamVersion, Assert.Single(reset.Headers.GetValues(VersionHeader)));
+        using var frontend = await client.GetAsync("/");
+        Assert.Equal("frontend index", await frontend.Content.ReadAsStringAsync());
+        Assert.Equal(localVersion, Assert.Single(frontend.Headers.GetValues(VersionHeader)));
         using var specification = JsonDocument.Parse(await client.GetStringAsync("/openapi/v1.json"));
         Assert.Equal(5, specification.RootElement.GetProperty("paths").EnumerateObject().Count());
         Assert.True(specification.RootElement.GetProperty("paths").TryGetProperty("/api/chat/stream", out _));
@@ -120,8 +141,10 @@ public sealed class FrontendProxyTests
         {
             ["services:aiservice:http:0"] = Assert.Single(upstream.Urls)
         });
+        builder.AddServiceDefaults();
         builder.AddFrontendProxy();
         var app = builder.Build();
+        app.UseAppVersion();
         app.MapFrontendEndpoints();
         return app;
     }

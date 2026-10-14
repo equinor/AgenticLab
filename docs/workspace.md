@@ -23,9 +23,13 @@ For example, a playbook at `skills/get-date/SKILL.md`:
 ---
 name: get-date
 description: Get the current date and time on a Windows machine using the terminal.
+allowed-tools: RunCommand
 ---
 Run Get-Date with PowerShell and report the result.
 ```
+
+The optional `allowed-tools` field lists the tools a skill needs. It doesn't grant them; in the
+[read-only sample mode](#read-only-sample-mode), skills needing other than read-only tools are hidden.
 
 Skills default **on**. Uncheck them in Settings or send `disabledSkills` on either chat path;
 disabled skills are neither advertised nor loadable through `ReadSkill`. Names match case-insensitively,
@@ -165,21 +169,44 @@ Web suggests up to eight recent workspaces first, then these folders. Preference
 storage under `agenticlab-workspace-bases` and `agenticlab-workspace-recent`; runs remember the
 selected path. These endpoints inspect the service filesystem, not the browser's local files.
 
-## Disabling workspace features
+## Workspace modes
 
-Set `Workspace:Enabled=false` (environment variable `Workspace__Enabled=false`) on shared
-deployments where callers must not choose folders on the server. The default is `true`, so local
-use is unchanged. [WorkspaceAccess](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAccess.cs)
-then refuses every workspace for the whole service:
+`Workspace:Mode` (environment variable `Workspace__Mode`) decides which folder, if any, a run may
+use. [WorkspaceAccess](../src/AgenticLab.AiService/Application/Workspace/WorkspaceAccess.cs) enforces it
+for every endpoint, so it is applied in one place:
 
-- `Ask`, `Plan` and `Coder` are not registered, so `GET /agents` doesn't list them.
-- Workspace-defined agents can't be discovered or run; both chat paths report them as unknown agents.
-- `POST /skills`, `/instructions`, `/workspaces` and `/agents/workspace` return empty lists.
+| Mode | Folder | Agents | Tools |
+|---|---|---|---|
+| `Local` (default) | Chosen by the caller | Ask, Plan, Coder, all workspace-defined agents | All |
+| `ReadOnlySample` | The bundled `sample-workspace`; caller paths are ignored | Ask, Plan, read-only workspace-defined agents | `ReadFile`, `ListFiles`, `ReadSkill`, `AskQuestion` |
+| `Disabled` | None | No workspace agents | None |
 
-All other agents, Learn, live flow and Execution keep working. The Radix deployment disables
-workspace features (see [radixconfig.yaml](../radixconfig.yaml)). Enabled host examples that
-offer Ask/Plan/Coder modes, such as Copilot and Claude Code, still list those modes; selecting one
-reports an unknown agent.
+The older `Workspace:Enabled=false` still selects `Disabled` when no mode is set. An unknown mode
+fails startup. Use `Local` only in a trusted local environment.
+
+### Read-only sample mode
+
+For shared deployments such as Radix. Every run uses the same `sample-workspace`, bundled in the
+`aiservice` image under `/app/sample-workspace` and owned by root, so the service can only read it.
+Override the folder with `Workspace:SampleRoot`. Nothing can be written, so users can share it safely.
+
+- Coder is not registered. Ask and Plan are, and the Default host lists them.
+- Workspace-defined agents are offered only if every tool they declare is read-only (in the sample,
+  Guide but not Codex or Scaffolder), so no agent's persona promises tools it doesn't have.
+- Skills are offered only if their optional `allowed-tools` frontmatter (comma- or space-separated)
+  lists nothing but read-only tools. `review-code` qualifies; `get-date` and `whoami` declare
+  `RunCommand` and are hidden.
+- `POST /workspaces` returns no folders. `POST /skills`, `/instructions` and `/agents/workspace` describe
+  the sample regardless of the path sent.
+- `GET /workspace` returns `{ mode, sampleName, readOnly }`, so Web replaces the path input with the
+  sample's name and lets workspace agents run without a path.
+
+### Disabled
+
+`Ask`, `Plan` and `Coder` are not registered, workspace-defined agents can't be discovered or run, and
+the workspace endpoints return empty lists. All other agents, Learn, live flow and Execution keep
+working. Hosts only show modes whose agent the service registered, so Ask, Plan and Coder disappear
+from every host's agent picker.
 
 ## Per-run implementation
 

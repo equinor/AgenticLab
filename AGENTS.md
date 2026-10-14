@@ -21,7 +21,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.Web](src/AgenticLab.Web/Program.cs) | Blazor Server app that visualizes the live data flow (User → Application/Harness → Tools → LLM) by consuming the `/chat/stream` Server-Sent Events. |
 | [src/AgenticLab.React](src/AgenticLab.React/README.md) | Optional React/TypeScript CSR example: conversation, live flow and real execution controls. Presentation is separate from its API client and run-state hook. |
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
-| [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
+| [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, service discovery and application-version middleware. Referenced by every service. |
 | [src/AgenticLab.ModelProviders](src/AgenticLab.ModelProviders/ModelClientFactory.cs) | Shared model configuration and raw Azure/OpenAI/Gemini clients for AiService and A2AServer. No Flow state or frontend dependencies. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
 | [src/AgenticLab.Examples.ChatGpt](src/AgenticLab.Examples.ChatGpt/README.md) | Optional ChatGPT host, dedicated agent consuming shared Wikipedia/calculator tools, branding and tests. |
@@ -36,10 +36,22 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 
 Key flow: Web → `POST /chat` or `POST /chat/stream` (with an optional agent name and conversation id) on AiService → `AgentCatalog` resolves the selected `ChatClientAgent` (configured model provider) → the agent calls its tool subset → answers. The service is layered for separation of concerns:
 
-- [src/AgenticLab.AiService/Program.cs](src/AgenticLab.AiService/Program.cs) is a short composition: it calls the `Add*` registration groups in [Startup/ServiceRegistration.cs](src/AgenticLab.AiService/Startup/ServiceRegistration.cs) and the `Map*Endpoints` groups under [Endpoints/](src/AgenticLab.AiService/Endpoints) — `AgentEndpoints` (`GET /agents`, `POST /agents/workspace`, `POST /harness`, `GET /vendors`), `WorkspaceEndpoints` (`POST /skills`, `POST /instructions`, `POST /workspaces`), `DiscoveryEndpoints` (`GET /mcp`, `GET /a2a`, `GET /discovery`, `POST /discovery/stream`) and `ChatEndpoints` (`POST /chat`, `/chat/stream`, `/chat/control`, `/chat/reset`). Each endpoint file declares its own request/response records at the bottom.
-- [Application/](src/AgenticLab.AiService/Application) is the reusable runtime infrastructure, grouped by feature with a matching namespace (`AgenticLab.AiService.Application.<Folder>`, imported project-wide by [GlobalUsings.cs](src/AgenticLab.AiService/GlobalUsings.cs)): `Agents` (`AgentCatalog`, `AgentInfo`, `ChatClientProvider`, `VendorHarnessCatalog`), `Flow` (`FlowTracer`, `FlowEvent`, `FlowSession`, `FlowControlRegistry`, `BreakpointNotice`, `FlowExecutionScope`, `FlowCaptureScope`, `CapturingChatClient`, `ToolFilteringChatClient`, `ToolFilterScope`, `UserInputScope`, `RunScopeSet`), `Conversations` (`ConversationStore`, `AgentRunScope`, `AgentRunContext`), `Discovery` (`McpToolProvider`, `A2AAgentProvider`, `DiscoveryTracer`, `DiscoveryModels`, `DiscoverySnapshot`), `Workspace` (`WorkspaceScope`, `WorkspaceAgentLoader` + `WorkspaceAgentFileParser` + `WorkspaceToolAliases`, `WorkspaceAgentResolver`, `WorkspaceDefinedAgent`, `WorkspaceAgentDefinition`), `Skills`, `Instructions` and the harness's own `Tools` (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool`). Shared agent definitions and host contracts live in [Extensibility/Agents](src/AgenticLab.Extensibility/Agents).
+- [src/AgenticLab.AiService/Program.cs](src/AgenticLab.AiService/Program.cs) is a short composition: it calls the `Add*` registration groups in [Startup/ServiceRegistration.cs](src/AgenticLab.AiService/Startup/ServiceRegistration.cs) and the `Map*Endpoints` groups under [Endpoints/](src/AgenticLab.AiService/Endpoints) — `AgentEndpoints` (`GET /agents`, `POST /agents/workspace`, `POST /harness`, `GET /vendors`), `WorkspaceEndpoints` (`GET /workspace`, `POST /skills`, `POST /instructions`, `POST /workspaces`), `DiscoveryEndpoints` (`GET /mcp`, `GET /a2a`, `GET /discovery`, `POST /discovery/stream`) and `ChatEndpoints` (`POST /chat`, `/chat/stream`, `/chat/control`, `/chat/reset`, `GET /chat/limits`). Each endpoint file declares its own request/response records at the bottom.
+- [Application/](src/AgenticLab.AiService/Application) is the reusable runtime infrastructure, grouped by feature with a matching namespace (`AgenticLab.AiService.Application.<Folder>`, imported project-wide by [GlobalUsings.cs](src/AgenticLab.AiService/GlobalUsings.cs)): `Agents` (`AgentCatalog`, `AgentInfo`, `ChatClientProvider`, `VendorHarnessCatalog`), `Flow` (`FlowTracer`, `FlowEvent`, `FlowSession`, `FlowControlRegistry`, `BreakpointNotice`, `FlowExecutionScope`, `FlowCaptureScope`, `CapturingChatClient`, `ToolFilteringChatClient`, `ToolFilterScope`, `UserInputScope`, `RunScopeSet`), `Conversations` (`ConversationStore`, `AgentRunScope`, `AgentRunContext`), `Discovery` (`McpToolProvider`, `A2AAgentProvider`, `DiscoveryTracer`, `DiscoveryModels`, `DiscoverySnapshot`), `Workspace` (`WorkspaceScope`, `WorkspaceAccess` (the `Workspace:Mode` policy: `Local`, `ReadOnlySample`, `Disabled`), `WorkspaceAgentLoader` + `WorkspaceAgentFileParser` + `WorkspaceToolAliases`, `WorkspaceAgentResolver`, `WorkspaceDefinedAgent`, `WorkspaceAgentDefinition`), `Skills`, `Instructions` and the harness's own `Tools` (`FileSystemTool`, `TerminalTool`, `SkillsTool`, `AskQuestionTool`, `WebFetchTool`). Shared agent definitions and host contracts live in [Extensibility/Agents](src/AgenticLab.Extensibility/Agents).
 - [Demo/](src/AgenticLab.AiService/Demo) holds the built-in sample content: generic agent personas under `Demo/Agents`, shared tools (`WikiTool`, `CalculatorTool` and their bounded `DemoToolSource` adapter) under `Demo/Tools`, and only the non-brand Default host under `Demo/Vendors/Default`. Every other host owns its prompt, dedicated agents, branding, tests and guide in an opt-in example. `Application` never depends on `Demo` or an example; shared interfaces define the dependency boundary.
 - Both chat paths share [Application/Flow/RunScopeSet.cs](src/AgenticLab.AiService/Application/Flow/RunScopeSet.cs), which begins, re-activates and disposes the per-run ambient scopes (workspace, disabled tools/skills, enabled instructions, user input and agent/conversation identity) together, and `WorkspaceScope.TryBegin` to turn a bad path into a 400 / error event.
+
+Blazor's [Home page](src/AgenticLab.Web/Components/Pages/Home.razor) owns `/`, with equally prominent
+**Live flow** (`/flow`) and **Agent guide** (`/learn`) links. Home uses static server rendering,
+local assets and scoped CSS, without Flow state, catalogue/model calls, preference writes or an
+interactive server circuit. Guide stage URLs remain `/learn?stage=<id>`; the shared header's product
+mark returns to Home. Keep the optional React root route independent.
+
+Home owns its teaser text independently of the learning journey. The local
+[home-teaser.js](src/AgenticLab.Web/wwwroot/js/home-teaser.js) custom element cycles three
+server-rendered messages every seven seconds, with manual controls and reduced-motion support.
+It clears timers/listeners on disconnect; without JavaScript all messages remain readable.
+Keep this enhancement browser-only, without shared run state or changes to guide progression.
 
 The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
@@ -48,7 +60,7 @@ runtime or npm build dependency. [design-system.css](src/AgenticLab.Web/wwwroot/
 owns `--lab-*` tokens and locally served IBM Plex fonts; shared Razor controls under
 [Extensibility/Components](src/AgenticLab.Extensibility/Components) and Web's
 [Components/Shared](src/AgenticLab.Web/Components/Shared) own reusable presentation and accessibility.
-`AppHeader` is reused by Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
+`AppHeader` is reused by Home, Flow, Learn and Discovery; `/design-system` is a backend-free Development-only
 catalogue and returns 404 in Production. Feature CSS owns layout, not another generic palette.
 Flow places Host/Agent selectors above a conversation/live-flow split, with Settings beside Conversation
 and `FlowRunControls` above the diagram. Execution stays beneath live flow. `PanelLayout` starts with
@@ -176,7 +188,9 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `services__<name>__http__0` endpoints on internal port 8080, uses Production settings, and
   orders startup without readiness checks. See [README.md](README.md#run-with-docker).
 - Radix: [radixconfig.yaml](radixconfig.yaml) builds `dev` from `main` and promotes to `prod`; only
-  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Enabled=false`. Radix has no Dockerfile target selection, so each component uses
+  `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. `aiservice` and
+  `a2aserver` expose Prometheus `/metrics` to Radix monitoring (`Metrics__PrometheusEndpoint`, off by default; internal
+  components only). Metric tags must stay bounded and free of user or conversation data. Radix has no Dockerfile target selection, so each component uses
   a single-service file under [docker/](docker) that must mirror its root Dockerfile stage.
   See [README.md](README.md#deploy-to-radix).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
@@ -195,6 +209,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   Use a Development Web instance with an available agent catalogue. This does not send chat or run
   discovery; `/design-system` is also available there for isolated component inspection.
   Add `--learn-only` for backend-free, desktop-only guide checks against a standalone Web instance.
+  Add `--navigation-only` to check Home, `/flow` routing and the guide with only Development Web
+  running, without an agent catalogue. Browser tools resolve `/flow` from the Web base URL.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
   `dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
 - React checks: `npm --prefix src/AgenticLab.React test` and `npm --prefix src/AgenticLab.React run build`;
@@ -235,6 +251,9 @@ window refreshed whenever a conversation is used; `CleanupInterval` controls the
 }
 ```
 
+`Chat:MaxMessageLength` (default 0, unlimited) caps messages and answers in AiService; Web reads it
+from `GET /chat/limits`. See [docs/agents.md](docs/agents.md#input-limits).
+
 Per-agent models use `Agents:{Name}:Model`, then Azure-only `Agents:{Name}:Deployment`, then the
 agent/workspace `ModelId`, then the provider default. `Models:ForceDefaultModel` overrides execution;
 when absent, only Azure inherits `AzureOpenAI:ForceDefaultModel`. AppHost forwards explicit agent
@@ -242,6 +261,15 @@ overrides to AiService; A2A specialists use the global default. See
 [docs/agents.md](docs/agents.md#per-agent-models).
 
 ## Conventions
+
+- The single application release version lives in [version.txt](version.txt).
+  [Directory.Build.props](Directory.Build.props) stamps every .NET project; React's Vite configuration
+  reads the same file. `AddServiceDefaults` registers the immutable `ApplicationVersionInfo`;
+  HTTP hosts call `UseAppVersion` immediately after `Build`, before error handlers and static files.
+  The middleware adds `X-AgenticLab-Version` without buffering responses and preserves an upstream
+  proxy response's version. Both frontends show the version beside the product name and emit an
+  `application-version` HTML meta tag. Rebuild all artifacts together when changing the version;
+  do not introduce per-host runtime version settings or an independent npm application version.
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
   `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links,
@@ -262,7 +290,7 @@ overrides to AiService; A2A specialists use the global default. See
 - Diagram visibility is owned by `DiagramOptions`: Basic/Technical presets apply option values atomically, and Custom is derived from those values. Components render from options, never preset identity; display changes must not modify `RunOptions`, capture, conversation or replay state.
 - Blazor components: one scoped `.razor.css` per component that owns its own markup's styles (use `::deep` only for genuinely shared base styles reaching into children); a `@code` block that outgrows a screen moves to a `.razor.cs` partial, and pure presentation math goes to a static class under `Flow/`.
 - Blazor presentation: reuse `--lab-*` tokens and existing `LabButton`, `LabField`, `LabSegmented`,
-  `LabStatus`, `AppHeader`, `PageNotice`, `SidePanel` and icons before adding generic controls. Shared
+  `LabStatus`, `LabBanner`, `AppHeader`, `PageNotice`, `SidePanel` and icons before adding generic controls. Shared
   controls take parameters/events, never Flow state. Add a real consumer and a catalogue example for
   new primitives; follow [docs/design-system.md](docs/design-system.md). Native ARIA boolean attributes
   must render explicit `"true"`/`"false"` strings, not minimised Razor boolean attributes.

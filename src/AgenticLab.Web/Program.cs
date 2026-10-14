@@ -50,6 +50,7 @@ builder.Services.AddHttpClient<AiServiceClient>(client => client.BaseAddress = n
 
 var app = builder.Build();
 
+app.UseAppVersion();
 app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.

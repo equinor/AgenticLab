@@ -1,6 +1,7 @@
 ---
 name: whoami
 description: Get the username of the currently logged in user on a Windows machine using the terminal.
+allowed-tools: RunCommand
 ---
 
 # Get the current username (Windows)

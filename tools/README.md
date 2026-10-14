@@ -17,6 +17,37 @@ node /tmp/agentic-lab-loadtest/node_modules/playwright/cli.js install chromium
 Start the application first, for example with `dotnet run --project src/AgenticLab.AppHost`, and set
 `AGENTICLAB_URL` to its externally reachable **web** resource, not the React frontend. The example port
 below is illustrative; use the actual URL. Only the `AGENTICLAB_*` variable names are supported.
+Keep this as the Web base URL; tools select `/`, `/flow` and `/learn` themselves.
+
+## Navigation smoke
+
+For backend-free checks, start only Development Web with `dotnet run --project src/AgenticLab.Web`
+and use its printed URL:
+
+```sh
+AGENTICLAB_URL=http://127.0.0.1:5140 \
+NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+node tools/web-smoke.mjs --navigation-only
+```
+
+This profile checks Home's equally sized choices, local icons/fonts, keyboard focus and activation,
+the permanent purpose statement, heading structure, the absence of a Home server circuit or
+preference writes, direct `/flow` reloads, consistently named Home return links,
+guide stage bookmarks and Back/Forward, lesson controls, catalogue navigation and 404 recovery.
+It runs the same four viewports, Home's 200% zoom and reduced-motion checks, and saves screenshots.
+The visible version, initial HTML `application-version` meta tag and `X-AgenticLab-Version` response
+header must match the repository's [version.txt](../version.txt). This is checked without JavaScript as well as after
+navigation; the label must fit the header and navigation must not duplicate the meta tag.
+An isolated browser page uses Playwright's clock to check the three-message teaser's seven-second
+cycle, wraparound, Pause/Play, manual and keyboard controls, pause on focus, hover/visibility
+suspension, initial and changed motion preferences, and disconnect/reconnect cleanup. It verifies
+stable layout, visible icons, inactive-slide accessibility, Pause/Play-first tab order, polite live
+regions while paused and quiet autoplay, and no circuit or preference writes after interaction.
+A separate JavaScript-disabled page checks the readable fallback and purpose statement. Teaser timers and
+the mocked clock do not affect the guide checks. These checks run in the full UI profile too.
+It visits the Flow page without requiring its catalogue or sending a prompt; with no AI service,
+the workspace's normal unavailable-service state is expected. Full execution/dock checks still need
+the UI smoke profile below.
 
 ## UI smoke
 
@@ -75,7 +106,7 @@ Module logos are fetched from local RCL URLs, decoded to check nonblank pixels, 
 dimensions, and captured at desktop/mobile widths. No vendor identities are hardcoded in the script.
 
 Coverage includes 1440x1000, 1024x900, 390x844 and 1920x1080 viewports plus 200% CSS zoom:
-conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
+Home and destination navigation, conversation split/stack, draft retention between tabs, pointer/keyboard resizing, saved/legacy layout
 restoration, reset, Execution maximise/collapse, independent Details/Learn docks, host-only anatomy
 with the Client Learn topic retained, individual A2A
 inspection from chips/headings/catalogue entries, keyboard focus restoration, Discovery focus containment and Escape/backdrop
@@ -96,12 +127,36 @@ state and replay contracts without credentials:
 dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 ```
 
+### Markdown-only smoke
+
+The full smoke also checks the catalogue's Conversation Markdown sample. To run only those checks,
+start Web in Development without Aspire or model credentials and use `--markdown-only`:
+
+```powershell
+dotnet run --project src/AgenticLab.Web --no-launch-profile -- --environment Development --urls http://127.0.0.1:5186
+```
+
+In another PowerShell terminal, using the temporary Playwright installation from Setup:
+
+```powershell
+$env:AGENTICLAB_URL = "http://127.0.0.1:5186"
+$env:NODE_PATH = "$env:TEMP/agentic-lab-loadtest/node_modules"
+node tools/web-smoke.mjs --markdown-only
+```
+
+On Windows, use `$env:TEMP/agentic-lab-loadtest` as the install prefix instead of `/tmp/agentic-lab-loadtest`.
+The checks use the production reply component with synthetic content, not model calls: complete and
+partial Markdown, literal HTML, URL restrictions, image-request blocking, scoped code typography,
+keyboard link focus, bounded overflow, all four viewport sizes and 200% zoom. Screenshots are named
+`markdown-*.png`. This profile does not verify backend streaming or the full Flow page; the Web tests
+separately cover current replies, archiving and reset with fake SSE responses.
+
 ## Load test
 
 Optional example modules own their scenario-specific checks inside their project folders; see
 the [example catalogue](../docs/examples.md). The core smoke script remains domain-neutral.
 
-`flow-loadtest.mjs` exercises the Interactive Server Flow page with concurrent browser contexts.
+`flow-loadtest.mjs` exercises the Interactive Server Flow page at `/flow` with concurrent browser contexts.
 The defaults are 10 concurrent users and 3 rounds. `AGENTICLAB_WARMUP_MS` sets the startup wait
 (default 1000 ms), and `AGENTICLAB_MESSAGE` sets the message prefix (default `Load test message`).
 

@@ -1,0 +1,94 @@
+.reply-markdown {
+    min-width: 0;
+    max-width: 100%;
+    color: var(--lab-ink);
+    font: var(--lab-text-md)/var(--lab-leading) var(--lab-font-sans);
+    overflow-wrap: anywhere;
+}
+
+.reply-markdown ::deep :is(p, ul, ol, blockquote, pre, table) {
+    margin: 0 0 var(--lab-space-3);
+}
+
+.reply-markdown ::deep :is(h1, h2, h3, h4, h5, h6) {
+    margin: var(--lab-space-5) 0 var(--lab-space-2);
+    font-size: var(--lab-text-lg);
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.reply-markdown ::deep h1 { font-size: var(--lab-text-title); }
+.reply-markdown ::deep :is(h4, h5, h6) { font-size: var(--lab-text-md); }
+.reply-markdown ::deep > :first-child { margin-top: 0; }
+.reply-markdown ::deep > :last-child { margin-bottom: 0; }
+.reply-markdown ::deep :is(ul, ol) { padding-left: var(--lab-space-6); }
+.reply-markdown ::deep li + li { margin-top: var(--lab-space-1); }
+.reply-markdown ::deep li > :is(ul, ol) { margin-bottom: 0; }
+
+.reply-markdown ::deep a {
+    color: var(--lab-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.reply-markdown ::deep a:hover { color: var(--lab-accent-hover); }
+.reply-markdown ::deep a:focus-visible {
+    outline: var(--lab-focus-ring);
+    outline-offset: var(--lab-focus-offset);
+}
+
+.reply-markdown ::deep code {
+    padding: 1px var(--lab-space-1);
+    border-radius: var(--lab-radius-sm);
+    background: var(--lab-surface-muted);
+    font: var(--lab-text-sm)/var(--lab-leading) var(--lab-font-mono);
+}
+
+.reply-markdown ::deep pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: var(--lab-space-3);
+    border: 1px solid var(--lab-border);
+    border-radius: var(--lab-radius-sm);
+    background: var(--lab-surface-muted);
+    white-space: pre;
+    overflow-wrap: normal;
+}
+
+.reply-markdown ::deep pre code {
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.reply-markdown ::deep table {
+    display: block;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-wrap: normal;
+    border-collapse: collapse;
+}
+
+.reply-markdown ::deep :is(th, td) {
+    padding: var(--lab-space-2) var(--lab-space-3);
+    border: 1px solid var(--lab-border);
+    text-align: left;
+    vertical-align: top;
+}
+
+.reply-markdown ::deep th {
+    background: var(--lab-surface-muted);
+    font-weight: 600;
+}
+
+.reply-markdown ::deep blockquote {
+    padding-left: var(--lab-space-3);
+    border-left: 2px solid var(--lab-border-strong);
+    color: var(--lab-muted);
+}
+
+.reply-markdown ::deep hr {
+    margin: var(--lab-space-4) 0;
+    border: 0;
+    border-top: 1px solid var(--lab-border);
+}

@@ -1,4 +1,5 @@
 using Microsoft.Agents.AI;
+using Microsoft.Extensions.Options;
 
 namespace AgenticLab.AiService.Endpoints;
 
@@ -9,10 +10,20 @@ internal static class ChatEndpoints
     {
         app.MapPost("/chat", ChatAsync);
 
+        // Publishes the input limits so a client can apply them while the user types. The endpoints below
+        // enforce them regardless, so the limit can't be bypassed by calling the service directly.
+        app.MapGet("/chat/limits", (IOptions<ChatInputOptions> limits) =>
+            Results.Ok(new ChatLimitsResponse(Math.Max(limits.Value.MaxMessageLength, 0))));
+
         // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
         // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, CancellationToken cancellationToken) =>
+        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
         {
+            if (!limits.Value.Allows(request.Message))
+            {
+                return Results.BadRequest(limits.Value.TooLongMessage);
+            }
+
             if (request.Breakpoints?.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)) == true)
             {
                 return Results.BadRequest("Unknown breakpoint kind.");
@@ -25,7 +36,8 @@ internal static class ChatEndpoints
                 eventType: "flow");
         });
 
-        app.MapPost("/chat/control", Control);
+        app.MapPost("/chat/control", (FlowControlRequest request, FlowControlRegistry registry, IOptions<ChatInputOptions> limits) =>
+            Control(request, registry, limits.Value));
 
         // Clears a conversation's remembered history so the next message starts fresh.
         app.MapPost("/chat/reset", (ConversationResetRequest request, ConversationStore conversations) =>
@@ -43,11 +55,16 @@ internal static class ChatEndpoints
     }
 
     // One non-interactive turn against a built-in or workspace-defined agent.
-    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, CancellationToken cancellationToken)
+    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
             return Results.BadRequest("Message must not be empty.");
+        }
+
+        if (!limits.Value.Allows(request.Message))
+        {
+            return Results.BadRequest(limits.Value.TooLongMessage);
         }
 
         // When a brand/vendor is selected, its harness replaces the shared harness for this run.
@@ -56,7 +73,7 @@ internal static class ChatEndpoints
         // A built-in agent: resolve it and open a workspace only when it requires one.
         if (catalog.TryResolve(request.Agent, harness, out var agent, out var resolvedName))
         {
-            if (catalog.RequiresWorkspace(resolvedName) && string.IsNullOrWhiteSpace(request.Workspace))
+            if (catalog.RequiresWorkspace(resolvedName) && access.RequiresClientPath && string.IsNullOrWhiteSpace(request.Workspace))
             {
                 return Results.BadRequest($"Agent '{resolvedName}' requires a workspace. Include a 'workspace' path in the request.");
             }
@@ -64,15 +81,18 @@ internal static class ChatEndpoints
             using var workspace = catalog.RequiresWorkspace(resolvedName) ? access.TryBegin(request.Workspace) : null;
             if (catalog.RequiresWorkspace(resolvedName) && workspace is null)
             {
-                return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+                return Results.BadRequest(access.RequiresClientPath
+                    ? $"Workspace path '{request.Workspace}' is not an existing directory."
+                    : "The workspace is not available on this server.");
             }
 
-            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), request, conversations, skills, instructions, cancellationToken);
+            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
         }
 
         // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
         // only be discovered once a (valid) workspace is open, and never while workspace features are disabled.
-        if (!access.Enabled || string.IsNullOrWhiteSpace(request.Workspace))
+        // In the read-only sample mode the server supplies the workspace, so no path is needed.
+        if (!access.Enabled || (access.RequiresClientPath && string.IsNullOrWhiteSpace(request.Workspace)))
         {
             return Results.BadRequest($"Unknown agent '{request.Agent}'. Call GET /agents for the available names.");
         }
@@ -80,7 +100,9 @@ internal static class ChatEndpoints
         using var agentWorkspace = access.TryBegin(request.Workspace);
         if (agentWorkspace is null)
         {
-            return Results.BadRequest($"Workspace path '{request.Workspace}' is not an existing directory.");
+            return Results.BadRequest(access.RequiresClientPath
+                ? $"Workspace path '{request.Workspace}' is not an existing directory."
+                : "The workspace is not available on this server.");
         }
 
         if (!workspaceAgents.TryResolve(request.Agent, out var workspaceAgent, out var definition, harness))
@@ -89,13 +111,13 @@ internal static class ChatEndpoints
         }
 
         // Workspace-defined agents always support workspace skills (see WorkspaceDefinedAgent).
-        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, request, conversations, skills, instructions, cancellationToken);
+        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
     }
 
     // Runs one turn, continuing the supplied conversation, injecting the enabled custom instructions and
     // (when the agent uses skills) the skill catalogue, and hiding any tools the caller disabled. Any
     // required workspace scope must already be active on the calling context.
-    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
+    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, string host, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
     {
         // Continue the existing conversation when an id is supplied; otherwise mint a new one and return
         // it so the client can keep the conversation going.
@@ -109,14 +131,20 @@ internal static class ChatEndpoints
             conversationId: conversationId, agentName: resolvedName);
         var runOptions = RunScopeSet.BuildRunOptions(supportsSkills, skills, instructions);
 
+        ChatMetrics.RecordMessage(resolvedName, host);
         var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
         return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
     }
 
     // Drives an in-flight /chat/stream run: single-step (next), pause, resume, switch mode, change the
     // delay, answer a tool's question, release a breakpoint or stop. Matches the run by its session id.
-    private static IResult Control(FlowControlRequest request, FlowControlRegistry registry)
+    private static IResult Control(FlowControlRequest request, FlowControlRegistry registry, ChatInputOptions limits)
     {
+        if (!limits.Allows(request.Answer))
+        {
+            return Results.BadRequest(limits.TooLongMessage);
+        }
+
         if (!registry.TryGet(request.SessionId, out var session))
         {
             return Results.NotFound();
@@ -178,6 +206,7 @@ internal static class ChatEndpoints
 
 internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
 internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
+internal sealed record ChatLimitsResponse(int MaxMessageLength);
 internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record ConversationResetRequest(string ConversationId);

@@ -25,6 +25,75 @@ namespace AgenticLab.Web.Tests;
 /// </summary>
 public sealed class ExecutionReplayTests
 {
+    [Fact]
+    public async Task ConversationMarkdown_RendersCurrentAndArchivedRepliesAndClearsOnReset()
+    {
+        var concepts = new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var view = new FlowViewState(concepts);
+        using var handler = new ReplayHandler { Reply = "**Safe reply** <img src='https://images.invalid/pixel'>" };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        var storage = new DelayedPanelStorage();
+        storage.Complete();
+        await using var services = new ServiceCollection().AddLogging().AddSingleton<IJSRuntime>(storage).BuildServiceProvider();
+        await using var renderer = new Microsoft.AspNetCore.Components.Web.HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+
+        async Task<string> RenderAsync() => await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            RenderFragment content = builder =>
+            {
+                builder.OpenComponent<CascadingValue<FlowRunController>>(0);
+                builder.AddAttribute(1, "Value", run);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(child =>
+                {
+                    child.OpenComponent<AgenticLab.Web.Components.Pages.FlowParts.FlowChat>(0);
+                    child.CloseComponent();
+                }));
+                builder.CloseComponent();
+            };
+            var root = await renderer.RenderComponentAsync<CascadingValue<FlowViewState>>(ParameterView.FromDictionary(
+                new Dictionary<string, object?> { ["Value"] = view, ["ChildContent"] = content }));
+            return root.ToHtmlString();
+        });
+
+        async Task SendAsync()
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = "**User text** <script>not executable</script>";
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await SendAsync();
+        var current = await RenderAsync();
+        Assert.Contains("<strong>Safe reply</strong>", current);
+        Assert.Contains("**User text** &lt;script&gt;", current);
+        Assert.DoesNotContain("<img", current);
+        Assert.Empty(run.Turns);
+
+        await SendAsync();
+        Assert.Single(run.Turns);
+        var archived = await RenderAsync();
+        Assert.Equal(2, archived.Split("<strong>Safe reply</strong>").Length - 1);
+        Assert.DoesNotContain("<img", archived);
+
+        run.ReportError("**Error** <script>not executable</script>");
+        var error = await RenderAsync();
+        Assert.Contains("**Error** &lt;script&gt;", error);
+        Assert.Equal(1, error.Split("<strong>Safe reply</strong>").Length - 1);
+
+        await run.NewConversationAsync();
+        var cleared = await RenderAsync();
+        Assert.Contains("No messages yet.", cleared);
+        Assert.DoesNotContain("reply-markdown", cleared);
+    }
+
     [Theory]
     [InlineData("1|0|1|400|300|450", false)]
     [InlineData("1|0|1|400|300|450|0", false)]
@@ -199,6 +268,7 @@ public sealed class ExecutionReplayTests
         storage.Complete();
         await using var services = new ServiceCollection().AddLogging()
             .AddSingleton(concepts).AddSingleton(client).AddSingleton<IJSRuntime>(storage)
+            .AddSingleton<AgenticLab.ServiceDefaults.ApplicationVersionInfo>()
             .AddSingleton<IOptions<ReplayRetentionOptions>>(Options.Create(new ReplayRetentionOptions()))
             .BuildServiceProvider();
         await using var renderer = new LayoutRenderer(services);
@@ -394,6 +464,79 @@ public sealed class ExecutionReplayTests
         Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Skills, view, run));
         Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Instructions, view, run));
         Assert.Equal("No message submitted.", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.UserPrompt, view, run)).Text);
+    }
+
+    [Fact]
+    public async Task ChatLimits_StopSendingOverTheServiceLimit()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("ChatAgent", "Chats", [])]);
+        view.SelectedAgent = "ChatAgent";
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        view.Message = new string('x', 12);
+        Assert.Null(view.ChatLimits.Remaining(view.Message));
+        Assert.Null(run.Status.ComposerHint);
+
+        view.ChatLimits.Set(new ChatLimitsInfo(10));
+
+        Assert.Equal(10, view.ChatLimits.MaxMessageLength);
+        Assert.True(view.ChatLimits.IsTooLong(view.Message));
+        Assert.Equal(-2, view.ChatLimits.Remaining(view.Message));
+        Assert.Equal("Messages can be at most 10 characters.", run.Status.ComposerHint);
+        await run.SendAsync();
+        Assert.False(run.Running);
+        Assert.Equal(new string('x', 12), view.Message);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public void ChatLimits_ZeroOrLessMeansUnlimited(int configured)
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+
+        view.ChatLimits.Set(new ChatLimitsInfo(configured));
+        view.ChatLimits.Set(null);
+
+        Assert.Null(view.ChatLimits.MaxMessageLength);
+        Assert.False(view.ChatLimits.IsTooLong(new string('x', 10_000)));
+    }
+
+    [Fact]
+    public void ServerSampleWorkspace_LetsWorkspaceAgentsRunWithoutAPath()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("Ask", "Reads files", [], RequiresWorkspace: true)]);
+        view.SelectedAgent = "Ask";
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        Assert.False(view.HasWorkspace);
+        Assert.NotNull(run.Status.ComposerHint);
+
+        var version = view.ConfigurationVersion;
+        view.ServerWorkspace.Set(new WorkspaceInfo("sample", "sample-workspace", ReadOnly: true));
+
+        Assert.True(view.ServerWorkspace.IsSample);
+        Assert.Equal("sample-workspace", view.ServerWorkspace.SampleName);
+        Assert.True(view.HasWorkspace);
+        Assert.Null(run.Status.ComposerHint);
+        Assert.True(view.ConfigurationVersion > version);
+    }
+
+    [Fact]
+    public void ServerWorkspace_KeepsLocalBehaviorWithoutAnAnswer()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+
+        view.ServerWorkspace.Set(null);
+
+        Assert.Equal("local", view.ServerWorkspace.Mode);
+        Assert.False(view.HasWorkspace);
+        view.Workspace = "C:\\code\\app";
+        Assert.True(view.HasWorkspace);
     }
 
     [Fact]
@@ -892,6 +1035,7 @@ public sealed class ExecutionReplayTests
 
     private sealed class ReplayHandler : HttpMessageHandler
     {
+        internal string Reply { get; init; } = "answer";
         internal int Resets { get; private set; }
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
@@ -915,7 +1059,7 @@ public sealed class ExecutionReplayTests
             [
                 Event(1, "llm-request", 1) with
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
-                Event(2, "final", 1) with { Detail = "answer", Data = "answer" },
+                Event(2, "final", 1) with { Detail = Reply, Data = Reply },
             ];
             return new HttpResponseMessage(HttpStatusCode.OK)
             {

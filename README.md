@@ -9,6 +9,9 @@ It brings together two complementary parts:
    between your question and its answer: what the model receives, which tools it asks to use,
    and what comes back.
 
+The Web front page at `/` offers **Live flow** and **Agent guide** as equal starting points.
+Open the workspace directly at `/flow` or the guide at `/learn`. The product mark returns Home.
+
 > [!WARNING]
 > This is an educational sample, not a production-ready agent platform. Use a trusted local
 > development environment. Before shared or public deployment, add authentication, authorization,
@@ -45,7 +48,7 @@ The agent loop in the guided Learn experience. [Learning guide](docs/learning.md
 
 ## 2. See It Happen in Live Flow
 
-**Live Flow** is the hands-on workspace where you run an agent and see what is happening as it runs.
+**Live Flow** at `/flow` is the hands-on workspace where you run an agent and see what is happening as it runs.
 
 - Watch the flow between the harness, model and tools as your question is processed.
 - Inspect the actual model requests, responses, tool calls and results.
@@ -255,11 +258,24 @@ root Dockerfile's stages.
 - Prod's official address is the app alias <https://agenticlab.app.radix.equinor.com>; dev is
   <https://web-agenticlab-dev.radix.equinor.com>. Every address users sign in through needs its
   `/oauth2/callback` URL registered as a Web redirect URI on the Entra ID app registration.
-- `aiservice` runs with `Workspace__Enabled=false`: the Ask, Plan and Coder agents and the
-  workspace endpoints are off, so signed-in users can't point file, terminal or web-fetch tools at
-  server folders. See [disabling workspace features](docs/workspace.md#disabling-workspace-features).
+- `aiservice` runs with `Workspace__Mode=ReadOnlySample`: Ask, Plan and the Guide agent work on the
+  bundled `sample-workspace` with read-only tools. Users can't choose server folders, write files,
+  run commands or fetch web pages. See [read-only sample mode](docs/workspace.md#read-only-sample-mode).
+- `aiservice` limits chat messages and answers to 500 characters (`Chat__MaxMessageLength`); every
+  page shows a banner that only Open information may be entered. See [input limits](docs/agents.md#input-limits).
 - In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
+- `aiservice` and `a2aserver` set `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix
+  Prometheus scrapes their `/metrics` endpoints and the metrics appear in Radix Grafana next to CPU
+  and memory. `aiservice` exports all of the following; `a2aserver` exports token usage and requests:
+  - `agenticlab_chat_messages_total` by `agent` and `host`
+  - `gen_ai_client_token_usage` by model and token type (input/output); sum both services for the
+    total, as the A2A specialists' tokens are only counted in `a2aserver`
+  - `conversations_retained`, `conversations_expired`, `flow_active_sessions`
+  - `http_server_request_duration_seconds` by route and status code
+
+  Grafana dashboards are visible to every Radix user, so metrics never carry user, conversation or
+  message data.
 
 ### Learning Only
 
@@ -269,8 +285,9 @@ To explore the guided lessons without configuring a model provider, run only the
 dotnet run --project src/AgenticLab.Web
 ```
 
-Open the listening URL printed in the terminal and visit `/learn`. The guide works without
-the AI service; live chat requires the full setup above.
+Open the listening URL printed in the terminal and choose **Agent guide**, or visit `/learn`
+directly. Both the front page and guide work without the AI service; live chat at `/flow`
+requires the full setup above.
 
 ### Self-Contained Examples
 

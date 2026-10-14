@@ -130,7 +130,7 @@ internal static class AgentLearningJourney
             "Check every tool request before execution. Return results to context management before calling the model again.",
             false,
             ["reasoning", "tools", "context"], ["loop-context", "loop-decision", "loop-execute", "loop-answer"],
-            "Open live flow", "/", ParentId: "model-to-agent"),
+            "Open live flow", "/flow", ParentId: "model-to-agent"),
         new("anatomy-of-agent", "Anatomy of an agent",
             "Configuration selects instruction text, tools, model settings and execution rules. A task supplies the user's request for one turn.",
             "Text supplied to the model is different from rules executed by the harness. A role prompt or loaded skill does not grant permissions.",
@@ -174,7 +174,7 @@ internal static class AgentLearningJourney
             false,
             ["guardrails", "securing-agents"],
             ["lifecycle-run", "lifecycle-observe", "lifecycle-evaluate", "lifecycle-improve"],
-            "Open live flow", "/", ParentId: "where-to-run"),
+            "Open live flow", "/flow", ParentId: "where-to-run"),
     ]);
 
     internal static IReadOnlyList<LearningStage> Stages { get; } =

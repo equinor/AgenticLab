@@ -5,7 +5,7 @@
         <span class="title"><HostSection Section="HostDetailSection.Skills" /></span>
         @if (Run.Catalogs.KnownSkills.Count == 0)
         {
-            <span class="subtitle">@(string.IsNullOrWhiteSpace(View.Workspace) ? "set a workspace to list skills" : "no skills in this workspace")</span>
+            <span class="subtitle">@(!View.HasWorkspace ? "set a workspace to list skills" : "no skills in this workspace")</span>
         }
         else
         {

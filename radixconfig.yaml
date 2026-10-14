@@ -40,12 +40,19 @@ spec:
       ports:
         - name: http
           port: 8080
+      # Radix Prometheus scrapes /metrics on the http port; the component is internal, so the endpoint is
+      # not reachable from outside. Grafana dashboards are visible to all Radix users: metrics carry
+      # agent, host and model names only, never user or conversation data.
+      monitoring: true
       variables:
+        Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
         AzureOpenAI__Deployment: gpt-5.6-sol
-        # No workspace agents or workspace endpoints: signed-in users must not choose server folders
-        # for the file, terminal and web-fetch tools (see SECURITY.md).
-        Workspace__Enabled: "false"
+        # Every user works on the bundled sample workspace with read-only tools only: nobody can choose
+        # a server folder, write files, run commands or fetch web pages (see SECURITY.md).
+        Workspace__Mode: ReadOnlySample
+        # Longest chat message or answer accepted; the web composer reads it from GET /chat/limits.
+        Chat__MaxMessageLength: "500"
         services__mcpserver__http__0: http://mcpserver:8080
         services__a2aserver__http__0: http://a2aserver:8080
       secrets:
@@ -65,7 +72,10 @@ spec:
       ports:
         - name: http
           port: 8080
+      # Internal like aiservice: exports the A2A specialists' token usage to Radix monitoring.
+      monitoring: true
       variables:
+        Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
         AzureOpenAI__Deployment: gpt-5.6-sol
       secrets:

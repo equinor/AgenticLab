@@ -1,0 +1,25 @@
+<div class="lab-banner" role="note" aria-label="@Label">
+    <span class="banner-icon">
+        @* The EDS info_circle icon, filled with the current text colour. *@
+        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" focusable="false">
+            <path d="M10.0098 0C15.5298 -4.82574e-07 20 4.48 20 10C20 15.52 15.5298 20 10.0098 20C4.47987 19.9999 4.82567e-07 15.5199 0 10C4.63477e-07 4.48008 4.47987 0.000126243 10.0098 0ZM10 2C5.58 2 2 5.58 2 10C2 14.42 5.58 18 10 18C14.42 18 18 14.42 18 10C18 5.58 14.42 2 10 2ZM11 9V15H9V9H11ZM11 5V7L9 7V5L11 5Z" />
+        </svg>
+    </span>
+    <p class="banner-message">@ChildContent</p>
+    @if (Actions is not null)
+    {
+        <div class="banner-actions">@Actions</div>
+    }
+</div>
+
+@code {
+    /// <summary>
+    /// The banner's accessible name, announced with its message, e.g. "Notice". The message itself is
+    /// always visible text, so the banner never relies on its colour or icon alone.
+    /// </summary>
+    [Parameter] public string Label { get; set; } = "Notice";
+    /// <summary>The message, as plain text or simple inline markup such as a link.</summary>
+    [Parameter, EditorRequired] public RenderFragment? ChildContent { get; set; }
+    /// <summary>Optional caller-owned buttons or links shown after the message.</summary>
+    [Parameter] public RenderFragment? Actions { get; set; }
+}

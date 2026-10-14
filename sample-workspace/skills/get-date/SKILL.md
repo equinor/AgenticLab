@@ -1,6 +1,7 @@
 ---
 name: get-date
 description: Get the current date and time on a Windows machine using the terminal.
+allowed-tools: RunCommand
 ---
 
 # Get the current date and time (Windows)

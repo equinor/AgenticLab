@@ -1,7 +1,12 @@
+@inject AgenticLab.ServiceDefaults.ApplicationVersionInfo AppVersion
+
 <header class="app-header">
-    <div class="brand">
-        <span class="brand-mark" aria-hidden="true"><span></span></span>
-        <h1>@Title</h1>
+    <div class="brand-group">
+        <a class="brand" href="/" aria-label="@($"{Title} home")">
+            <span class="brand-mark" aria-hidden="true"><span></span></span>
+            <h1>@Title</h1>
+        </a>
+        <span class="version" title="@($"Application version {AppVersion.Version}")">@($"v{AppVersion.Version}")</span>
     </div>
     <div class="header-actions">
         <span class="edition">@Context <span>Blazor</span></span>
@@ -9,10 +14,14 @@
         <RepositoryLink />
     </div>
 </header>
+@* Shown on every page with the header and never dismissible: what may be entered into the tool. *@
+<LabBanner Label="Data notice">
+    Agentic Lab is an educational tool. Only enter information classified as <strong>Open</strong>.
+</LabBanner>
 
 @code {
-    /// <summary>The page's existing product heading, independent of navigation and run state.</summary>
-    [Parameter] public string Title { get; set; } = "Agentic AI";
+    /// <summary>The product heading and accessible name of the link to the front page.</summary>
+    [Parameter] public string Title { get; set; } = "Agentic Lab";
     /// <summary>A compact page identifier next to the implementation label.</summary>
     [Parameter, EditorRequired] public string Context { get; set; } = string.Empty;
     /// <summary>Page-specific links and actions, rendered inside the page's interactive boundary.</summary>

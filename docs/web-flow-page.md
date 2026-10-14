@@ -1,10 +1,39 @@
 # Web flow page (live agent run visualization)
 
 Agentic Lab's Blazor workspace shows a conversation beside its live agent execution. Open the
-**web** resource from the Aspire dashboard after [local setup](../README.md#run-locally).
+**web** resource from the Aspire dashboard after [local setup](../README.md#run-locally), then choose
+**Live flow**, or open `/flow` directly.
 Captures show requests, responses and tool activity, not the model's private reasoning.
 Live runs can send data to external services and incur model charges; use trusted inputs and
 read the [security policy](../SECURITY.md).
+
+## Front page and navigation
+
+The [Home page](../src/AgenticLab.Web/Components/Pages/Home.razor) at `/` gives equal prominence to
+**Live flow** (`/flow`) and **Agent guide** (`/learn`). Both links open in the same tab; wide layouts
+place them side by side and narrow layouts stack them. The product mark in the shared header returns
+Home, while the existing Flow and Guide links still connect those pages directly.
+
+Home is static server-rendered content with local icons and fonts. It does not load catalogues,
+start an interactive server circuit, write preferences or call models. It always shows both choices,
+without a remembered destination or automatic redirect. A permanent purpose statement above the
+destinations explains what Agentic Lab is for, independently of the rotating messages. The guide's
+`/learn?stage=<id>` bookmarks are unchanged. Live execution still requires the configured AI service.
+
+Below the destinations, three short messages introduce why agents matter, what an agent is and
+why Agentic Lab exists. This copy belongs to Home, not the learning journey. A local browser-only
+enhancement repeats the messages every seven seconds with a short fade, a position counter and
+Pause/Play, Previous and Next controls in matching visual and tab order. The tallest message reserves the space, keeping the links
+and controls steady as the text changes.
+
+Manual navigation or focusing a control pauses rotation until Play is explicitly selected. Hover
+and a hidden browser tab temporarily suspend it. Reduced motion disables default autoplay and
+transitions; visitors can still browse manually or explicitly start timed changes. Inactive messages
+are excluded from assistive technology, and automatic changes do not trigger live announcements.
+While rotation is paused, the message panels use a polite live region for manual navigation;
+resuming rotation turns announcements off. The position counter stays quiet to avoid duplication.
+Without JavaScript, all three messages form a readable list with the inactive controls hidden.
+Leaving Home clears the enhancement's timers and listeners. The guide itself remains manually paced.
 
 ## Live flow visualization
 
@@ -23,10 +52,26 @@ reports it but keeps the new local conversation ID.
 
 **Settings** contains tool toggles, breakpoints, workspace paths, skills and custom instructions.
 Skills default on; instructions are opt-in. Workspace features appear for agents that support them;
-see the [workspace guide](workspace.md). Switching tabs preserves the chat log and draft.
+see the [workspace guide](workspace.md). When the service runs the
+[read-only sample mode](workspace.md#read-only-sample-mode), Settings shows the sample's name instead
+of a path input and folder picker, and workspace agents can run without a path. Switching tabs preserves the chat log and draft.
 **New conversation** is in the panel header and is disabled during a run. A waiting
 [agent question](agents.md#asking-the-user-a-question-human-in-the-loop) gets its own answer input
-near the composer. Replies are displayed as escaped text.
+near the composer. Current and earlier agent replies render Markdown headings, emphasis, lists,
+inline and fenced code, tables and links. User messages, errors and status notes remain escaped text.
+Replies are untrusted: raw HTML is shown literally; only absolute `http`, `https` and `mailto` links
+are clickable and open separately with `noopener noreferrer`. Other link targets retain their labels
+without navigation. Images become alt text and never load, including relative and data images.
+Code blocks and wide tables scroll within the reply rather than widening the conversation.
+
+The current stream delivers reply text in its `final` event. The same renderer also accepts partial
+Markdown snapshots safely, without changing the stream protocol, run controls or scroll-following
+behavior. Rendering is cached only for the component's latest text, not stored in conversation state.
+
+When the service sets an [input limit](agents.md#input-limits), the composer and answer input stop at
+it, a counter shows the characters used, and Send stays disabled over the limit. Every page shows the
+"Data notice" banner below the header: Agentic Lab is educational, and only Open information may be
+entered.
 
 ### Run controls
 

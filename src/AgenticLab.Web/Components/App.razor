@@ -1,9 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@inject AgenticLab.ServiceDefaults.ApplicationVersionInfo AppVersion
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-version" content="@AppVersion.Version" />
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["design-system.css"]" />
@@ -18,6 +21,8 @@
     <ReconnectModal />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="@Assets["js/panels.js"]"></script>
+    @* Loaded globally for enhanced navigation; the custom element activates only on Home. *@
+    <script type="module" src="@Assets["js/home-teaser.js"]"></script>
 </body>
 
 </html>

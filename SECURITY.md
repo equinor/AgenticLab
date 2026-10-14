@@ -43,9 +43,9 @@ policy. A reverse proxy alone does not provide all of these controls.
 
 ### Workspace and Terminal Tools
 
-On any shared deployment, set `Workspace:Enabled=false` so callers cannot choose server folders at
-all; see [disabling workspace features](docs/workspace.md#disabling-workspace-features). Otherwise,
-only select trusted workspaces. Agent definitions, skills, instructions, fetched pages, and tool
+On any shared deployment, set `Workspace:Mode` to `ReadOnlySample` or `Disabled` so callers cannot
+choose server folders; see [workspace modes](docs/workspace.md#workspace-modes). The read-only sample
+offers no writing, terminal or web-fetch tools. In `Local` mode, only select trusted workspaces. Agent definitions, skills, instructions, fetched pages, and tool
 results can influence model requests; instructions and tool descriptions are not a security boundary.
 Disable tools you do not need, and avoid running agents with access to valuable credentials or data.
 
@@ -99,6 +99,10 @@ The application's aggregate retention metrics omit content and IDs, and the chat
 not explicitly enable sensitive prompt-content telemetry. This is not a guarantee that all logs,
 traces, dependencies, or collector configurations are free of sensitive data. Review collection,
 export, access, and retention before using real data.
+
+`Metrics:PrometheusEndpoint=true` maps an unauthenticated Prometheus `/metrics` endpoint. Enable it
+only on components that are not publicly reachable, as on Radix, where only the internal `aiservice`
+and `a2aserver` use it. Chat metrics are tagged with registered agent and host names only.
 
 For exploration without model calls, start only the Web project's
 [learning-only guide](README.md#learning-only). Do not start model/protocol services or use live

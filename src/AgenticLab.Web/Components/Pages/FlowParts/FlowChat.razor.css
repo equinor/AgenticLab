@@ -35,12 +35,14 @@
 .turn {
     display: flex;
     flex-direction: column;
+    min-width: 0;
     gap: var(--lab-space-5);
 }
 
 .entry {
     padding: 0 0 0 16px;
     border-left: 2px solid var(--lab-host);
+    min-width: 0;
     max-width: 100%;
 }
 
@@ -119,6 +121,17 @@
    controls content-height so the textarea and buttons stack tightly. */
 .chat-composer .control.message {
     flex: 0 0 auto;
+}
+
+/* Characters used against the service's limit; the danger colour is paired with the over-limit hint text. */
+.message-count {
+    align-self: flex-end;
+    color: var(--lab-muted);
+    font: var(--lab-text-xs) var(--lab-font-mono);
+}
+
+.message-count.over {
+    color: var(--lab-danger);
 }
 
 .chat-composer #message:focus-visible {

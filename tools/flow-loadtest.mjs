@@ -21,7 +21,7 @@ try {
         contexts.push(context);
         const page = await context.newPage();
         page.on("pageerror", error => results.push({ user: user + 1, error: error.message }));
-        await page.goto(baseUrl, { waitUntil: "networkidle" });
+        await page.goto(new URL("/flow", baseUrl).href, { waitUntil: "networkidle" });
         await page.waitForFunction(() => document.querySelector(".chat-log")?._tsStickInit === true);
         await page.locator("#agent option").first().waitFor({ state: "attached" });
     }

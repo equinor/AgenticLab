@@ -24,6 +24,7 @@ builder.Services
     .AddVendorHarnesses()
     .AddDemoAgents(builder.Configuration)
     .AddConversationMemory(builder.Configuration)
+    .AddChatInputLimits(builder.Configuration)
     .AddFlowTracing()
     .AddDiscovery();
 
@@ -36,6 +37,8 @@ builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHos
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.AiService);
 
 var app = builder.Build();
+
+app.UseAppVersion();
 
 // Discover the MCP server's tools and connect to the A2A server at startup so discovery-using agents pick
 // them up, unless disabled via Discovery:OnStartup. Either way discovery can be (re)run on demand from the

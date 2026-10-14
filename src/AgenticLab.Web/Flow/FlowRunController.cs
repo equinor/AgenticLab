@@ -165,7 +165,7 @@ internal sealed class FlowRunController : IDisposable
     /// <summary>Starts a run for the current message (no-op when already running or the message is blank).</summary>
     public Task SendAsync()
     {
-        if (_running || string.IsNullOrWhiteSpace(_view.Message))
+        if (_running || string.IsNullOrWhiteSpace(_view.Message) || _view.ChatLimits.IsTooLong(_view.Message))
         {
             return Task.CompletedTask;
         }
@@ -189,8 +189,11 @@ internal sealed class FlowRunController : IDisposable
         _runExchangeId = Guid.NewGuid().ToString("n");
         // A new message always takes the explorer back to the run that is happening now.
         _view.Cursor.FollowLive();
-        // Remember the workspace this run used so it can be suggested again next time.
-        _view.WorkspacePrefs.AddRecent(_view.Workspace);
+        // Remember the workspace this run used so it can be suggested again next time (not the server's sample).
+        if (!_view.ServerWorkspace.IsSample)
+        {
+            _view.WorkspacePrefs.AddRecent(_view.Workspace);
+        }
         // Clear the composer so the sent message moves into the conversation log.
         _view.Message = string.Empty;
         _events.Clear();

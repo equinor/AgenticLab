@@ -36,7 +36,7 @@ try {
                 return setItem.call(this, key, value);
             };
         });
-        await page.goto(baseUrl, { waitUntil: 'networkidle' });
+        await page.goto(new URL('/flow', baseUrl).href, { waitUntil: 'networkidle' });
         await page.waitForFunction(() => document.querySelector('.chat-log')?._tsStickInit === true);
         await page.getByRole('combobox', { name: 'Host', exact: true }).selectOption('windfarm');
         const panel = page.getByRole('region', { name: 'Windfarm maintenance case' });

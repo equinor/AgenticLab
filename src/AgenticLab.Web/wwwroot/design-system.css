@@ -59,6 +59,10 @@
     --lab-warning-soft: #faf4df;
     --lab-info: #37667c;
     --lab-info-soft: #edf4f8;
+    /* Info banner colours: sRGB hex fallbacks, refined with OKLCH below where supported. */
+    --lab-info-surface: #ecfbff;
+    --lab-info-strong: #025e8d;
+    --lab-info-ink: #121f28;
     --lab-contributor-app: #ff5252;
     --lab-contributor-agent: #e6c84a;
     --lab-contributor-user: #82e000;
@@ -91,6 +95,16 @@
     --lab-easing: ease-out;
     --lab-layer-sticky: 10;
     --lab-layer-overlay: 30;
+}
+
+/* OKLCH info colours for browsers that support them; all are inside sRGB, so every display shows the same
+   colour. The surface matches the EDS team's #ECFBFF exactly. */
+@supports (color: oklch(0 0 0)) {
+    :root {
+        --lab-info-surface: oklch(0.9782 0.0167 215.46);
+        --lab-info-strong: oklch(0.460 0.106 240.7);
+        --lab-info-ink: oklch(0.230 0.025 240.7);
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

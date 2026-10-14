@@ -48,7 +48,7 @@ internal static class ServiceRegistration
 
     /// <summary>
     /// Workspace skills, custom instructions and user-authored agents, all discovered per run from the active
-    /// workspace, plus the <see cref="WorkspaceAccess"/> switch that can disable workspaces server-wide.
+    /// workspace, plus the <see cref="WorkspaceAccess"/> policy that decides which folder, if any, runs may use.
     /// </summary>
     public static IServiceCollection AddWorkspaceFeatures(this IServiceCollection services, IConfiguration configuration)
     {
@@ -75,20 +75,25 @@ internal static class ServiceRegistration
 
     /// <summary>
     /// The demo agent definitions (first registered is the default) and the catalog that builds them on their
-    /// chat clients. The workspace agents (Ask, Plan, Coder) are left out when workspace features are disabled.
+    /// chat clients. The workspace agents follow the <see cref="WorkspaceMode"/>: none when disabled, only the
+    /// read-only Ask and Plan in the read-only sample mode, and Coder too in local mode.
     /// </summary>
     public static IServiceCollection AddDemoAgents(this IServiceCollection services, IConfiguration configuration)
     {
+        var workspaceMode = WorkspaceAccess.FromConfiguration(configuration).Mode;
         services.AddSingleton<ExampleCatalog>();
         services.AddSingleton<IAgentRunContext, AgentRunContext>();
         services.AddSingleton<IAgentDefinition, ChatAgent>();
         services.AddSingleton<IAgentDefinition, WikiAssistantAgent>();
         services.AddSingleton<IAgentDefinition, MathTutorAgent>();
         // services.AddSingleton<IAgentDefinition, TriviaMasterAgent>();
-        if (WorkspaceAccess.FromConfiguration(configuration).Enabled)
+        if (workspaceMode != WorkspaceMode.Disabled)
         {
             services.AddSingleton<IAgentDefinition, AskAgent>();
             services.AddSingleton<IAgentDefinition, PlanAgent>();
+        }
+        if (workspaceMode == WorkspaceMode.Local)
+        {
             services.AddSingleton<IAgentDefinition, CoderAgent>();
         }
         services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
@@ -114,12 +119,22 @@ internal static class ServiceRegistration
         return services;
     }
 
-    /// <summary>The flow tracer that projects a real agent run into paced flow events, and the session registry that drives it.</summary>
+    /// <summary>The limits on what users may send (<see cref="ChatInputOptions"/>, from the <c>Chat</c> section).</summary>
+    public static IServiceCollection AddChatInputLimits(this IServiceCollection services, IConfiguration configuration)
+    {
+        services.Configure<ChatInputOptions>(configuration.GetSection(ChatInputOptions.SectionName));
+        return services;
+    }
+
+    /// <summary>
+    /// The flow tracer that projects a real agent run into paced flow events, the session registry that drives
+    /// it, and their session and message metrics.
+    /// </summary>
     public static IServiceCollection AddFlowTracing(this IServiceCollection services)
     {
         services.AddSingleton<FlowControlRegistry>();
         services.AddOpenTelemetry()
-            .WithMetrics(metrics => metrics.AddMeter(FlowControlRegistry.MeterName));
+            .WithMetrics(metrics => metrics.AddMeter(FlowControlRegistry.MeterName, ChatMetrics.MeterName));
         services.AddSingleton<FlowTracer>();
         return services;
     }

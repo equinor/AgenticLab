@@ -1,24 +1,43 @@
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
+const applicationVersion = readFileSync(new URL("../version.txt", import.meta.url), "utf8").trim();
 const learnOnly = process.argv.includes("--learn-only");
+const navigationOnly = process.argv.includes("--navigation-only");
+const markdownOnly = process.argv.includes("--markdown-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
 const legacyHosts = JSON.parse(process.env.AGENTICLAB_HOST_ALIASES ?? "{}");
 const screenshots = process.env.AGENTICLAB_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
 mkdirSync(screenshots, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const errors = [];
+const imageRequests = [];
 let currentPage;
 
 try {
     for (const viewport of [{ width: 1440, height: 1000 }, { width: 1024, height: 900 }, { width: 390, height: 844 }, { width: 1920, height: 1080 }]) {
         if (learnOnly && viewport.width < 900) continue;
         const context = await browser.newContext({ viewport });
+        if (!markdownOnly && !learnOnly) {
+            const teaserPage = currentPage = await context.newPage();
+            teaserPage.setDefaultTimeout(15000);
+            teaserPage.on("pageerror", error => errors.push(error.message));
+            await checkTeaser(teaserPage, viewport);
+            await teaserPage.close();
+            const fallbackPage = currentPage = await browser.newPage({ viewport, javaScriptEnabled: false });
+            const fallbackResponse = await fallbackPage.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+            await checkVersion(fallbackPage, fallbackResponse);
+            assert.equal(await fallbackPage.locator("[data-teaser-slide]:visible").count(), 3, "All messages are readable without JavaScript");
+            assert.equal(await fallbackPage.locator("[data-teaser-controls]").isVisible(), false, "Fallback has no inactive controls");
+            assert.equal(await fallbackPage.locator(".home-purpose").isVisible(), true, "The purpose is readable without JavaScript");
+            await capture(fallbackPage, `home-no-js-${viewport.width}`);
+            await fallbackPage.close();
+        }
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
@@ -34,7 +53,40 @@ try {
             console.log(`Agent guide ${viewport.width}x${viewport.height}: passed`);
             continue;
         }
+        page.on("request", request => {
+            if (new URL(request.url()).hostname === "images.invalid") imageRequests.push(request.url());
+        });
+        if (markdownOnly) {
+            await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
+            await page.getByRole("button", { name: "New conversation", exact: true }).click();
+            await page.waitForFunction(() => document.querySelector("section > output")?.textContent === "1 activations");
+            await checkConversationMarkdown(page);
+            await context.close();
+            currentPage = null;
+            console.log(`Conversation Markdown ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
+        await checkHome(page, viewport);
+        await checkVersion(page);
+        if (navigationOnly) {
+            await checkLearning(page, viewport.width);
+            await checkVersion(page);
+            await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
+            assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+            const missing = await page.goto(new URL("/missing-home-test", baseUrl).href, { waitUntil: "networkidle" });
+            assert.equal(missing.status(), 404);
+            await page.getByRole("heading", { name: "Page not found", exact: true }).waitFor();
+            assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+            await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
+            await page.locator(".home-app").waitFor();
+            await checkVersion(page);
+            await context.close();
+            currentPage = null;
+            console.log(`Home, navigation and Learn ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
         await openFlow(page);
+        await checkVersion(page);
         await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
         await checkExecutionControls(page);
@@ -94,6 +146,7 @@ try {
         await page.waitForFunction(() => document.querySelector("section > output")?.textContent === "1 activations");
         await page.getByRole("group", { name: "Execution mode" }).getByRole("button", { name: "Manual", exact: true }).click();
         await page.waitForFunction(() => document.querySelector('[aria-label="Execution mode"] button:last-child')?.getAttribute("aria-pressed") === "true");
+        await checkConversationMarkdown(page);
         await capture(page, `design-system-${viewport.width}`);
         await page.emulateMedia({ reducedMotion: "reduce" });
         assert.equal(await page.locator(".spinner").evaluate(element => getComputedStyle(element).animationName), "none");
@@ -104,9 +157,10 @@ try {
         await capture(page, `not-found-${viewport.width}`);
         await context.close();
         currentPage = null;
-        console.log(`Flow, docks, Discovery, Learn and design system ${viewport.width}x${viewport.height}: passed`);
+        console.log(`Home, Flow, docks, Discovery, Learn and design system ${viewport.width}x${viewport.height}: passed`);
     }
     assert.deepEqual(errors, [], "No unhandled browser errors");
+    assert.deepEqual(imageRequests, [], "Untrusted Markdown and raw HTML images must never make requests");
     console.log(`Screenshots: ${screenshots}`);
 } catch (error) {
     if (currentPage && !currentPage.isClosed()) await currentPage.screenshot({ path: path.join(screenshots, "failure.png"), fullPage: true });
@@ -114,6 +168,330 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkVersion(page, response) {
+    const label = page.locator(".app-header .version");
+    await label.waitFor({ state: "visible" });
+    assert.equal((await label.textContent()).trim(), `v${applicationVersion}`, "The header renders the release version");
+    const metadata = page.locator('meta[name="application-version"]');
+    assert.equal(await metadata.count(), 1, "Navigation must not duplicate the version meta tag");
+    assert.equal(await metadata.getAttribute("content"), applicationVersion);
+    await page.evaluate(() => document.fonts.ready);
+    const baselines = await page.evaluate(() =>
+        Array.from(document.querySelectorAll(".app-header h1, .app-header .version"), element => {
+            const marker = document.createElement("span");
+            marker.style.cssText = "display: inline-block; width: 0; height: 0; vertical-align: baseline";
+            element.append(marker);
+            const baseline = marker.getBoundingClientRect().top;
+            marker.remove();
+            return baseline;
+        }));
+    assert.equal(baselines.length, 2);
+    assert.ok(Math.abs(baselines[0] - baselines[1]) <= 1, "The version aligns with the product title's text baseline");
+    const labelBounds = await label.boundingBox();
+    const headerBounds = await page.locator(".app-header").boundingBox();
+    assert.ok(labelBounds.x >= headerBounds.x && labelBounds.x + labelBounds.width <= headerBounds.x + headerBounds.width + 1,
+        "The version label fits inside the shared header");
+    if (response) {
+        assert.equal(response.headers()["x-agenticlab-version"], applicationVersion);
+        assert.equal(response.headers()["x-ent-lab-version"], undefined);
+        const versions = await page.evaluate(html => {
+            const document = new DOMParser().parseFromString(html, "text/html");
+            return Array.from(document.querySelectorAll('meta[name="application-version"]'), element => element.getAttribute("content"));
+        }, await response.text());
+        assert.deepEqual(versions, [applicationVersion], "The initial HTML includes the release version without JavaScript");
+    }
+}
+
+async function checkTeaser(page, viewport) {
+    const requests = [];
+    page.on("request", request => requests.push(new URL(request.url()).pathname));
+    await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+    await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
+    await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    const teaser = page.locator("agentic-home-teaser[data-ready]");
+    await teaser.waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    const titles = ["Why agents matter", "What is an agent?", "Why Agentic Lab?"];
+    assert.deepEqual(await teaser.locator("h3").allTextContents(), titles);
+    assert.equal(await teaser.getAttribute("aria-roledescription"), "carousel");
+    const panels = teaser.locator(".teaser-panels");
+    assert.equal(await panels.getAttribute("aria-live"), "off");
+    assert.deepEqual(await teaser.locator("button").evaluateAll(buttons => buttons.map(button => button.dataset.teaserAction)),
+        ["toggle", "previous", "next"], "Rotation control comes first in visual and tab order");
+    const count = page.locator("[data-teaser-count]");
+    const previous = page.getByRole("button", { name: "Previous message", exact: true });
+    const next = page.getByRole("button", { name: "Next message", exact: true });
+    const toggle = page.locator('[data-teaser-action="toggle"]');
+    const layout = () => page.locator(".home-title, .home-purpose, .destinations, .destination, .home-teaser, .teaser-controls")
+        .evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON()));
+    const initialLayout = await layout();
+
+    async function assertMessage(index, live = "off") {
+        assert.equal(await count.textContent(), `${index + 1} / 3`);
+        assert.equal(await teaser.locator("[data-active] h3").textContent(), titles[index]);
+        assert.equal(await panels.getAttribute("aria-live"), live, "Only stopped rotation announces message changes");
+        assert.equal(await count.getAttribute("aria-live"), "off", "The counter does not duplicate message announcements");
+        assert.equal(await page.locator(".home-purpose").isVisible(), true, "The purpose remains visible for every message");
+        assert.equal(await teaser.getByRole("group").count(), 1, "Only the active message is exposed to accessibility");
+        assert.ok(await teaser.locator("[data-teaser-slide]:not([data-active])")
+            .evaluateAll(slides => slides.every(slide => slide.inert && slide.getAttribute("aria-hidden") === "true")));
+        const icons = await teaser.locator(".teaser-control svg:visible")
+            .evaluateAll(elements => elements.map(element => element.getBoundingClientRect().toJSON()));
+        assert.equal(icons.length, 3, "All playback controls show their active icon");
+        assert.ok(icons.every(bounds => bounds.width >= 16 && bounds.height >= 16), "Playback icons have stable, nonzero dimensions");
+        assert.deepEqual(await layout(), initialLayout, "Messages and controls do not shift the page");
+    }
+
+    async function advance(milliseconds, index, live = "off") {
+        await page.clock.runFor(milliseconds);
+        await assertMessage(index, live);
+    }
+
+    await assertMessage(0);
+    for (const index of [1, 2, 0]) await advance(7000, index);
+    await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await advance(14000, 0, "polite");
+    await previous.click();
+    await assertMessage(2, "polite");
+    await next.click();
+    await assertMessage(0, "polite");
+    await page.mouse.move(0, 0);
+    await page.keyboard.press("Shift+Tab");
+    assert.ok(await previous.evaluate(element => document.activeElement === element), "Previous precedes Next in tab order");
+    await page.keyboard.press("Shift+Tab");
+    assert.ok(await toggle.evaluate(element => element.matches(":focus-visible")), "Keyboard playback control has visible focus");
+    assert.equal(await toggle.getAttribute("aria-label"), "Play rotation");
+    await page.keyboard.press("Enter");
+    await advance(7000, 1);
+    await page.keyboard.press("Tab");
+    assert.ok(await previous.evaluate(element => document.activeElement === element), "Rotation control precedes Previous in tab order");
+    await advance(14000, 1, "polite");
+    await page.getByRole("link", { name: "Live flow", exact: true }).focus();
+    await page.keyboard.press("ArrowRight");
+    await advance(7000, 1, "polite");
+    await next.focus();
+    await page.keyboard.press("ArrowLeft");
+    await assertMessage(0, "polite");
+    await page.keyboard.press("ArrowRight");
+    await assertMessage(1, "polite");
+
+    await page.reload({ waitUntil: "networkidle" });
+    await teaser.waitFor();
+    await teaser.hover();
+    await advance(14000, 0);
+    await page.mouse.move(0, 0);
+    await advance(7000, 1);
+    await page.evaluate(() => {
+        Object.defineProperty(document, "hidden", { configurable: true, value: true });
+        document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await advance(14000, 1);
+    await page.evaluate(() => {
+        delete document.hidden;
+        document.dispatchEvent(new Event("visibilitychange"));
+    });
+    await advance(7000, 2);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.getByRole("button", { name: "Play rotation", exact: true }).waitFor();
+    await advance(14000, 2, "polite");
+    assert.equal(await teaser.locator("[data-active]").evaluate(element => getComputedStyle(element).transitionDuration), "0s");
+    await page.reload({ waitUntil: "networkidle" });
+    await teaser.waitFor();
+    await advance(21000, 0, "polite");
+    await next.click();
+    await assertMessage(1, "polite");
+    await capture(page, `home-teaser-${viewport.width}`);
+    await page.getByRole("button", { name: "Play rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await advance(7000, 2);
+    await page.getByRole("button", { name: "Pause rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await advance(14000, 2, "polite");
+
+    await page.getByRole("button", { name: "Play rotation", exact: true }).click();
+    await page.mouse.move(0, 0);
+    const detached = await teaser.elementHandle();
+    await detached.evaluate(element => element.remove());
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.clock.runFor(21000);
+    assert.equal(await detached.evaluate(element => element.querySelector("[data-teaser-count]").textContent), "3 / 3",
+        "Disconnected teaser has no active timer or media listener");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await detached.evaluate(element => document.querySelector(".home-content").append(element));
+    await teaser.waitFor();
+    await assertMessage(0);
+    await advance(7000, 1);
+    await advance(7000, 2);
+    await detached.dispose();
+    assert.equal(requests.some(route => route.startsWith("/_blazor")), false, "Teaser interactions never start a server circuit");
+    assert.equal(await page.evaluate(() => localStorage.length), 0, "Teaser interactions do not save preferences");
+}
+
+async function checkHome(page, viewport) {
+    const requests = [];
+    const recordRequest = request => requests.push(new URL(request.url()).pathname);
+    page.on("request", recordRequest);
+    const response = await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    page.off("request", recordRequest);
+    assert.equal(response.status(), 200);
+    await page.locator("agentic-home-teaser[data-ready]").waitFor();
+    await page.getByRole("heading", { name: "Agentic Lab", level: 1, exact: true }).waitFor();
+    assert.equal(await page.getByRole("heading", { name: "Agentic Lab", exact: true }).count(), 1, "The product heading is not repeated");
+    assert.equal(await page.getByRole("heading", { name: "Choose where to start", level: 2, exact: true }).count(), 1);
+    assert.match(await page.locator(".home-purpose").textContent(), /Agentic Lab demystifies agentic AI\./);
+    assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
+    assert.equal(await page.locator(".flow-app, .learn-app").count(), 0, "Home does not mount either destination");
+    assert.equal(requests.some(route => route === "/_blazor" || route === "/_blazor/negotiate"), false,
+        "Home does not start an interactive server circuit");
+    assert.equal(await page.evaluate(() => localStorage.length), 0, "Home does not write preferences");
+
+    const destinations = page.getByRole("navigation", { name: "Agentic Lab destinations", exact: true });
+    assert.deepEqual(await destinations.locator("a").evaluateAll(links => links.map(link => link.getAttribute("href"))), ["/flow", "/learn"]);
+    const geometry = await destinations.locator("a").evaluateAll(links => links.map(link => {
+        const bounds = link.getBoundingClientRect();
+        return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, bottom: bounds.bottom };
+    }));
+    assert.ok(Math.abs(geometry[0].width - geometry[1].width) < 1, "Destinations have equal width");
+    assert.ok(Math.abs(geometry[0].height - geometry[1].height) < 1, "Destinations have equal height");
+    assert.ok(geometry.every(bounds => bounds.y >= 0 && bounds.bottom <= viewport.height), "Both choices fit the first viewport");
+    if (viewport.width > 900) assert.ok(geometry[1].x > geometry[0].x, "Wide home shows both destinations side by side");
+    else assert.ok(geometry[1].y >= geometry[0].bottom, "Narrow home stacks destinations without overlap");
+    for (const icon of await page.locator(".destination-icon").all()) {
+        const mask = await icon.evaluate(element => getComputedStyle(element).maskImage);
+        const asset = new URL(mask.match(/url\(["']?(.*?)["']?\)/)[1], page.url());
+        assert.equal(asset.origin, new URL(baseUrl).origin, "Home icons are local assets");
+        assert.ok((await page.request.get(asset.href)).ok(), "Home icon is available");
+    }
+    await capture(page, `home-${viewport.width}`);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    assert.equal(await destinations.locator("a").first().evaluate(element => getComputedStyle(element).transitionDuration), "0s");
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    if (viewport.width === 1440) {
+        await page.evaluate(() => document.documentElement.style.zoom = "2");
+        await capture(page, "home-200-percent");
+        await page.evaluate(() => document.documentElement.style.zoom = "");
+    }
+
+    await followHomeLinkWithKeyboard(page, "Live flow", "/flow");
+    assert.equal((await page.reload({ waitUntil: "networkidle" })).status(), 200, "Flow supports direct reloads");
+    await page.locator(".flow-app").waitFor();
+    assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
+    await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
+    await page.locator(".home-app").waitFor();
+    await followHomeLinkWithKeyboard(page, "Agent guide", "/learn");
+    await page.getByRole("heading", { name: "Intro", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Agentic Lab home", exact: true }).getAttribute("href"), "/");
+    assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
+    await page.getByRole("link", { name: "The agent loop", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/learn" && url.searchParams.get("stage") === "agent-loop");
+    assert.equal((await page.reload({ waitUntil: "networkidle" })).status(), 200);
+    await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
+    assert.equal(await page.getByRole("link", { name: "Open live flow", exact: true }).getAttribute("href"), "/flow");
+    await page.goBack({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Intro", exact: true }).waitFor();
+    await page.goForward({ waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "The agent loop", exact: true }).waitFor();
+    await page.getByRole("link", { name: "Open live flow", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/flow");
+    await page.locator(".flow-app").waitFor();
+    await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
+    await page.locator(".home-app").waitFor();
+    await page.locator("agentic-home-teaser[data-ready]").waitFor();
+    assert.equal(await page.locator("[data-teaser-count]").textContent(), "1 / 3", "Returning Home initializes one fresh teaser");
+}
+
+async function followHomeLinkWithKeyboard(page, name, route) {
+    const link = page.getByRole("link", { name, exact: true });
+    for (let attempt = 0; attempt < 8; attempt++) {
+        await page.keyboard.press("Tab");
+        if (await link.evaluate(element => document.activeElement === element)) break;
+    }
+    assert.ok(await link.evaluate(element => element.matches(":focus-visible") && getComputedStyle(element).outlineStyle === "solid"),
+        `${name}: keyboard focus is visible`);
+    await page.keyboard.press("Enter");
+    await page.waitForURL(url => url.pathname === route);
+}
+
+async function checkConversationMarkdown(page) {
+    const reply = page.locator(".markdown-example .reply-markdown");
+    const source = page.locator("#markdown-source");
+    const original = await source.inputValue();
+    await reply.getByRole("heading", { name: "Project summary" }).waitFor();
+    for (const selector of ["h2", "strong", "em", "ul", "ol", "li", "code", "pre", "blockquote", "table", "th", "td"]) {
+        assert.ok(await reply.locator(selector).count(), `Markdown must render ${selector}`);
+    }
+    assert.equal(await reply.locator("a").count(), 3);
+    const links = await reply.locator("a").evaluateAll(anchors => anchors.map(anchor => ({
+        protocol: new URL(anchor.href).protocol, target: anchor.target, rel: anchor.rel,
+    })));
+    assert.deepEqual(links.map(link => link.protocol), ["https:", "http:", "mailto:"]);
+    assert.ok(links.every(link => link.target === "_blank" && link.rel === "noopener noreferrer"));
+    const text = await reply.innerText();
+    assert.ok(text.includes("Image description"));
+    assert.ok(text.includes('<img src="https://images.invalid/raw-sentinel.png"'));
+    assert.ok(text.includes("<script>window.markdownExecuted=true</script>"));
+    await assertSafeReply();
+    const styles = await reply.locator("pre code").evaluate(code => ({
+        font: getComputedStyle(code).fontFamily,
+        size: getComputedStyle(code).fontSize,
+        whitespace: getComputedStyle(code.parentElement).whiteSpace,
+        overflow: getComputedStyle(code.parentElement).overflowX,
+    }));
+    assert.ok(styles.font.includes("IBM Plex Mono"), "Generated code must receive scoped typography");
+    assert.equal(styles.size, "12px");
+    assert.equal(styles.whitespace, "pre");
+    assert.equal(styles.overflow, "auto");
+    await reply.getByRole("link", { name: "Details", exact: true }).focus();
+    await page.keyboard.press("Tab");
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), "HTTP");
+    assert.equal(await reply.getByRole("link", { name: "HTTP", exact: true }).evaluate(link => getComputedStyle(link).outlineStyle), "solid");
+    await assertBounds();
+    await reply.screenshot({ path: path.join(screenshots, `markdown-${page.viewportSize().width}.png`) });
+
+    for (const snapshot of [
+        { source: "```html\n<img src='https://images.invalid/partial.png'>", text: "<img src=", selector: "pre code" },
+        { source: "[Pending](https://", text: "[Pending]", selector: "p" },
+        { source: "- First\n- Sec", text: "Sec", selector: "ul" },
+        { source: "| Name | Value |\n| --- | --- |\n| First | Sec", text: "Sec", selector: "table" },
+        { source: "[Blocked](javascript:alert%281%29)", text: "Blocked", selector: "p" },
+        { source: "", text: "", selector: null },
+        { source: "## Updated\n\n**Complete**", text: "Complete", selector: "strong" },
+    ]) {
+        await source.fill(snapshot.source);
+        await page.waitForFunction(({ text, selector }) => {
+            const reply = document.querySelector(".markdown-example .reply-markdown");
+            return text === "" ? reply.textContent.trim() === "" : reply.textContent.includes(text) && reply.querySelector(selector);
+        }, snapshot);
+        await assertSafeReply();
+        await assertBounds();
+    }
+    await source.fill(original);
+    await reply.getByRole("heading", { name: "Project summary" }).waitFor();
+    await page.evaluate(() => document.documentElement.style.zoom = "2");
+    await assertBounds();
+    await reply.screenshot({ path: path.join(screenshots, `markdown-zoom-${page.viewportSize().width}.png`) });
+    await page.evaluate(() => document.documentElement.style.zoom = "");
+
+    async function assertSafeReply() {
+        assert.equal(await reply.locator("img, script, iframe, style, object, embed, video, audio, source, [src], [srcset], [onerror], [onmouseover]").count(), 0);
+        assert.equal(await page.evaluate(() => window.markdownExecuted), undefined);
+        assert.ok(await reply.locator("a").evaluateAll(anchors => anchors.every(anchor => ["http:", "https:", "mailto:"].includes(new URL(anchor.href).protocol))));
+    }
+
+    async function assertBounds() {
+        const bounds = await reply.evaluate(element => ({
+            pageWidth: document.documentElement.clientWidth,
+            pageScroll: document.documentElement.scrollWidth,
+            width: element.clientWidth,
+            scroll: element.scrollWidth,
+        }));
+        assert.ok(bounds.pageScroll <= bounds.pageWidth + 1, "Markdown must not widen the page");
+        assert.ok(bounds.scroll <= bounds.width + 1, "Only code and table payloads may scroll horizontally");
+    }
 }
 
 async function checkHosts(page, width) {
@@ -674,7 +1052,7 @@ async function checkTurnOutcomes(page, width) {
 }
 
 async function openFlow(page) {
-    await page.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+    await page.goto(new URL("/flow", baseUrl).href, { waitUntil: "networkidle" });
     await page.waitForFunction(() => document.querySelector(".chat-log")?._tsStickInit === true);
     await page.locator("#agent option").first().waitFor({ state: "attached" });
 }
@@ -685,7 +1063,7 @@ async function capture(page, name) {
         overflow: document.documentElement.scrollWidth > innerWidth + 1,
         fonts: [...document.fonts].filter(font => font.status === "loaded").map(font => font.family),
         font: getComputedStyle(document.querySelector("h1")).fontFamily,
-        overflowingBars: [...document.querySelectorAll(".app-header, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
+        overflowingBars: [...document.querySelectorAll(".app-header, .home-content, .destinations, .destination, .home-teaser, .teaser-panels, .teaser-panel, .teaser-controls, .selection-bar, .conversation-head, .main-panel-head, .run-controls, .discovery-toolbar, .stage-heading")]
             .filter(element => element.getClientRects().length && element.scrollWidth > element.clientWidth + 1)
             .map(element => element.className)
     }));

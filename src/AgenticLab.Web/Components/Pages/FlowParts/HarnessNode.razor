@@ -12,7 +12,11 @@
     </span>
     <span class="title">@View.Harness.Label</span>
     <span class="subtitle">@View.Harness.Subtitle</span>
-    @if (View.Agent.RequiresWorkspace && !string.IsNullOrWhiteSpace(View.Workspace))
+    @if (View.Agent.RequiresWorkspace && View.ServerWorkspace.IsSample)
+    {
+        <span class="subtitle workspace-path" title="Read-only sample project">📁 @View.ServerWorkspace.SampleName (read-only)</span>
+    }
+    else if (View.Agent.RequiresWorkspace && !string.IsNullOrWhiteSpace(View.Workspace))
     {
         <span class="subtitle workspace-path" title="@View.Workspace">📁 @View.Workspace</span>
     }

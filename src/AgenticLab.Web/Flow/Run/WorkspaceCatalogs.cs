@@ -71,7 +71,7 @@ internal sealed class WorkspaceCatalogs(AiServiceClient ai, FlowViewState view, 
         _knownSkills.Clear();
         _loadedSkills.Clear();
 
-        if (!view.Agent.SupportsSkills || string.IsNullOrWhiteSpace(view.Workspace))
+        if (!view.Agent.SupportsSkills || !view.HasWorkspace)
         {
             await notify();
             return;
@@ -101,7 +101,7 @@ internal sealed class WorkspaceCatalogs(AiServiceClient ai, FlowViewState view, 
         var request = ++_instructionsRequest;
         _knownInstructions.Clear();
 
-        if (!view.Agent.SupportsInstructions || string.IsNullOrWhiteSpace(view.Workspace))
+        if (!view.Agent.SupportsInstructions || !view.HasWorkspace)
         {
             await notify();
             return;
@@ -129,7 +129,7 @@ internal sealed class WorkspaceCatalogs(AiServiceClient ai, FlowViewState view, 
     {
         var version = view.ConfigurationVersion;
         var request = ++_agentsRequest;
-        if (!view.Roster.VendorHasWorkspaceAgent || string.IsNullOrWhiteSpace(view.Workspace))
+        if (!view.Roster.VendorHasWorkspaceAgent || !view.HasWorkspace)
         {
             view.Roster.SetWorkspaceAgents(Array.Empty<AgentInfo>());
             return;

@@ -14,9 +14,11 @@ namespace AgenticLab.AiService.Application.Skills;
 /// The loader reads only the lightweight name/description metadata so the catalogue can be injected into
 /// the model's context cheaply; the full body is read later, on demand, by <c>SkillsTool.ReadSkill</c>.
 /// All paths are resolved through the workspace scope, so discovery is confined to the workspace folder.
-/// Registered as a singleton; it reads the ambient workspace scope on each call and never caches.
+/// Registered as a singleton; it reads the ambient workspace scope on each call and never caches. In the
+/// read-only sample mode it leaves out skills whose <c>allowed-tools</c> need anything but read-only tools.
 /// </summary>
-public sealed class SkillLoader
+/// <param name="access">The workspace policy; null (as in tests) treats every skill as available.</param>
+public sealed class SkillLoader(WorkspaceAccess? access = null)
 {
     private const string SkillFileName = "SKILL.md";
 
@@ -67,14 +69,14 @@ public sealed class SkillLoader
                     continue;
                 }
 
-                var (name, description) = ReadFrontmatter(file);
+                var (name, description, allowedTools) = ReadFrontmatter(file);
                 if (string.IsNullOrWhiteSpace(name))
                 {
                     continue;
                 }
 
                 var id = Path.GetFileName(dir);
-                skills.Add(new SkillDefinition(name, description, $"{folder}/{id}/{SkillFileName}"));
+                skills.Add(new SkillDefinition(name, description, $"{folder}/{id}/{SkillFileName}", allowedTools));
             }
         }
 
@@ -97,12 +99,13 @@ public sealed class SkillLoader
                     continue;
                 }
 
-                var (_, description) = ReadFrontmatter(file);
-                skills.Add(new SkillDefinition(name, description, $"{folder}/{fileName}"));
+                var (_, description, allowedTools) = ReadFrontmatter(file);
+                skills.Add(new SkillDefinition(name, description, $"{folder}/{fileName}", allowedTools));
             }
         }
 
         return skills
+            .Where(s => access is null || s.AllowedTools.All(access.AllowsTool))
             .GroupBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.First())
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
@@ -147,19 +150,21 @@ public sealed class SkillLoader
             "\n</skills>";
     }
 
-    // Parses the leading YAML frontmatter (the block delimited by '---' lines) for the 'name' and
-    // 'description' keys. Intentionally minimal — no YAML dependency — since the frontmatter is a flat
-    // set of simple key: value pairs. Returns blanks when the field or frontmatter is absent.
-    private static (string Name, string Description) ReadFrontmatter(string file)
+    // Parses the leading YAML frontmatter (the block delimited by '---' lines) for the 'name', 'description'
+    // and 'allowed-tools' keys. Intentionally minimal — no YAML dependency — since the frontmatter is a flat
+    // set of simple key: value pairs; 'allowed-tools' is a single-line, comma- or space-separated list.
+    // Returns blanks when the field or frontmatter is absent.
+    private static (string Name, string Description, IReadOnlyList<string> AllowedTools) ReadFrontmatter(string file)
     {
         var lines = File.ReadAllLines(file);
         if (lines.Length == 0 || lines[0].Trim() != "---")
         {
-            return (string.Empty, string.Empty);
+            return (string.Empty, string.Empty, []);
         }
 
         var name = string.Empty;
         var description = string.Empty;
+        IReadOnlyList<string> allowedTools = [];
         for (var i = 1; i < lines.Length; i++)
         {
             var line = lines[i];
@@ -184,8 +189,15 @@ public sealed class SkillLoader
             {
                 description = value;
             }
+            else if (key.Equals("allowed-tools", StringComparison.OrdinalIgnoreCase))
+            {
+                allowedTools = value.Trim('[', ']')
+                    .Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(tool => tool.Trim('"', '\''))
+                    .ToList();
+            }
         }
 
-        return (name, description);
+        return (name, description, allowedTools);
     }
 }
