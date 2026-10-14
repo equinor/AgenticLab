@@ -114,8 +114,6 @@
     }
     else if (StageId == "anatomy-of-agent")
     {
-        <details class="configuration-options">
-            <summary>Other agent configurations</summary>
         <div class="example-picker anatomy-purpose-picker" role="group" aria-label="Anatomy agent purpose">
             @foreach (var purpose in FoundationStory.AnatomyPurposes)
             {
@@ -123,14 +121,12 @@
                         @onclick="() => _story.SelectAnatomyPurpose(purpose.Id)">@purpose.Title</button>
             }
         </div>
-        </details>
         <p class="anatomy-profile-label" aria-live="polite">@_story.AnatomyProfile.ContextLabel</p>
         <div class="anatomy-story" data-diagram="anatomy" data-purpose="@_story.AnatomyProfile.Id" data-example="@_story.Anatomy.Id">
             <section class="anatomy-part anatomy-system" data-node="instructions" data-reveal="0">
                 <p class="anatomy-owner"><span class="story-icon application-icon" aria-hidden="true"></span>Text supplied to the model</p>
                 <h3>System prompt</h3>
-                <p>Standing instruction text included in model requests for this configuration.</p>
-                <details><summary>Instruction text</summary><p class="anatomy-text">@_story.AnatomyProfile.SystemPrompt</p></details>
+                <p class="anatomy-text">@_story.AnatomyProfile.SystemPrompt</p>
                 <small>Standing guidance, not enforced permissions</small>
             </section>
             <section class="@RevealClass(1, "anatomy-part anatomy-catalogue")" aria-hidden="@(IsUnrevealed(1) ? "true" : "false")" data-node="available-tools" data-reveal="1">
@@ -181,16 +177,15 @@
             </section>
             <section class="@RevealClass(4, "anatomy-part anatomy-settings")" aria-hidden="@(IsUnrevealed(4) ? "true" : "false")" data-node="anatomy-settings" data-reveal="4">
                 <p class="anatomy-owner">Runtime choices</p>
-                <h3>Model choice</h3>
+                <h3>Settings</h3>
                 <div class="anatomy-model" aria-live="polite"><span class="story-icon model-icon" aria-hidden="true"></span><strong>Model choice example</strong><span>@_story.Anatomy.Model</span></div>
-                <details><summary>Selection considerations</summary><p>@_story.Anatomy.ModelReason</p></details>
+                <p>@_story.Anatomy.ModelReason</p>
                 <small>Illustrative fit, not a required model or a product's actual deployment.</small>
-            </section>
-            <section class="@RevealClass(5, "anatomy-part anatomy-controls")" aria-hidden="@(IsUnrevealed(5) ? "true" : "false")" data-node="execution-controls" data-reveal="5">
-                <p class="anatomy-owner">Checks executed by the harness</p>
-                <h3>Execution controls</h3>
-                <p>@(_story.Anatomy.Controls ?? _story.AnatomyProfile.Controls)</p>
-                <small>Enforced by code, not by the model following a prompt.</small>
+                <div class="@RevealClass(5, "anatomy-controls")" aria-hidden="@(IsUnrevealed(5) ? "true" : "false")" data-node="execution-controls" data-reveal="5">
+                    <strong>Execution controls</strong>
+                    <p>@(_story.Anatomy.Controls ?? _story.AnatomyProfile.Controls)</p>
+                    <small>Checks executed by the harness, not by the model following a prompt.</small>
+                </div>
             </section>
             <section class="@RevealClass(6, "anatomy-part anatomy-task")" aria-hidden="@(IsUnrevealed(6) ? "true" : "false")" data-node="anatomy-task" data-reveal="6">
                 <p class="anatomy-owner"><span class="story-icon user-icon" aria-hidden="true"></span>This turn</p>

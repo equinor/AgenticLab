@@ -167,9 +167,11 @@ instruction text, registered tools, role instructions, selected tools, model cho
 controls, task and custom instructions. Each reveal adds one node; tools, model and controls have
 separate steps. Only `read_file` is enabled for this example, with the permitted path
 `meeting-notes.txt`. No skill-loading, file-writing or terminal tool is enabled.
-Unrevealed nodes take no layout space. Full system-prompt text and **Other agent configurations**
-start collapsed. **Meeting notes / Chat / Office / Coding / Custom** changes the example, not the
-selected backend agent. Model-selection considerations are available on demand.
+Cards keep fixed grid positions: the system prompt sits beside the registered tools, followed by
+role instructions, selected tools and a **Settings** card whose execution controls are revealed as
+their own step. Unrevealed cards take no layout space. The full system-prompt text and the model-selection
+considerations are shown inline. **Meeting notes / Chat / Office / Coding / Custom** tabs change the
+example, not the selected backend agent.
 The other configurations add optional skill-description and skill-body reveals when skills are
 configured; reading a skill supplies instruction text, not permission or an executed workflow.
 Neither model choice, persona, instructions nor skills grant permissions.

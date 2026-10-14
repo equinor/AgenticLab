@@ -587,7 +587,6 @@ async function checkFoundationReveals(page, width) {
         }
         if (stage === "anatomy-of-agent") {
             assert.match(await lesson.locator('[data-node="anatomy-task"]').innerText(), /Read meeting-notes.txt and list the agreed actions/);
-            await lesson.getByText("Other agent configurations", { exact: true }).click();
             await lesson.getByRole("button", { name: "Coding", exact: true }).click();
             await page.locator('.anatomy-story[data-purpose="coding"]').waitFor();
             await lesson.getByRole("button", { name: "Show complete diagram", exact: true }).click();
