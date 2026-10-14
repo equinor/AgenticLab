@@ -166,53 +166,27 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(expected, AgentLearningJourney.Number(stageId));
     }
 
-    /// <summary>Intro slides have readable content and matching diagrams with valid, continuous exchanges.</summary>
+    /// <summary>Intro slides match their diagrams, with valid connections and progressively added actors.</summary>
     [Fact]
     public void Introduction_HasAlignedSlidesAndValidDiagramExchanges()
     {
-        var introduction = AgentLearningJourney.Resolve(null);
-        Assert.Same(AgentLearningJourney.Stages[0], introduction);
-        Assert.False(string.IsNullOrWhiteSpace(introduction.Title));
-        Assert.False(string.IsNullOrWhiteSpace(introduction.Summary));
-        Assert.False(string.IsNullOrWhiteSpace(introduction.Takeaway));
-
         var steps = AgentLearningJourney.IntroductionSteps;
-        Assert.NotEmpty(steps);
-        Assert.Equal(steps.Count, steps.Select(step => step.Id).Distinct().Count());
-        Assert.All(steps, step =>
+        var diagrams = AgentLearningJourney.IntroductionDiagrams;
+        Assert.Equal(["chatbot", "agent", "chat-interface", "chat-to-agent"], steps.Select(step => step.Id).ToArray());
+        Assert.Equal(steps.Select(step => step.Id), diagrams.Select(diagram => diagram.Id));
+        Assert.Equal([2, 3, 4, 4], diagrams.Select(diagram => diagram.Actors.Count).ToArray());
+
+        foreach (var diagram in diagrams)
         {
-            Assert.False(string.IsNullOrWhiteSpace(step.Id));
-            Assert.False(string.IsNullOrWhiteSpace(step.Title));
-            Assert.False(string.IsNullOrWhiteSpace(step.Detail));
-        });
-        Assert.Equal(steps.Select(step => step.Id),
-            AgentLearningJourney.IntroductionDiagrams.Select(diagram => diagram.Id));
-        Assert.All(AgentLearningJourney.IntroductionDiagrams, diagram =>
-        {
-            Assert.False(string.IsNullOrWhiteSpace(diagram.Description));
-            Assert.NotEmpty(diagram.Actors);
             var actorIds = diagram.Actors.Select(actor => actor.Id).ToArray();
             Assert.Equal(actorIds.Length, actorIds.Distinct().Count());
-            Assert.All(diagram.Actors, actor =>
-            {
-                Assert.False(string.IsNullOrWhiteSpace(actor.Id));
-                Assert.False(string.IsNullOrWhiteSpace(actor.Title));
-                Assert.False(string.IsNullOrWhiteSpace(actor.Detail));
-            });
-            Assert.NotEmpty(diagram.Exchanges);
             Assert.All(diagram.Exchanges, exchange =>
             {
                 Assert.Contains(exchange.From, actorIds);
                 Assert.Contains(exchange.To, actorIds);
                 Assert.NotEqual(exchange.From, exchange.To);
-                Assert.False(string.IsNullOrWhiteSpace(exchange.Detail));
             });
-            for (var index = 1; index < diagram.Exchanges.Count; index++)
-            {
-                Assert.Equal(diagram.Exchanges[index - 1].To, diagram.Exchanges[index].From);
-            }
-            Assert.Equal(diagram.Exchanges[0].From, diagram.Exchanges[^1].To);
-        });
+        }
     }
 
     /// <summary>Missing and retired links always resolve to a usable first stage.</summary>

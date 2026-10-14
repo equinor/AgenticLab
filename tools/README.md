@@ -24,7 +24,8 @@ below is illustrative; use the actual URL. Only the `AGENTICLAB_*` variable name
 
 Use `--learn-only` against a standalone Web instance to check the guide without AiService,
 credentials or model/tool calls. This mode uses desktop viewports only (1440, 1024 and 1920 pixels).
-It checks the static Harness + Model overview, six grouped harness reveals and cumulative Anatomy reveals,
+It checks Intro navigation and the nested Harness/Web search diagram,
+the static Harness + Model overview, six grouped harness reveals and cumulative Anatomy reveals,
 independent right-side example boxes and pointer/keyboard activation,
 Left/Right progression using the rendered lesson order and step counts, backward last-reveal landing, endpoint bounds,
 history/reload resets, focus recovery and native selector/modifier keys. It covers optional skills,
