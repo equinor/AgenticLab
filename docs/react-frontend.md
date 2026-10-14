@@ -19,6 +19,13 @@ Vite forwards `/api` to the BFF through server-only `BFF_URL`. The BFF uses serv
 (`https+http://aiservice`) or standalone `AiService:Url`. After build, it serves static React assets
 and the same API routes without a Node runtime.
 
+The application version comes from the repository's [version.txt](../version.txt), shared with all
+.NET projects. Vite embeds it into the top-bar label and an `application-version` meta tag in both
+development and built HTML. Vite development/preview responses and the BFF's shared middleware expose
+`X-AgenticLab-Version`; the BFF preserves the upstream version on proxied responses. There is no version
+API call or independent npm package version. Restart Vite after a version bump, and rebuild both
+React and the .NET services before releasing them together.
+
 The BFF uses YARP direct forwarding and an explicit path/method allowlist:
 
 | Browser route | Unchanged AiService route |
@@ -173,6 +180,10 @@ Build BFF first (`dotnet test` does this). Playwright runs a loopback fixture, r
 ports 5197, 5183 and 5174; the app never silently uses the fixture. Tests need no Azure credentials.
 .NET checks forwarding/SSE boundaries; Vitest checks parsing and lifecycle races. React CI is separate
 from the .NET-only solution check and image publishing.
+
+The version browser regression compares the top-bar label, response header, initial HTML meta tag and
+built HTML with [version.txt](../version.txt) on desktop, tablet and mobile. Build React before running
+the browser suite so the production HTML is checked alongside Vite's development response.
 
 ## Security and release boundary
 

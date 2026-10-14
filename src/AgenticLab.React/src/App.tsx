@@ -10,6 +10,8 @@ import { RunControls } from './components/RunControls'
 import { TraceList } from './components/TraceList'
 import styles from './App.module.css'
 
+const appVersion = import.meta.env.VITE_APP_VERSION
+
 export default function App() {
   const [catalogs, setCatalogs] = useState<Catalogs | null>(null)
   const [catalogError, setCatalogError] = useState<string | null>(null)
@@ -55,10 +57,13 @@ export default function App() {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <a href="/" className={styles.brand} aria-label="Agentic Lab home">
-          <span className={styles.mark}><Waypoints size={24} aria-hidden="true" /></span>
-          <h1>Agentic AI</h1>
-        </a>
+        <div className={styles.brandGroup}>
+          <a href="/" className={styles.brand} aria-label="Agentic Lab home">
+            <span className={styles.mark}><Waypoints size={24} aria-hidden="true" /></span>
+            <h1>Agentic AI</h1>
+          </a>
+          <span className={styles.version} title={`Application version ${appVersion}`}>v{appVersion}</span>
+        </div>
         <div className={styles.headerActions}>
           <span className={styles.edition}>Flow workspace <span>React</span></span>
           <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/o-viken/agenticlab"

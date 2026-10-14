@@ -12,6 +12,7 @@
     <ProjectReference Include="../../src/AgenticLab.Web/AgenticLab.Web.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../../version.txt" Link="version.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../src/AgenticLab.Web/Concepts/**/*" Link="Concepts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

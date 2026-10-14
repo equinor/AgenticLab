@@ -6,6 +6,7 @@ builder.AddServiceDefaults();
 builder.AddFrontendProxy();
 
 var app = builder.Build();
+app.UseAppVersion();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.MapDefaultEndpoints();

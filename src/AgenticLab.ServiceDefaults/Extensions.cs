@@ -1,3 +1,4 @@
+using AgenticLab.ServiceDefaults;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
@@ -30,6 +31,8 @@ public static class Extensions
 
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
+        builder.Services.AddSingleton<ApplicationVersionInfo>();
+
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
@@ -121,6 +124,13 @@ public static class Extensions
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
+    }
+
+    /// <summary>Installs shared release metadata before error handlers and other middleware that can start a response.</summary>
+    public static WebApplication UseAppVersion(this WebApplication app)
+    {
+        app.UseMiddleware<AppVersionMiddleware>();
+        return app;
     }
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)

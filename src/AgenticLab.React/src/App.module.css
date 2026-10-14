@@ -1,5 +1,7 @@
 .app { max-width: 1600px; margin: 0 auto; min-height: 100dvh; height: 100dvh; display: flex; flex-direction: column; background: var(--surface); border-inline: 1px solid var(--border); }
-.header { flex: 0 0 auto; min-height: 92px; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.header { flex: 0 0 auto; min-height: 92px; padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; border-bottom: 1px solid var(--border); }
+.brandGroup { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; min-width: 0; }
+.version { color: var(--muted); font: 11px/1.5 var(--mono); overflow-wrap: anywhere; }
 .brand { display: flex; align-items: center; gap: 13px; text-decoration: none; color: var(--ink); }
 .mark { width: 40px; height: 40px; display: grid; place-items: center; background: var(--accent); color: white; border-radius: 7px; }
 .brand h1 { font-size: 21px; line-height: 1.15; font-weight: 600; }

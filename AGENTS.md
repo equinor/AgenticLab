@@ -21,7 +21,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.Web](src/AgenticLab.Web/Program.cs) | Blazor Server app that visualizes the live data flow (User → Application/Harness → Tools → LLM) by consuming the `/chat/stream` Server-Sent Events. |
 | [src/AgenticLab.React](src/AgenticLab.React/README.md) | Optional React/TypeScript CSR example: conversation, live flow and real execution controls. Presentation is separate from its API client and run-state hook. |
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
-| [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, and service discovery. Referenced by every service. |
+| [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, service discovery and application-version middleware. Referenced by every service. |
 | [src/AgenticLab.ModelProviders](src/AgenticLab.ModelProviders/ModelClientFactory.cs) | Shared model configuration and raw Azure/OpenAI/Gemini clients for AiService and A2AServer. No Flow state or frontend dependencies. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
 | [src/AgenticLab.Examples.ChatGpt](src/AgenticLab.Examples.ChatGpt/README.md) | Optional ChatGPT host, dedicated agent consuming shared Wikipedia/calculator tools, branding and tests. |
@@ -260,6 +260,15 @@ overrides to AiService; A2A specialists use the global default. See
 [docs/agents.md](docs/agents.md#per-agent-models).
 
 ## Conventions
+
+- The single application release version lives in [version.txt](version.txt).
+  [Directory.Build.props](Directory.Build.props) stamps every .NET project; React's Vite configuration
+  reads the same file. `AddServiceDefaults` registers the immutable `ApplicationVersionInfo`;
+  HTTP hosts call `UseAppVersion` immediately after `Build`, before error handlers and static files.
+  The middleware adds `X-AgenticLab-Version` without buffering responses and preserves an upstream
+  proxy response's version. Both frontends show the version beside the product name and emit an
+  `application-version` HTML meta tag. Rebuild all artifacts together when changing the version;
+  do not introduce per-host runtime version settings or an independent npm application version.
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
   `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links,

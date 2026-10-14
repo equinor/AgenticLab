@@ -3,6 +3,8 @@ name: React frontend
 on:
   pull_request:
     paths:
+      - 'version.txt'
+      - 'Directory.Build.props'
       - 'src/AgenticLab.React/**'
       - 'src/AgenticLab.Bff/**'
       - 'src/AgenticLab.ServiceDefaults/**'

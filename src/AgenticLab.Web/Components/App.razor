@@ -1,9 +1,12 @@
-﻿<!DOCTYPE html>
+﻿@inject AgenticLab.ServiceDefaults.ApplicationVersionInfo AppVersion
+
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="application-version" content="@AppVersion.Version" />
     <base href="/" />
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["design-system.css"]" />

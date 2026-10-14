@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
 const baseUrl = process.env.AGENTICLAB_URL ?? "http://127.0.0.1:5186";
+const applicationVersion = readFileSync(new URL("../version.txt", import.meta.url), "utf8").trim();
 const navigationOnly = process.argv.includes("--navigation-only");
 const markdownOnly = process.argv.includes("--markdown-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
@@ -27,7 +28,8 @@ try {
             await checkTeaser(teaserPage, viewport);
             await teaserPage.close();
             const fallbackPage = currentPage = await browser.newPage({ viewport, javaScriptEnabled: false });
-            await fallbackPage.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+            const fallbackResponse = await fallbackPage.goto(new URL("/", baseUrl).href, { waitUntil: "networkidle" });
+            await checkVersion(fallbackPage, fallbackResponse);
             assert.equal(await fallbackPage.locator("[data-teaser-slide]:visible").count(), 3, "All messages are readable without JavaScript");
             assert.equal(await fallbackPage.locator("[data-teaser-controls]").isVisible(), false, "Fallback has no inactive controls");
             assert.equal(await fallbackPage.locator(".home-purpose").isVisible(), true, "The purpose is readable without JavaScript");
@@ -51,8 +53,10 @@ try {
             continue;
         }
         await checkHome(page, viewport);
+        await checkVersion(page);
         if (navigationOnly) {
             await checkLearning(page, viewport.width);
+            await checkVersion(page);
             await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
             assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
             const missing = await page.goto(new URL("/missing-home-test", baseUrl).href, { waitUntil: "networkidle" });
@@ -61,12 +65,14 @@ try {
             assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
             await page.getByRole("link", { name: "Agentic Lab home", exact: true }).click();
             await page.locator(".home-app").waitFor();
+            await checkVersion(page);
             await context.close();
             currentPage = null;
             console.log(`Home, navigation and Learn ${viewport.width}x${viewport.height}: passed`);
             continue;
         }
         await openFlow(page);
+        await checkVersion(page);
         await checkHosts(page, viewport.width);
         await checkConversationHeader(page);
         await checkExecutionControls(page);
@@ -148,6 +154,40 @@ try {
     process.exitCode = 1;
 } finally {
     await browser.close();
+}
+
+async function checkVersion(page, response) {
+    const label = page.locator(".app-header .version");
+    await label.waitFor({ state: "visible" });
+    assert.equal((await label.textContent()).trim(), `v${applicationVersion}`, "The header renders the release version");
+    const metadata = page.locator('meta[name="application-version"]');
+    assert.equal(await metadata.count(), 1, "Navigation must not duplicate the version meta tag");
+    assert.equal(await metadata.getAttribute("content"), applicationVersion);
+    await page.evaluate(() => document.fonts.ready);
+    const baselines = await page.evaluate(() =>
+        Array.from(document.querySelectorAll(".app-header h1, .app-header .version"), element => {
+            const marker = document.createElement("span");
+            marker.style.cssText = "display: inline-block; width: 0; height: 0; vertical-align: baseline";
+            element.append(marker);
+            const baseline = marker.getBoundingClientRect().top;
+            marker.remove();
+            return baseline;
+        }));
+    assert.equal(baselines.length, 2);
+    assert.ok(Math.abs(baselines[0] - baselines[1]) <= 1, "The version aligns with the product title's text baseline");
+    const labelBounds = await label.boundingBox();
+    const headerBounds = await page.locator(".app-header").boundingBox();
+    assert.ok(labelBounds.x >= headerBounds.x && labelBounds.x + labelBounds.width <= headerBounds.x + headerBounds.width + 1,
+        "The version label fits inside the shared header");
+    if (response) {
+        assert.equal(response.headers()["x-agenticlab-version"], applicationVersion);
+        assert.equal(response.headers()["x-ent-lab-version"], undefined);
+        const versions = await page.evaluate(html => {
+            const document = new DOMParser().parseFromString(html, "text/html");
+            return Array.from(document.querySelectorAll('meta[name="application-version"]'), element => element.getAttribute("content"));
+        }, await response.text());
+        assert.deepEqual(versions, [applicationVersion], "The initial HTML includes the release version without JavaScript");
+    }
 }
 
 async function checkTeaser(page, viewport) {
