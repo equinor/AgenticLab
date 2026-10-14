@@ -163,6 +163,18 @@ async function checkVersion(page, response) {
     const metadata = page.locator('meta[name="application-version"]');
     assert.equal(await metadata.count(), 1, "Navigation must not duplicate the version meta tag");
     assert.equal(await metadata.getAttribute("content"), applicationVersion);
+    await page.evaluate(() => document.fonts.ready);
+    const baselines = await page.evaluate(() =>
+        Array.from(document.querySelectorAll(".app-header h1, .app-header .version"), element => {
+            const marker = document.createElement("span");
+            marker.style.cssText = "display: inline-block; width: 0; height: 0; vertical-align: baseline";
+            element.append(marker);
+            const baseline = marker.getBoundingClientRect().top;
+            marker.remove();
+            return baseline;
+        }));
+    assert.equal(baselines.length, 2);
+    assert.ok(Math.abs(baselines[0] - baselines[1]) <= 1, "The version aligns with the product title's text baseline");
     const labelBounds = await label.boundingBox();
     const headerBounds = await page.locator(".app-header").boundingBox();
     assert.ok(labelBounds.x >= headerBounds.x && labelBounds.x + labelBounds.width <= headerBounds.x + headerBounds.width + 1,

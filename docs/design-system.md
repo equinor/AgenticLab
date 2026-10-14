@@ -54,7 +54,7 @@ Keep it inside the page's render boundary, without navigation/run
 state. Agent guide links open in the same tab from Home/Flow and a new tab from Discovery;
 Learn has no Discovery entry. **Live flow** links target `/flow`, not the front page.
 
-The header displays `v<version>` beside the product name, including on narrow screens. Its immutable
+The header displays `v<version>` aligned with the product name's text baseline, including on narrow screens. Its immutable
 `ApplicationVersionInfo` comes from ServiceDefaults and the shared [release version](../version.txt),
 not Flow state or a backend request. [App.razor](../src/AgenticLab.Web/Components/App.razor) includes the
 same value in an `application-version` meta tag in the initial HTML. Shared `AppVersionMiddleware`
