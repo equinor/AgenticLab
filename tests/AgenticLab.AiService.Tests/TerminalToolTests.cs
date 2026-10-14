@@ -75,6 +75,25 @@ public sealed class TerminalToolTests : IDisposable
     }
 
     [Fact]
+    public async Task RunCommand_IgnoresALookAlikeExecutableInTheWorkspace()
+    {
+        var fakeName = OperatingSystem.IsWindows() ? "whoami.cmd" : "whoami";
+        var fake = Path.Combine(_root, fakeName);
+        File.WriteAllText(fake, OperatingSystem.IsWindows() ? "@echo HIJACKED\r\n" : "#!/bin/sh\necho HIJACKED\n");
+        if (!OperatingSystem.IsWindows())
+        {
+            File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        }
+
+        using var scope = WorkspaceScope.Begin(_root);
+
+        var output = await new TerminalTool().RunCommand("whoami");
+
+        Assert.Contains("Exit code: 0", output);
+        Assert.DoesNotContain("HIJACKED", output);
+    }
+
+    [Fact]
     public async Task RunCommand_RejectsADisallowedCommandWithoutRunningIt()
     {
         using var scope = WorkspaceScope.Begin(_root);

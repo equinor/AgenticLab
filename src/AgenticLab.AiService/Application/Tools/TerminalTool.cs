@@ -11,9 +11,11 @@ namespace AgenticLab.AiService.Application.Tools;
 /// Only a fixed allowlist of exact command lines may run: <c>whoami</c> plus the OS's read-only
 /// date/time command (<c>date /t</c> and <c>time /t</c> on Windows, <c>date</c> on macOS/Linux). Any other
 /// command or extra argument is rejected, so the tool cannot chain, script or change the system.
-/// Commands run through the OS shell (<c>cmd.exe</c> on Windows, where <c>date</c>/<c>time</c> are
-/// built-ins, and <c>/bin/sh</c> elsewhere) with the workspace root as the working directory, output is
-/// captured, and a timeout prevents a stuck process from hanging the run.
+/// Executables are started by absolute path from the system directories, never resolved through the
+/// working directory or the inherited <c>PATH</c>, so a file written into the workspace cannot shadow
+/// an allowed command. Only the Windows <c>date</c>/<c>time</c> built-ins go through <c>cmd.exe</c>.
+/// Commands use the workspace root as the working directory, output is captured, and a timeout
+/// prevents a stuck process from hanging the run.
 /// </summary>
 public sealed class TerminalTool
 {
@@ -21,6 +23,7 @@ public sealed class TerminalTool
 
     private static readonly string[] WindowsCommands = ["whoami", "date /t", "time /t"];
     private static readonly string[] UnixCommands = ["whoami", "date"];
+    private static readonly string[] UnixSearchDirectories = ["/usr/bin", "/bin"];
 
     private readonly bool _isWindows;
 
@@ -58,10 +61,9 @@ public sealed class TerminalTool
         get
         {
             var os = _isWindows ? "Windows" : OperatingSystem.IsMacOS() ? "macOS" : "Linux/Unix";
-            var shell = _isWindows ? "cmd.exe" : "/bin/sh";
             return
                 $"You are running on {os} ({RuntimeInformation.OSDescription.Trim()}). " +
-                $"Terminal commands run through {shell} with the workspace folder as the working directory. " +
+                "Terminal commands run with the workspace folder as the working directory. " +
                 $"Only these exact command lines are allowed, with no other arguments: {AllowedList}. " +
                 "Use them only to identify the current user or read the current date and time.";
         }
@@ -93,26 +95,19 @@ public sealed class TerminalTool
 
         var workspace = WorkspaceScope.Require().Root;
 
-        // On Windows 'date' and 'time' are cmd.exe built-ins, so commands run through the OS shell.
         var startInfo = new ProcessStartInfo
         {
             WorkingDirectory = workspace,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
 
-        if (OperatingSystem.IsWindows())
+        if (!TryConfigureExecutable(startInfo, commandLine))
         {
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = $"/c {commandLine}";
-        }
-        else
-        {
-            startInfo.FileName = "/bin/sh";
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add(commandLine);
+            return $"Command '{commandLine}' is not available on this system.";
         }
 
         using var process = new Process { StartInfo = startInfo };
@@ -124,6 +119,7 @@ public sealed class TerminalTool
         try
         {
             process.Start();
+            process.StandardInput.Close();
         }
         catch (Exception ex)
         {
@@ -167,6 +163,47 @@ public sealed class TerminalTool
     [
         AIFunctionFactory.Create(RunCommand),
     ];
+
+    // Resolves the allowed command line to an absolute executable so neither the workspace (the working
+    // directory) nor the inherited PATH can supply a look-alike. Returns false when the binary is missing.
+    private bool TryConfigureExecutable(ProcessStartInfo startInfo, string commandLine)
+    {
+        var parts = commandLine.Split(' ');
+        if (_isWindows)
+        {
+            if (parts.Length == 1)
+            {
+                startInfo.FileName = Path.Combine(Environment.SystemDirectory, $"{parts[0]}.exe");
+                return File.Exists(startInfo.FileName);
+            }
+
+            // 'date /t' and 'time /t' exist only as cmd.exe built-ins, which win over any file of the same name.
+            startInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+            startInfo.ArgumentList.Add("/d");
+            startInfo.ArgumentList.Add("/c");
+            foreach (var part in parts)
+            {
+                startInfo.ArgumentList.Add(part);
+            }
+
+            startInfo.Environment["NoDefaultCurrentDirectoryInExePath"] = "1";
+            return File.Exists(startInfo.FileName);
+        }
+
+        var executable = UnixSearchDirectories.Select(dir => Path.Combine(dir, parts[0])).FirstOrDefault(File.Exists);
+        if (executable is null)
+        {
+            return false;
+        }
+
+        startInfo.FileName = executable;
+        foreach (var part in parts.Skip(1))
+        {
+            startInfo.ArgumentList.Add(part);
+        }
+
+        return true;
+    }
 
     private static void TryKill(Process process)
     {

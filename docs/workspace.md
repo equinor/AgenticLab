@@ -155,13 +155,16 @@ chosen by the service's OS and not configurable:
 
 | OS | Allowed command lines |
 | --- | --- |
-| Windows (`cmd.exe /c`) | `whoami`, `date /t`, `time /t` |
-| macOS / Linux (`/bin/sh -c`) | `whoami`, `date` |
+| Windows | `whoami`, `date /t`, `time /t` |
+| macOS / Linux | `whoami`, `date` |
 
 `command` and `arguments` are joined, trimmed and whitespace-collapsed, then compared with the list
 (case-insensitively on Windows). Any other command or argument, including `whoami /all`, `date -s`, a
-bare Windows `date`, PowerShell or shell operators, is rejected. Coder receives the current OS, shell
-and allowed commands in its environment instructions; the `whoami` and `get-date` sample skills use them.
+bare Windows `date`, PowerShell or shell operators, is rejected. Executables start by absolute path from
+the system directories (`%SystemRoot%\System32` or `/usr/bin` and `/bin`), never via the working directory
+or the inherited `PATH`, so a `whoami.cmd` written into the workspace is not run; only the Windows
+`date`/`time` built-ins go through `cmd.exe /d /c`. Coder receives the current OS and allowed commands
+in its environment instructions; the `whoami` and `get-date` sample skills use them.
 
 **Security limits:** the allowed commands are read-only, but they still run with the service account's
 permissions and environment. The allowlist, path checks and timeout are not a sandbox, and prompts,
