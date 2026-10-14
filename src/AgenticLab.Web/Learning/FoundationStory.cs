@@ -65,15 +65,6 @@ internal sealed class FoundationStory
 
     internal static IReadOnlyList<AnatomyPurpose> AnatomyPurposes { get; } = Array.AsReadOnly<AnatomyPurpose>(
     [
-        new("meeting-notes", "Meeting notes", "Read-only meeting-notes assistant",
-            "You are a meeting-notes assistant. " + AgentTurnStory.Instructions,
-            "Only read_file is enabled. Its path must be meeting-notes.txt. No file-writing or terminal tool is enabled. An allowed read can still fail.",
-            "Use numbered actions. Mark missing owners and deadlines as not stated.",
-            [new(AgentTurnStory.ReadTool.Name, "Read file (read_file)", "Local function")],
-            [new("meeting-notes", "Action list", "Extract agreed actions from the notes. Do not invent missing owners or deadlines.",
-                AgentTurnStory.Task, [AgentTurnStory.ReadTool.Name], [],
-                "Language model with text input and tool calling",
-                "This example needs text generation and structured tool requests, not a particular provider or a local model.")]),
         new("chat", "Chat", "Conversational assistant",
             "You are a conversational assistant. Answer the user's question directly and adapt to their level of detail. Use search for current facts and calculation tools for arithmetic. Cite sources you actually retrieved, distinguish facts from assumptions, and ask a focused question when essential context is missing.",
             "Only user-provided content and permitted sources. No publishing or file changes.",
@@ -171,7 +162,7 @@ internal sealed class FoundationStory
         "model-to-agent" => CompositionCaptions,
         "inside-the-harness" => HarnessCaptions,
         "agents-everywhere" => EnvironmentCaptions,
-        "anatomy-of-agent" => Anatomy.Skills.Count == 0 ? BasicAnatomyCaptions : AnatomyCaptions,
+        "anatomy-of-agent" => AnatomyCaptions,
         _ => LandscapeCaptions,
     };
 
@@ -188,7 +179,7 @@ internal sealed class FoundationStory
         StageId = stageId;
         Beat = 0;
         _openHarnessExamples.Clear();
-        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose("meeting-notes");
+        if (stageId == "anatomy-of-agent") SelectAnatomyPurpose(AnatomyPurposes[0].Id);
     }
 
     internal void Move(int offset)
@@ -244,8 +235,6 @@ internal sealed class FoundationStory
         "Skills are optional packages of task instructions. This configuration initially supplies only their names and descriptions, not every package's full text.",
         "An allowed Read skill call supplies the package's full instructions for a later model request. Loading this text neither executes its steps nor enables new tools.",
     ]);
-
-    private static readonly IReadOnlyList<string> BasicAnatomyCaptions = Array.AsReadOnly(AnatomyCaptions.Take(8).ToArray());
 
     internal const string ContextManagementSummary = "Selects and assembles the information supplied to the model.";
 

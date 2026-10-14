@@ -162,18 +162,16 @@ surfaces reuse the [Blazor design system](design-system.md).
 
 ### Illustrative configurations
 
-**Anatomy** defaults to the same read-only meeting-notes task as the loop. It builds up standing
+**Anatomy** defaults to the Chat configuration. It builds up standing
 instruction text, registered tools, role instructions, selected tools, model choice, execution
-controls, task and custom instructions. Each reveal adds one node; tools, model and controls have
-separate steps. Only `read_file` is enabled for this example, with the permitted path
-`meeting-notes.txt`. No skill-loading, file-writing or terminal tool is enabled.
+controls, task and custom instructions, then optional skill-description and skill-body reveals.
+Each reveal adds one node; tools, model and controls have separate steps.
 Cards keep fixed grid positions: the system prompt sits beside the registered tools, followed by
 role instructions, selected tools and a **Settings** card whose execution controls are revealed as
 their own step. Unrevealed cards take no layout space. The full system-prompt text and the model-selection
-considerations are shown inline. **Meeting notes / Chat / Office / Coding / Custom** tabs change the
+considerations are shown inline. **Chat / Office / Coding / Custom** tabs change the
 example, not the selected backend agent.
-The other configurations add optional skill-description and skill-body reveals when skills are
-configured; reading a skill supplies instruction text, not permission or an executed workflow.
+Reading a skill supplies instruction text, not permission or an executed workflow.
 Neither model choice, persona, instructions nor skills grant permissions.
 
 - Office contrasts a meeting assistant's confirmed communications with a read-only document reviewer.
@@ -181,9 +179,8 @@ Neither model choice, persona, instructions nor skills grant permissions.
   with approval or allowlisting, resource limits and no production access.
 - Chat researches questions; Custom reads equipment telemetry and manuals without controlling equipment.
 
-Changing purpose selects its first mode without restarting reveals; switching to a shorter
-configuration clamps progress to its last step. Restart keeps the selection;
-reentering Anatomy restores Meeting notes / Action list. These are original teaching examples, not vendor prompts,
+Changing purpose selects its first mode without restarting reveals. Restart keeps the selection;
+reentering Anatomy restores Chat. These are original teaching examples, not vendor prompts,
 product replicas or claims about native connectors and enforcement.
 
 **Hosting** separates the harness, model service, tools/data access and operational ownership.

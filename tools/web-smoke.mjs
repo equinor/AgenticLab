@@ -544,7 +544,7 @@ async function checkFoundationReveals(page, width) {
     await capture(page, `learn-model-to-agent-complete-${width}`);
 
     const harnessNodes = ["instructions", "harness-context", "available-tools", "harness-memory", "execution-controls"];
-    for (const [stage, lastBeat] of [["inside-the-harness", 5], ["anatomy-of-agent", 7]]) {
+    for (const [stage, lastBeat] of [["inside-the-harness", 5], ["anatomy-of-agent", 9]]) {
         await page.goto(new URL(`/learn?stage=${stage}`, baseUrl).href, { waitUntil: "networkidle" });
         const lesson = page.locator(".foundation-lesson");
         const next = lesson.getByRole("button", { name: "Next reveal", exact: true });
@@ -557,7 +557,8 @@ async function checkFoundationReveals(page, width) {
             await page.locator(`.foundation-lesson[data-beat="${beat}"]`).waitFor();
             const nodes = await lesson.locator("[data-node]:visible").evaluateAll(elements => elements.map(element => element.dataset.node));
             for (const id of previousNodes) assert.ok(nodes.includes(id), `${stage}: previous nodes remain visible`);
-            assert.equal(nodes.length, beat + 1, `${stage}: one new node per reveal`);
+            const loadedSkillBeat = stage === "anatomy-of-agent" && beat === 9;
+            assert.equal(nodes.length, loadedSkillBeat ? beat : beat + 1, `${stage}: one new node per reveal`);
             if (stage === "inside-the-harness") {
                 assert.deepEqual(nodes, ["context-management", ...harnessNodes.slice(0, Math.max(0, beat - 1)), ...(beat >= 1 ? ["execution-controls"] : [])]);
                 assert.equal(await lesson.locator('.harness-context-aspects [data-node]').count(), Math.max(0, beat - 1));
@@ -568,7 +569,8 @@ async function checkFoundationReveals(page, width) {
             if (stage === "anatomy-of-agent") {
                 assert.equal(await lesson.locator('[data-node="anatomy-settings"]').isVisible(), beat >= 4);
                 assert.equal(await lesson.locator('[data-node="execution-controls"]').isVisible(), beat >= 5);
-                assert.equal(await lesson.locator('[data-node="anatomy-skills"]').count(), 0);
+                assert.equal(await lesson.locator('[data-node="anatomy-skills"]').isVisible(), beat >= 8);
+                assert.equal(await lesson.locator(".anatomy-loaded").isVisible(), beat >= 9);
             }
             previousNodes = nodes;
         }
@@ -586,15 +588,14 @@ async function checkFoundationReveals(page, width) {
             assert.equal(await lesson.locator('[data-node="harness-context"]').getAttribute("aria-expanded"), "true");
         }
         if (stage === "anatomy-of-agent") {
-            assert.match(await lesson.locator('[data-node="anatomy-task"]').innerText(), /Read meeting-notes.txt and list the agreed actions/);
+            assert.match(await lesson.locator('[data-node="anatomy-task"]').innerText(), /Compare heat pumps and electric heaters/);
             await lesson.getByRole("button", { name: "Coding", exact: true }).click();
             await page.locator('.anatomy-story[data-purpose="coding"]').waitFor();
-            await lesson.getByRole("button", { name: "Show complete diagram", exact: true }).click();
             await page.locator('.foundation-lesson[data-beat="9"]').waitFor();
             assert.ok(await lesson.locator(".anatomy-loaded").isVisible());
-            await lesson.getByRole("button", { name: "Meeting notes", exact: true }).click();
-            await page.locator('.anatomy-story[data-purpose="meeting-notes"]').waitFor();
-            await page.locator('.foundation-lesson[data-beat="7"]').waitFor();
+            await lesson.getByRole("button", { name: "Chat", exact: true }).click();
+            await page.locator('.anatomy-story[data-purpose="chat"]').waitFor();
+            await page.locator('.foundation-lesson[data-beat="9"]').waitFor();
         }
         await lesson.getByRole("button", { name: "Restart", exact: true }).click();
         await page.locator('.foundation-lesson[data-beat="0"]').waitFor();

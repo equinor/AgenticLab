@@ -638,13 +638,10 @@ public sealed class AgentLearningJourneyTests
     {
         var story = new FoundationStory();
         story.SetStage("anatomy-of-agent");
-        Assert.Equal(8, story.Captions.Count);
-        Assert.Equal("meeting-notes", story.Anatomy.Id);
-        Assert.Equal(AgentTurnStory.Task, story.Anatomy.Task);
-        Assert.Equal([AgentTurnStory.ReadTool.Name], story.Anatomy.ToolIds);
-        Assert.Contains(AgentTurnStory.Instructions, story.AnatomyProfile.SystemPrompt);
-        Assert.Empty(story.Anatomy.Skills);
-        Assert.Null(story.LoadedSkill);
+        Assert.Equal(10, story.Captions.Count);
+        Assert.Equal("chat", story.AnatomyProfile.Id);
+        Assert.Equal("chat-agent", story.Anatomy.Id);
+        Assert.Contains(story.LoadedSkill, story.Anatomy.Skills);
         story.SelectAnatomyPurpose("coding");
         Assert.Equal(10, story.Captions.Count);
         Assert.Equal("ask", story.Anatomy.Id);
@@ -672,7 +669,7 @@ public sealed class AgentLearningJourneyTests
         story.SetStage("agent-loop");
         story.SetStage("anatomy-of-agent");
         Assert.Equal(0, story.Beat);
-        Assert.Equal("meeting-notes", story.Anatomy.Id);
+        Assert.Equal("chat-agent", story.Anatomy.Id);
     }
 
     /// <summary>Tool selection, model choice and executable controls are distinct; shorter configurations remain in bounds.</summary>
@@ -687,16 +684,16 @@ public sealed class AgentLearningJourneyTests
         Assert.Contains("Model choice", story.Caption);
         story.Move(1);
         Assert.Contains("checks run by the harness", story.Caption);
-        Assert.Contains("meeting-notes.txt", story.AnatomyProfile.Controls);
+        Assert.Contains("No publishing", story.AnatomyProfile.Controls);
         story.SelectAnatomyPurpose("coding");
         story.Complete();
         Assert.Equal(9, story.Beat);
-        story.SelectAnatomyPurpose("meeting-notes");
-        Assert.Equal(7, story.Beat);
+        story.SelectAnatomyPurpose("chat");
+        Assert.Equal(9, story.Beat);
         Assert.False(story.CanNext);
-        Assert.Null(story.LoadedSkill);
+        Assert.NotNull(story.LoadedSkill);
         story.Restart();
-        Assert.Equal("meeting-notes", story.AnatomyProfile.Id);
+        Assert.Equal("chat", story.AnatomyProfile.Id);
         Assert.Equal(0, story.Beat);
     }
 
@@ -748,7 +745,7 @@ public sealed class AgentLearningJourneyTests
         var story = new FoundationStory();
         story.SetStage("anatomy-of-agent");
         story.Move(2);
-        Assert.Equal(["meeting-notes", "chat", "office", "coding", "custom"], FoundationStory.AnatomyPurposes.Select(profile => profile.Id).ToArray());
+        Assert.Equal(["chat", "office", "coding", "custom"], FoundationStory.AnatomyPurposes.Select(profile => profile.Id).ToArray());
         foreach (var profile in FoundationStory.AnatomyPurposes)
         {
             story.SelectAnatomyPurpose(profile.Id);
@@ -768,17 +765,9 @@ public sealed class AgentLearningJourneyTests
                 Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.Model));
                 Assert.False(string.IsNullOrWhiteSpace(story.Anatomy.ModelReason));
                 Assert.All(example.ToolIds, id => Assert.Contains(id, ids));
-                if (profile.Id == "meeting-notes")
-                {
-                    Assert.Empty(example.Skills);
-                    Assert.Null(story.LoadedSkill);
-                }
-                else
-                {
-                    Assert.Contains("skill", example.ToolIds);
-                    Assert.Contains(story.LoadedSkill, example.Skills);
-                    Assert.Equal(2, example.Skills.Count);
-                }
+                Assert.Contains("skill", example.ToolIds);
+                Assert.Contains(story.LoadedSkill, example.Skills);
+                Assert.Equal(2, example.Skills.Count);
                 Assert.All(example.Skills, skill => Assert.Equal(3, skill.Steps.Count));
                 Assert.Equal(2, story.Beat);
             }
@@ -796,8 +785,8 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal(0, story.Beat);
         story.SetStage("agents-everywhere");
         story.SetStage("anatomy-of-agent");
-        Assert.Equal("meeting-notes", story.AnatomyProfile.Id);
-        Assert.Equal("meeting-notes", story.Anatomy.Id);
+        Assert.Equal("chat", story.AnatomyProfile.Id);
+        Assert.Equal("chat-agent", story.Anatomy.Id);
         story.SelectAnatomyPurpose("custom");
         Assert.DoesNotContain("control", story.Anatomy.ToolIds);
         Assert.DoesNotContain("delegate", story.Anatomy.ToolIds);
