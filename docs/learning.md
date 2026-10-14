@@ -90,8 +90,8 @@ downward around the search area. A **Harness** section inside the application co
 and its **Search / Results** arrows. The user and LLM stay in place outside the application.
 This groups the application's search capability, not an external search provider's infrastructure.
 There is no sample question or answer, changing text inside boxes, timed highlight or playback control.
-Earlier diagrams are replaced, not accumulated; Previous, Next, Restart and keyboard navigation
-also update the diagram. An accessible list describes the connections, not a numbered execution
+Earlier diagrams are replaced, not accumulated; Previous, Next, **Show complete diagram** (jumps to
+the fourth reveal), Restart and keyboard navigation also update the diagram. An accessible list describes the connections, not a numbered execution
 sequence. The guide does not make model or search calls.
 
 **Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;

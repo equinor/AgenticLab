@@ -752,7 +752,7 @@ async function checkLearning(page, width) {
     assert.equal(await page.getByRole("button", { name: "Discovery", exact: true }).count(), 0);
     const introductionCount = await page.locator(".intro-step").count();
     for (let index = 0; index < introductionCount; index++) {
-        if (index > 0) await page.getByRole("button", { name: "Next step", exact: true }).click();
+        if (index > 0) await page.getByRole("button", { name: "Next reveal", exact: true }).click();
         await page.waitForFunction(count => document.querySelector(".intro-count")?.textContent.trim() === count,
             `${index + 1} / ${introductionCount}`);
         assert.equal(await page.locator(".intro-step.current").count(), 1);
@@ -760,7 +760,8 @@ async function checkLearning(page, width) {
         await capture(page, index === 0 ? `learn-${width}` : `learn-intro-${index + 1}-${width}`);
     }
     assert.equal(await page.locator(".intro-application .intro-harness .actor-search").count(), 1);
-    assert.ok(await page.getByRole("button", { name: "Next step", exact: true }).isDisabled());
+    assert.ok(await page.getByRole("button", { name: "Next reveal", exact: true }).isDisabled());
+    assert.ok(await page.getByRole("button", { name: "Show complete diagram", exact: true }).isDisabled());
     if (width >= 900) await checkLearnKeyboard(page, width);
     await checkFoundationReveals(page, width);
     await checkTurnOutcomes(page, width);

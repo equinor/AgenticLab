@@ -57,12 +57,15 @@
             @if (_stage.Id == "why-agents")
             {
                 <div class="architecture intro-lesson">
-                    <div class="intro-toolbar" role="group" aria-label="Introduction steps">
-                        <LabButton Label="Previous step" Icon="prev" IconOnly="true"
+                    @{ var lastIntroStep = AgentLearningJourney.IntroductionSteps.Count - 1; }
+                    <div class="intro-toolbar" role="group" aria-label="Diagram reveals">
+                        <LabButton Label="Previous reveal" Icon="prev" IconOnly="true"
                                    Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-1)" />
                         <span class="intro-count">@(_introStep + 1) / @AgentLearningJourney.IntroductionSteps.Count</span>
-                        <LabButton Label="Next step" Icon="next" IconOnly="true"
-                                   Disabled="@(_introStep == AgentLearningJourney.IntroductionSteps.Count - 1)" OnClick="() => MoveIntroduction(1)" />
+                        <LabButton Label="Next reveal" Icon="next" IconOnly="true"
+                                   Disabled="@(_introStep == lastIntroStep)" OnClick="() => MoveIntroduction(1)" />
+                        <LabButton Label="Show complete diagram" Icon="expand"
+                                   Disabled="@(_introStep == lastIntroStep)" OnClick="() => MoveIntroduction(lastIntroStep - _introStep)" />
                         <LabButton Label="Restart" Variant="quiet" Disabled="@(_introStep == 0)" OnClick="() => MoveIntroduction(-_introStep)" />
                     </div>
                     <dl class="intro-steps" role="status" aria-live="polite" aria-atomic="true">
