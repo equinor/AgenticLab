@@ -26,19 +26,48 @@ internal static class AgentLearningJourney
 
     internal static IReadOnlyList<LearningNode> IntroductionSteps { get; } = Array.AsReadOnly<LearningNode>(
     [
-        new("chat-interface", "Talking with a chatbot app like ChatGPT", "You write your message in the chat interface. The app replies in the same conversation."),
-        new("chatbot", "What really ends up happening", "The app sends your message to a large language model (LLM) provider. The model generates a response, which is sent back and the app shows you this response."),
+        new("chatbot", "Chatbot application", "You input a message to the chatbot application and receive a reply in the same conversation."),
+        new("agent", "Chatbot application", "Earlier versions of the ChatGPT application sends your message to a large language model (LLM) endpoint. The model generates a response, and the application shows it to you."),
+        new("chat-interface", "Chat Agent", "Chat applications like ChatGPT can use tools like web search before answering. The application manages the conversation, runs web searches when needed, and uses the LLM to reason and generate a reply."),
+        new("chat-to-agent", "Chat Agent", "This is what makes ChatGPT an agentic chat application. The part of the application that manages context and tools is often referred to as the harness."),
+    ]);
+
+    private static IReadOnlyList<LearningExchange> IntroductionConversationExchanges { get; } = Array.AsReadOnly<LearningExchange>(
+    [
+        new("user", "app", "Message"),
+        new("app", "user", "Reply"),
+    ]);
+
+    private static IReadOnlyList<LearningExchange> IntroductionExchanges { get; } = Array.AsReadOnly<LearningExchange>(
+    [
+        .. IntroductionConversationExchanges,
+        new("app", "model", "Request"),
+        new("model", "app", "Response"),
+    ]);
+
+    private static IReadOnlyList<LearningExchange> IntroductionSearchExchanges { get; } = Array.AsReadOnly<LearningExchange>(
+    [
+        .. IntroductionExchanges,
+        new("app", "search", "Search"),
+        new("search", "app", "Results"),
     ]);
 
     internal static IReadOnlyList<LearningDiagram> IntroductionDiagrams { get; } = Array.AsReadOnly<LearningDiagram>(
     [
-        new("chat-interface", "The user sends a message to the chatbot app and receives a reply. This view shows only the conversation, not how the reply is generated.",
-            [new("user", "User", "Asks a question"), new("app", "Chatbot app", "Shows the reply")],
-            [new("user", "app", "Why is the sky blue?"), new("app", "user", "Air scatters blue light more.")]),
-        new("chatbot", "Behind the conversation, the chatbot app sends the question to the LLM. The model generates a response, which the app returns to the user.",
-            [new("user", "User", "Asks a question"), new("app", "Chatbot app", "Sends and receives"), new("model", "LLM", "Generates a response")],
-            [new("user", "app", "Why is the sky blue?"), new("app", "model", "Send the question"),
-             new("model", "app", "Air scatters blue light more."), new("app", "user", "Air scatters blue light more.")]),
+        new("chatbot", "The user sends a message to the chat application and receives a reply.",
+            [new("user", "User", "Sends a message"), new("app", "Chat application", "Shows the reply")],
+            IntroductionConversationExchanges),
+        new("agent", "Behind the conversation, the chat application sends the message to the LLM. The model generates a response, which the application returns to the user.",
+            [new("user", "User", "Sends a message"), new("app", "Chat application", "Sends and receives"), new("model", "LLM", "Generates responses")],
+            IntroductionExchanges),
+        new("chat-interface", "ChatGPT can use web search to look up information before answering. The application connects the user, the LLM and web search. This is a simplified illustration, not a live integration or a specific search provider.",
+            [new("user", "User", "Sends a message"), new("app", "Chat application", "ChatGPT"),
+             new("model", "LLM", "Generates responses"), new("search", "Web search", "Finds online information")],
+            IntroductionSearchExchanges),
+        new("chat-to-agent", "In this simplified ChatGPT diagram, the chat application contains the harness, which includes web search. The user and LLM remain outside the application. Together, the harness and the model form the agent.",
+            [new("user", "User", "Sends a message"), new("app", "Chat application", "ChatGPT"),
+             new("model", "LLM", "Generates responses"), new("search", "Web search tool", "Finds online information")],
+            IntroductionSearchExchanges),
     ]);
 
     internal static IReadOnlyList<LearningNode> Nodes { get; } = Array.AsReadOnly<LearningNode>(
@@ -82,7 +111,7 @@ internal static class AgentLearningJourney
     [
         new("why-agents", "Intro",
             "Lets take a step back to understand how apps that uses LLMs work.",
-            "You talk to the app. The LLM generates the response.",
+            "Together, the harness and the model form the agent.",
             "Introduction", false,
             [], []),
         new("model-to-agent", "Agent",

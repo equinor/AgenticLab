@@ -47,7 +47,7 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 
 | Number | Topic | ID | Focus |
 | --- | --- | --- | --- |
-| 1 | Intro | `why-agents` | The user-facing conversation, then the LLM behind the app's reply. |
+| 1 | Intro | `why-agents` | The user and chat application, then the LLM, ChatGPT with web search, and the harness + model. |
 | 2 | Agent | `model-to-agent` | Harness + model and their responsibilities, shown together. |
 | 2.1 | Inside the harness | `inside-the-harness` | Context management and execution, then four context aspects with examples on demand. |
 | 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
@@ -64,43 +64,34 @@ choice: a local harness can use a remote model, and observation and evaluation m
 ### Navigation and reveals
 
 Chapter navigation and lesson reveals are separate. **Previous/Next**, **Show complete diagram**
-where available, and **Restart** control the current lesson. Lessons never advance automatically. Chapter changes
+where available, and **Restart** control the current lesson. There is no autoplay. Chapter changes
 through links, browser history or reloads reset progress; opening a related concept preserves it.
-Restart preserves example selections. Intro returns to its first slide when revisited through a link.
+Restart preserves example selections. Intro returns to **Talking with a chat application** when revisited through a link.
 
-Intro has two short slides: **Talking with a chatbot app like ChatGPT** and **What really ends up happening**.
-The first shows only **User** and **Chatbot app**, connected by **Message** and **Reply**.
-The second reveals the **LLM** behind the app, with **Request** and **Response** connections.
-Both use **Why is the sky blue?** and the same answer, so revealing the model does not change the
-conversation. User and app keep their positions. The first is a view of the conversation, not a
-claim that the app generates the answer without a model. No tools, search, agent behaviour or related
-concept links appear in Intro. The term **harness** follows in Agent; deeper responsibilities and
-tool execution are covered in the later lessons.
+Intro has four short reveals: **Talking with a chat application**, **How it actually looks like**,
+**How it looks like today** and **From chat to agent**. The first shows only the user-facing conversation. The second
+introduces the model that generates the response. The third shows that current ChatGPT can look
+up information online before answering, with the application managing the conversation and searches.
+The fourth introduces ChatGPT as an agentic chat application and names the part that manages context
+and tool use as the harness. Its takeaway below the diagram reads: **Together, the harness and the
+model form the agent.** This connects Intro to the next chapter. Intro has no related concept links; tool calls, execution checks,
+context management and memory are covered in detail later.
 
-Each slide has a compact flow diagram beneath its text. Earlier diagrams are replaced, not
-accumulated; Previous, Next, Restart and keyboard navigation also update the diagram.
-Each playback begins with a two-second reading hold: the **User** box highlights with the question
-inside, before any connection highlights. Its usual detail returns when the exchanges begin.
-This opening hold stays two seconds at every playback speed. Each diagram then highlights its
-exchanges once in order, at one second per exchange by default, leaving the full flow visible.
-Nothing moves: each connection highlights in place. The question stays above **User** throughout.
-On slide one, **Message** becomes bold while the question appears inside **Chatbot app**. The app's
-question is then replaced by the response while **Reply** becomes bold.
-Slide two uses the same pattern: **Message** puts the question in the app; **Request** shows it in
-the app and LLM; **Response** replaces it with the answer in the LLM and app; **Reply** shows the
-answer in the app. Each matching arrow highlights while its label becomes bold. Labels have no
-highlight background and return to normal weight after their exchange. The boxes return to their
-usual details after their last exchange. Once the interaction finishes, the final answer appears
-only below **User**. Its space is reserved, so revealing it does not move the diagram.
-**Replay flow** repeats the highlights without changing lesson progress or moving keyboard focus.
-The adjacent **Playback speed** selector offers **1x**, **1.5x** and **2x**; changing speed replays
-the current diagram at that rate. The selected speed lasts while the Learn page remains mounted.
-**Pause flow** holds the current highlights, including the opening hold, and **Resume flow** continues
-them. Replay or changing the reveal starts playback again. At **1x**, the complete playback takes
-four seconds on slide one and six on slide two, including the two-second opening hold.
-Reduced motion disables the timed highlights, immediately showing the stationary question, answer and
-complete flow. All labels remain readable without highlighting; an accessible ordered list preserves the exchanges
-in reading order. These illustrations do not make model calls.
+Each Intro reveal has a static connection diagram beneath its text. The first shows **User** and
+**Chat application**, connected by **Message / Reply** arrows. This is a view of the conversation,
+not a claim that the application generates the reply without a model. The second adds **LLM**
+and **Request / Response** arrows, keeping the user and application in place. The third identifies
+the application as **ChatGPT** and adds **Web search** beneath it, with **Search / Results** arrows.
+This abstract search capability does not claim a particular model version, search provider or that
+every answer requires a search. These are simplified illustrations, not live integrations.
+The fourth keeps **Chat application** and **ChatGPT** as the middle box's labels and expands it
+downward around the search area. A **Harness** section inside the application contains **Web search**
+and its **Search / Results** arrows. The user and LLM stay in place outside the application.
+This groups the application's search capability, not an external search provider's infrastructure.
+There is no sample question or answer, changing text inside boxes, timed highlight or playback control.
+Earlier diagrams are replaced, not accumulated; Previous, Next, Restart and keyboard navigation
+also update the diagram. An accessible list describes the connections, not a numbered execution
+sequence. The guide does not make model or search calls.
 
 **Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;
 after the last reveal it opens the next lesson at its first reveal. Left goes back one reveal;
