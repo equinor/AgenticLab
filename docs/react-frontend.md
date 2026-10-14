@@ -181,6 +181,10 @@ ports 5197, 5183 and 5174; the app never silently uses the fixture. Tests need n
 .NET checks forwarding/SSE boundaries; Vitest checks parsing and lifecycle races. React CI is separate
 from the .NET-only solution check and image publishing.
 
+The version browser regression compares the top-bar label, response header, initial HTML meta tag and
+built HTML with [version.txt](../version.txt) on desktop, tablet and mobile. Build React before running
+the browser suite so the production HTML is checked alongside Vite's development response.
+
 ## Security and release boundary
 
 There is no caller authentication; UUIDs identify state, not permission. Before public hosting add

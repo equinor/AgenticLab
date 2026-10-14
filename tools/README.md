@@ -35,6 +35,9 @@ the permanent purpose statement, heading structure, the absence of a Home server
 preference writes, direct `/flow` reloads, consistently named Home return links,
 guide stage bookmarks and Back/Forward, lesson controls, catalogue navigation and 404 recovery.
 It runs the same four viewports, Home's 200% zoom and reduced-motion checks, and saves screenshots.
+The visible version, initial HTML `application-version` meta tag and `X-AgenticLab-Version` response
+header must match the repository's [version.txt](../version.txt). This is checked without JavaScript as well as after
+navigation; the label must fit the header and navigation must not duplicate the meta tag.
 An isolated browser page uses Playwright's clock to check the three-message teaser's seven-second
 cycle, wraparound, Pause/Play, manual and keyboard controls, pause on focus, hover/visibility
 suspension, initial and changed motion preferences, and disconnect/reconnect cleanup. It verifies

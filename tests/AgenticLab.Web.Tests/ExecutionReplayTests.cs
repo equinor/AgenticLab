@@ -268,6 +268,7 @@ public sealed class ExecutionReplayTests
         storage.Complete();
         await using var services = new ServiceCollection().AddLogging()
             .AddSingleton(concepts).AddSingleton(client).AddSingleton<IJSRuntime>(storage)
+            .AddSingleton<AgenticLab.ServiceDefaults.ApplicationVersionInfo>()
             .AddSingleton<IOptions<ReplayRetentionOptions>>(Options.Create(new ReplayRetentionOptions()))
             .BuildServiceProvider();
         await using var renderer = new LayoutRenderer(services);

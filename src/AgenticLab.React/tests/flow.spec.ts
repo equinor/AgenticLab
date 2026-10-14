@@ -1,4 +1,9 @@
+/// <reference types="node" />
+
+import { readFileSync } from 'node:fs'
 import { test, expect, type Page } from '@playwright/test'
+
+const applicationVersion = readFileSync(new URL('../../../version.txt', import.meta.url), 'utf8').trim()
 
 async function open(page: Page) {
   await page.goto('/')
@@ -9,6 +14,32 @@ async function send(page: Page, message: string) {
   await page.getByRole('textbox', { name: 'Message', exact: true }).fill(message)
   await page.getByRole('button', { name: 'Send message', exact: true }).click()
 }
+
+test('application version matches the header and initial HTML metadata', async ({ page }, testInfo) => {
+  const response = await page.goto('/')
+  expect(response?.status()).toBe(200)
+  expect(response!.headers()['x-agenticlab-version']).toBe(applicationVersion)
+  expect(response!.headers()['x-ent-lab-version']).toBeUndefined()
+  const version = page.getByTitle(`Application version ${applicationVersion}`, { exact: true })
+  await expect(version).toHaveText(`v${applicationVersion}`)
+  await expect(version).toBeVisible()
+  await expect(page.locator('meta[name="application-version"]')).toHaveCount(1)
+  await expect(page.locator('meta[name="application-version"]')).toHaveAttribute('content', applicationVersion)
+  for (const html of [await response!.text(), readFileSync(new URL('../dist/index.html', import.meta.url), 'utf8')]) {
+    const versions = await page.evaluate(source => {
+      const document = new DOMParser().parseFromString(source, 'text/html')
+      return Array.from(document.querySelectorAll('meta[name="application-version"]'), element => element.getAttribute('content'))
+    }, html)
+    expect(versions).toEqual([applicationVersion])
+  }
+  await page.evaluate(() => document.fonts.ready)
+  const labelBounds = await version.boundingBox()
+  const headerBounds = await page.getByRole('banner').boundingBox()
+  expect(labelBounds!.x).toBeGreaterThanOrEqual(headerBounds!.x)
+  expect(labelBounds!.x + labelBounds!.width).toBeLessThanOrEqual(headerBounds!.x + headerBounds!.width)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
+  await page.getByRole('banner').screenshot({ path: testInfo.outputPath('version-header.png') })
+})
 
 test('Default-only catalogue keeps host and agent selection usable', async ({ page }, testInfo) => {
   await page.route('**/api/vendors', async route => {
