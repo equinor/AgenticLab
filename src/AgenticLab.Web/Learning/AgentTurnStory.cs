@@ -27,12 +27,14 @@ internal sealed class AgentLoopStory
 {
     internal static IReadOnlyList<LearningNode> Steps { get; } = Array.AsReadOnly<LearningNode>(
     [
-        new("context", "Assemble context", "The harness selects instructions, the task, relevant conversation state and tool descriptions for this model request."),
-        new("model", "Call the model", "The harness sends the assembled input. The model generates a response: text, tool requests or both. A turn can finish without using a tool."),
-        new("execute", "Handle the response", "Execution handles the returned response. Before invoking any requested tool, the harness applies its configured checks. A tool request is not permission."),
-        new("execute", "Collect results", "Permitted tools return content or an error to the harness. A denied request can produce an error without invoking the tool. Results are not yet model input."),
-        new("context", "Build the next request", "The harness selects the returned results for the next context, then calls the model again. This return path is the loop; the next response depends on the information supplied."),
-        new("answer", "Respond or stop", "Execution can deliver a response or stop because of cancellation, a limit or a failure. An answer can also take this exit without any tool calls. Ending the turn does not prove the task succeeded."),
+        new("context", "Construct the context", "The harness selects instructions, the task, conversation messages, tool results and tool descriptions to construct the context for the next model request."),
+        new("model", "Generate a response", "The harness sends the context to the model. The model reasons over it and chooses an answer or a tool-call request."),
+        new("execute", "Handle the response", "The harness handles the model response. An answer can end the turn. A tool-call request must pass the harness's checks before execution. The model does not execute the tool."),
+        new("execute", "Execute the requested tool", "The harness invokes the permitted tool and receives its result. A failed call returns an error. A rejected request does not execute the tool."),
+        new("context", "Construct the next context", "The harness passes the tool result to context management. Context management selects it with the other inputs for the next model request."),
+        new("model", "Generate the next response", "The harness sends the new context to the model. The model reasons over it and returns an answer or another tool-call request. Another tool-call request goes through the harness again."),
+        new("execute", "Pass the response to the user", "When the model returns an answer, the harness passes it to the user. No tool call is needed."),
+        new("answer", "Answer", "The user receives the answer and the turn ends. The harness can also stop because of cancellation, a limit or a failure. Ending the turn does not mean the task is complete."),
     ]);
 
     internal int Beat { get; private set; }

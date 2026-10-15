@@ -144,13 +144,18 @@ A tool request is not execution or permission.
 a run. Preconfigured cases, scenario-specific links and prepared calls are deferred. The previous
 Wikipedia walkthrough is no longer displayed; its fixture remains available to existing tests.
 
-**The agent loop** keeps four nodes and their paths visible: **Context management**, **Model**,
-**Execution** and **Response or stop**. Its six conceptual steps assemble context, call the model,
-handle the response, collect results, build the next request and respond or stop. **Next step**
+**The agent loop** connects Context management and Model response from the preceding lessons.
+It keeps four nodes and their paths visible: **Context management**, **Model response**,
+**Harness execution** and **Answer**. Its eight conceptual steps construct context, generate
+a response, handle the response, execute a permitted tool, construct the next context, generate
+the next response, pass an answer to the user through harness execution and end the turn.
+The model chooses an answer or a tool-call request; the harness checks requests,
+executes permitted calls and passes results to context management for the next model request. **Next step**
 updates the reached node and the explanation below; unreached nodes have dashed borders and no
 step detail. The active node is outlined and traversed paths are highlighted. Results return to
-context management; answers and stops exit through execution. A turn can also exit without a tool
-call. Ending does not establish success. **Show all steps** displays all six explanations;
+context management; answers and stops exit through harness execution. An answer can end the turn
+without a tool call. Cancellation, a limit or a failure can also stop it. Ending does not establish
+success. **Show all steps** displays all eight explanations;
 Restart and reentry return to context assembly. No task fixture or outcome selector appears here.
 The earlier meeting-notes fixtures remain available to unit tests, not as this lesson's example.
 

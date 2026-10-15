@@ -8,8 +8,8 @@
         <LabButton Label="Show all steps" Icon="expand" Disabled="@_story.ShowAll" OnClick="_story.Complete" />
         <LabButton Label="Restart" Variant="quiet" Disabled="@(_story.Beat == 0)" OnClick="_story.Restart" />
     </div>
-    <p class="loop-introduction">One turn can contain several model requests. The harness carries information between them and decides when execution continues or ends.</p>
-    <div class="turn-loop" role="group" aria-label="Agent loop: context management to model to execution, then back to context management or a response or stop">
+    <p class="loop-introduction">One user request can require several model requests. Each uses context constructed by the harness.</p>
+    <div class="turn-loop" role="group" aria-label="Agent loop: context management to model response to harness execution, then back to context management or an answer">
         @foreach (var node in LoopNodes)
         {
             var reached = AgentLoopStory.Steps.Take(_story.Beat + 1).LastOrDefault(step => step.Id == node.Id);
@@ -25,10 +25,10 @@
                 }
             </section>
         }
-        <span class="loop-edge context-edge @(_story.Beat >= 1 ? "traversed" : null)" aria-hidden="true"><span>Request</span></span>
+        <span class="loop-edge context-edge @(_story.Beat >= 1 ? "traversed" : null)" aria-hidden="true"><span>Context</span></span>
         <span class="loop-edge tool-edge @(_story.Beat >= 2 ? "traversed" : null)" aria-hidden="true"><span>Response</span></span>
-        <span class="loop-edge answer-edge @(_story.Beat >= 5 ? "traversed" : null)" aria-hidden="true"></span>
-        <span class="return-edge @(_story.Beat >= 4 ? "traversed" : null)" aria-hidden="true"><span>Results into next context</span></span>
+        <span class="loop-edge answer-edge @(_story.Beat >= 7 ? "traversed" : null)" aria-hidden="true"></span>
+        <span class="return-edge @(_story.Beat >= 4 ? "traversed" : null)" aria-hidden="true"><span>Tool results</span></span>
     </div>
     <div class="turn-evidence" aria-live="polite" aria-atomic="true">
         @foreach (var step in _story.ShowAll ? AgentLoopStory.Steps : new[] { _story.Step })
@@ -39,7 +39,7 @@
             </section>
         }
     </div>
-    <p class="loop-note">Tool results return through context management. Responses and stops leave through execution. These are responsibilities, not a view of the model's internal reasoning.</p>
+    <p class="loop-note">The model requests actions. The harness executes permitted actions and controls the loop.</p>
 </section>
 
 @code {
@@ -64,9 +64,9 @@
     private static readonly (string Id, string Title, string Icon)[] LoopNodes =
     [
         ("context", "Context management", "workflow-icon"),
-        ("model", "Model", "model-icon"),
-        ("execute", "Execution", "workflow-icon"),
-        ("answer", "Response or stop", "workflow-icon"),
+        ("model", "Model response", "model-icon"),
+        ("execute", "Harness execution", "workflow-icon"),
+        ("answer", "Answer", "workflow-icon"),
     ];
 
 }
