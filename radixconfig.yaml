@@ -33,6 +33,8 @@ spec:
             issuerUrl: https://login.microsoftonline.com/3aa4a235-b6e2-48d5-9195-7fcf05b459b0/v2.0
       variables:
         services__aiservice__http__0: http://aiservice:8080
+        # Loads the Copilot 365 example's metadata (logo, resources, tool risks); must match aiservice.
+        Examples__copilot365__Enabled: "true"
 
     - name: aiservice
       src: .
@@ -53,6 +55,9 @@ spec:
         Workspace__Mode: ReadOnlySample
         # Longest chat message or answer accepted; the web composer reads it from GET /chat/limits.
         Chat__MaxMessageLength: "500"
+        # Adds the Copilot 365 app and its agents. Its Microsoft 365 data and tools are simulated
+        # (SendMail sends nothing); web must enable it too.
+        Examples__copilot365__Enabled: "true"
         services__mcpserver__http__0: http://mcpserver:8080
         services__a2aserver__http__0: http://a2aserver:8080
       secrets:
