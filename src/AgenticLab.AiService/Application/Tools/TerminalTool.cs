@@ -8,67 +8,78 @@ namespace AgenticLab.AiService.Application.Tools;
 
 /// <summary>
 /// Runs shell commands inside the active <see cref="WorkspaceScope"/> on the coding agent's behalf.
-/// Commands are executed through the OS shell (<c>cmd.exe</c> on Windows, <c>/bin/sh</c> elsewhere) so
-/// built-ins (e.g. <c>dir</c>, <c>ls</c>) and script-based tools (e.g. <c>npm.cmd</c>) resolve just as
-/// they would in a terminal. For safety the executable must be on an <em>allowlist</em> of known-safe
-/// programs and the arguments may not contain shell operators (so the allowlist can't be bypassed by
-/// chaining commands). Commands run with the workspace root as their working directory, output is
-/// captured, and a timeout prevents a stuck process from hanging the run.
+/// Only a fixed allowlist of exact command lines may run: <c>whoami</c> plus the OS's read-only
+/// date/time command (<c>date /t</c> and <c>time /t</c> on Windows, <c>date</c> on macOS/Linux). Any other
+/// command or extra argument is rejected, so the tool cannot chain, script or change the system.
+/// Executables are started by absolute path from the system directories, never resolved through the
+/// working directory or the inherited <c>PATH</c>, so a file written into the workspace cannot shadow
+/// an allowed command. Only the Windows <c>date</c>/<c>time</c> built-ins go through <c>cmd.exe</c>.
+/// Commands use the workspace root as the working directory, output is captured, and a timeout
+/// prevents a stuck process from hanging the run.
 /// </summary>
 public sealed class TerminalTool
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(60);
 
-    // Shell control characters rejected in arguments so a single allowlisted command can't chain into others.
-    private static readonly char[] ShellOperators = ['&', '|', ';', '<', '>', '`', '$', '\n', '\r'];
+    private static readonly string[] WindowsCommands = ["whoami", "date /t", "time /t"];
+    private static readonly string[] UnixCommands = ["whoami", "date"];
+    private static readonly string[] UnixSearchDirectories = ["/usr/bin", "/bin"];
 
-    private readonly HashSet<string> _allowlist;
+    private readonly bool _isWindows;
+
+    /// <summary>Creates the tool with the allowlist for the operating system the service runs on.</summary>
+    public TerminalTool() : this(OperatingSystem.IsWindows())
+    {
+    }
+
+    internal TerminalTool(bool isWindows) => _isWindows = isWindows;
+
+    /// <summary>The exact command lines permitted on this operating system.</summary>
+    public IReadOnlyList<string> AllowedCommands => AllowedCommandsFor(_isWindows);
+
+    /// <summary>The exact command lines permitted on Windows or on macOS/Linux.</summary>
+    internal static IReadOnlyList<string> AllowedCommandsFor(bool isWindows) => isWindows ? WindowsCommands : UnixCommands;
 
     /// <summary>
-    /// Creates the tool with an allowlist of permitted executables. Falls back to a sensible default
-    /// set (<c>dotnet, git, ls, dir, npm, node, python, pip, powershell, pwsh</c>) when configuration
-    /// supplies none.
+    /// Returns the allowlisted command line matching <paramref name="command"/> and
+    /// <paramref name="arguments"/> after trimming and collapsing whitespace, or <c>null</c> when none matches.
     /// </summary>
-    /// <param name="configuration">Configuration optionally providing <c>Coder:AllowedCommands</c>.</param>
-    public TerminalTool(IConfiguration configuration)
+    internal static string? Match(string? command, string? arguments, bool isWindows)
     {
-        var configured = configuration.GetSection("Coder:AllowedCommands").Get<string[]>();
-        var commands = configured is { Length: > 0 }
-            ? configured
-            : ["dotnet", "git", "ls", "dir", "npm", "node", "python", "pip", "powershell", "pwsh"];
-        _allowlist = new HashSet<string>(commands, StringComparer.OrdinalIgnoreCase);
+        var parts = $"{command} {arguments}".Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        var commandLine = string.Join(' ', parts);
+        var comparison = isWindows ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+        return AllowedCommandsFor(isWindows).FirstOrDefault(allowed => allowed.Equals(commandLine, comparison));
     }
 
     /// <summary>
     /// A human-readable description of the runtime environment for the agent's system prompt: the OS,
-    /// the shell commands run through, and the allowlisted commands. Helps the agent choose the right
-    /// command for the platform (e.g. <c>dir</c> on Windows vs <c>ls</c> on Unix).
+    /// the shell commands run through, and the only command lines allowed.
     /// </summary>
     public string EnvironmentInfo
     {
         get
         {
-            var os = OperatingSystem.IsWindows() ? "Windows" : OperatingSystem.IsMacOS() ? "macOS" : "Linux/Unix";
-            var shell = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
-            var listExample = OperatingSystem.IsWindows() ? "dir" : "ls";
+            var os = _isWindows ? "Windows" : OperatingSystem.IsMacOS() ? "macOS" : "Linux/Unix";
             return
                 $"You are running on {os} ({RuntimeInformation.OSDescription.Trim()}). " +
-                $"Terminal commands run through {shell} with the workspace folder as the working directory. " +
-                $"Use commands appropriate for this OS — for example, list files with '{listExample}'. " +
-                "Run a single command per call; shell operators and command chaining (& | ; < > etc.) are not allowed. " +
-                $"Allowed commands: {string.Join(", ", _allowlist.OrderBy(c => c))}.";
+                "Terminal commands run with the workspace folder as the working directory. " +
+                $"Only these exact command lines are allowed, with no other arguments: {AllowedList}. " +
+                "Use them only to identify the current user or read the current date and time.";
         }
     }
 
-    /// <summary>Runs an allowlisted command in the workspace and returns its output.</summary>
-    /// <param name="command">The executable to run, e.g. <c>dotnet</c>. Must be on the allowlist.</param>
-    /// <param name="arguments">The arguments to pass, e.g. <c>build</c>. May be empty.</param>
+    private string AllowedList => string.Join(", ", AllowedCommands.Select(c => $"'{c}'"));
+
+    /// <summary>Runs an allowlisted command line in the workspace and returns its output.</summary>
+    /// <param name="command">The command to run, e.g. <c>whoami</c> or <c>date</c>.</param>
+    /// <param name="arguments">The arguments, e.g. <c>/t</c>. Together with the command they must exactly match an allowed line.</param>
     /// <param name="cancellationToken">A token to cancel the command.</param>
     /// <returns>The combined stdout/stderr and exit code, or a message when the command is not allowed.</returns>
-    [Description("Run a shell command in the workspace and return its output. The command must be on the allowlist of safe executables.")]
+    [Description("Run one of a few allowed read-only commands in the workspace and return its output: 'whoami' to get the current user, and 'date /t' / 'time /t' on Windows or 'date' on macOS/Linux to get the current date and time. Any other command or argument is rejected.")]
     public async Task<string> RunCommand(
-        [Description("The executable to run, e.g. 'dotnet' or 'git'. Only allowlisted commands are permitted.")] string command,
-        [Description("The arguments to pass to the command, e.g. 'build' or 'status'. Leave empty for none.")] string arguments = "",
+        [Description("The command to run: 'whoami', 'date' or (Windows only) 'time'.")] string command,
+        [Description("The arguments: '/t' for 'date' or 'time' on Windows; otherwise leave empty.")] string arguments = "",
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(command))
@@ -76,42 +87,27 @@ public sealed class TerminalTool
             return "No command was provided.";
         }
 
-        var exe = command.Trim();
-        if (!_allowlist.Contains(exe))
+        var commandLine = Match(command, arguments, _isWindows);
+        if (commandLine is null)
         {
-            return $"Command '{exe}' is not allowed. Permitted commands: {string.Join(", ", _allowlist.OrderBy(c => c))}.";
-        }
-
-        var args = arguments?.Trim() ?? string.Empty;
-        if (args.IndexOfAny(ShellOperators) >= 0)
-        {
-            return "The arguments contain shell control characters (& | ; < > ` $ or a newline), which are not allowed. Run one command per call.";
+            return $"Command '{$"{command} {arguments}".Trim()}' is not allowed. Only these exact commands are permitted: {AllowedList}.";
         }
 
         var workspace = WorkspaceScope.Require().Root;
-        var commandLine = string.IsNullOrEmpty(args) ? exe : $"{exe} {args}";
 
-        // Run through the OS shell so built-ins (dir/ls) and script-based commands (e.g. npm.cmd) resolve
-        // the same way they would in a terminal, instead of requiring an exact executable path.
         var startInfo = new ProcessStartInfo
         {
             WorkingDirectory = workspace,
+            RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true,
         };
 
-        if (OperatingSystem.IsWindows())
+        if (!TryConfigureExecutable(startInfo, commandLine))
         {
-            startInfo.FileName = "cmd.exe";
-            startInfo.Arguments = $"/c {commandLine}";
-        }
-        else
-        {
-            startInfo.FileName = "/bin/sh";
-            startInfo.ArgumentList.Add("-c");
-            startInfo.ArgumentList.Add(commandLine);
+            return $"Command '{commandLine}' is not available on this system.";
         }
 
         using var process = new Process { StartInfo = startInfo };
@@ -123,6 +119,7 @@ public sealed class TerminalTool
         try
         {
             process.Start();
+            process.StandardInput.Close();
         }
         catch (Exception ex)
         {
@@ -166,6 +163,47 @@ public sealed class TerminalTool
     [
         AIFunctionFactory.Create(RunCommand),
     ];
+
+    // Resolves the allowed command line to an absolute executable so neither the workspace (the working
+    // directory) nor the inherited PATH can supply a look-alike. Returns false when the binary is missing.
+    private bool TryConfigureExecutable(ProcessStartInfo startInfo, string commandLine)
+    {
+        var parts = commandLine.Split(' ');
+        if (_isWindows)
+        {
+            if (parts.Length == 1)
+            {
+                startInfo.FileName = Path.Combine(Environment.SystemDirectory, $"{parts[0]}.exe");
+                return File.Exists(startInfo.FileName);
+            }
+
+            // 'date /t' and 'time /t' exist only as cmd.exe built-ins, which win over any file of the same name.
+            startInfo.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+            startInfo.ArgumentList.Add("/d");
+            startInfo.ArgumentList.Add("/c");
+            foreach (var part in parts)
+            {
+                startInfo.ArgumentList.Add(part);
+            }
+
+            startInfo.Environment["NoDefaultCurrentDirectoryInExePath"] = "1";
+            return File.Exists(startInfo.FileName);
+        }
+
+        var executable = UnixSearchDirectories.Select(dir => Path.Combine(dir, parts[0])).FirstOrDefault(File.Exists);
+        if (executable is null)
+        {
+            return false;
+        }
+
+        startInfo.FileName = executable;
+        foreach (var part in parts.Skip(1))
+        {
+            startInfo.ArgumentList.Add(part);
+        }
+
+        return true;
+    }
 
     private static void TryKill(Process process)
     {

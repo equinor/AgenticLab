@@ -62,8 +62,8 @@ The resource links on this card point to the current, authoritative guidance:
 
 This sample shows several of these techniques in miniature, visible with **Environment &
 risk** turned on. The workspace agents are **confined** to a single folder (a lightweight
-**sandbox**); `Coder`'s commands are checked against an **allowlist** with shell-operator
-chaining rejected and a 60-second timeout; `Ask` and `Plan` use a **read-only** tool subset
+**sandbox**); `Coder` may run only an **allowlist** of exact read-only commands (`whoami` and
+the date/time) with a 60-second timeout; `Ask` and `Plan` use a **read-only** tool subset
 (least privilege); `Plan` can **ask you before assuming** (human in the loop); and for every
 agent, individual **tools can be toggled off per run**. The merged node's **Risk** meter and
 **Guardrails** box make the agent's reach and its protections explicit *before* you let it

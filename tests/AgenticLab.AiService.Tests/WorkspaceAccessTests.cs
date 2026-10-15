@@ -124,7 +124,7 @@ public sealed class WorkspaceAccessTests : IDisposable
                 ("AzureOpenAI:ApiKey", "not-used-by-this-test"));
             using var http = new HttpClient();
             var resolver = new WorkspaceAgentResolver(new ChatClientProvider(configuration), new WorkspaceAgentLoader(),
-                new FileSystemTool(), new TerminalTool(configuration),
+                new FileSystemTool(), new TerminalTool(),
                 new SkillsTool(new SkillLoader(access), new SkillMatcher()), new AskQuestionTool(), new WebFetchTool(http), access);
             using var scope = access.TryBegin(_sample);
             return resolver.ListAgents().Select(agent => agent.Name).Order().ToList();

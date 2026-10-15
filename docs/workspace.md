@@ -22,10 +22,10 @@ For example, a playbook at `skills/get-date/SKILL.md`:
 ```markdown
 ---
 name: get-date
-description: Get the current date and time on a Windows machine using the terminal.
+description: Get the current date and time on Windows, macOS or Linux using the terminal.
 allowed-tools: RunCommand
 ---
-Run Get-Date with PowerShell and report the result.
+Run `date /t` and `time /t` on Windows, or `date` on macOS/Linux, and report the result.
 ```
 
 The optional `allowed-tools` field lists the tools a skill needs. It doesn't grant them; in the
@@ -150,15 +150,25 @@ paths against the workspace root/prefix, rejecting paths outside it. Absolute pa
 be accepted. **This is a lexical check, not symlink resolution or per-user access control.**
 
 [TerminalTool](../src/AgenticLab.AiService/Application/Tools/TerminalTool.cs) uses the root as its
-working directory and a 60-second timeout. `Coder:AllowedCommands` overrides the default executables:
-`dotnet`, `git`, `ls`, `dir`, `npm`, `node`, `python`, `pip`, `powershell`, `pwsh`. Commands run through
-`cmd.exe /c` on Windows or `/bin/sh -c` elsewhere, with shell operators/interpolation syntax and
-newlines rejected. Coder receives the current OS, shell and allowlist in its environment instructions.
+working directory and a 60-second timeout. It runs only a fixed allowlist of **exact command lines**,
+chosen by the service's OS and not configurable:
 
-**Security limits:** command arguments are not checked for filesystem escape. Allowed interpreters,
-build tools and package tools can execute code, access other files, inherit the service environment
-and use the network with the service account's permissions. The allowlist, path checks and timeout
-do not prevent that. Prompts, skills and manual stepping are not authorization controls.
+| OS | Allowed command lines |
+| --- | --- |
+| Windows | `whoami`, `date /t`, `time /t` |
+| macOS / Linux | `whoami`, `date` |
+
+`command` and `arguments` are joined, trimmed and whitespace-collapsed, then compared with the list
+(case-insensitively on Windows). Any other command or argument, including `whoami /all`, `date -s`, a
+bare Windows `date`, PowerShell or shell operators, is rejected. Executables start by absolute path from
+the system directories (`%SystemRoot%\System32` or `/usr/bin` and `/bin`), never via the working directory
+or the inherited `PATH`, so a `whoami.cmd` written into the workspace is not run; only the Windows
+`date`/`time` built-ins go through `cmd.exe /d /c`. Coder receives the current OS and allowed commands
+in its environment instructions; the `whoami` and `get-date` sample skills use them.
+
+**Security limits:** the allowed commands are read-only, but they still run with the service account's
+permissions and environment. The allowlist, path checks and timeout are not a sandbox, and prompts,
+skills and manual stepping are not authorization controls.
 
 ### Workspace path suggestions
 
