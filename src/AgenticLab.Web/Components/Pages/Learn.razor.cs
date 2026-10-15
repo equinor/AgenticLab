@@ -31,6 +31,7 @@ public partial class Learn : IAsyncDisposable
     private ElementReference _root;
     private FoundationLesson? _foundationLesson;
     private AgentTurnLesson? _turnLesson;
+    private ToolCallingLesson? _toolLesson;
     private HostingLesson? _hostingLesson;
     private IJSObjectReference? _keyboardModule;
     private DotNetObjectReference<Learn>? _keyboardReference;
@@ -88,6 +89,7 @@ public partial class Learn : IAsyncDisposable
                     StateHasChanged();
                     break;
                 case "agent-loop": _turnLesson?.MoveToLastStep(); break;
+                case "tool-calling": _toolLesson?.MoveToLastStep(); break;
                 case "where-to-run": _hostingLesson?.MoveToLastStep(); break;
                 case "agent-landscape" or "model-to-agent" or "inside-the-harness" or "agents-everywhere" or "anatomy-of-agent":
                     _foundationLesson?.MoveToLastStep();
@@ -132,6 +134,7 @@ public partial class Learn : IAsyncDisposable
             {
                 "why-agents" => TryMoveIntroduction(direction),
                 "agent-loop" => _turnLesson?.TryMoveStep(direction) == true,
+                "tool-calling" => _toolLesson?.TryMoveStep(direction) == true,
                 "where-to-run" => _hostingLesson?.TryMoveStep(direction) == true,
                 "agent-landscape" or "model-to-agent" or "inside-the-harness" or "agents-everywhere" or "anatomy-of-agent" =>
                     _foundationLesson?.TryMoveStep(direction) == true,

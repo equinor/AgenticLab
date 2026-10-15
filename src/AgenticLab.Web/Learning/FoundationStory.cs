@@ -169,8 +169,8 @@ internal sealed class FoundationStory
     internal bool CanPrevious => Beat > 0;
     internal bool CanNext => Beat < Captions.Count - 1;
     internal string Caption => Captions[Beat];
-    internal IEnumerable<HarnessResponsibility> VisibleContextAspects => StageId == "inside-the-harness"
-        ? AgentTurnStory.ContextAspects.Take(Math.Max(0, Beat - 1))
+    internal IEnumerable<LearningNode> VisibleContextAspects => StageId == "inside-the-harness"
+        ? ContextParts.Take(Beat)
         : [];
 
     internal void SetStage(string stageId)
@@ -201,7 +201,7 @@ internal sealed class FoundationStory
         if (!_openHarnessExamples.Add(nodeId)) _openHarnessExamples.Remove(nodeId);
     }
     private bool IsHarnessResponsibilityVisible(string nodeId) => StageId == "inside-the-harness"
-        && (VisibleContextAspects.Any(item => item.NodeId == nodeId)
+        && (VisibleContextAspects.Any(item => item.Id == nodeId)
             || Beat >= 1 && nodeId == AgentTurnStory.Execution.NodeId);
     internal void SelectExample(string id) => Example = Examples.FirstOrDefault(example => example.Id == id) ?? Example;
     internal void SelectAnatomy(string id)
@@ -236,13 +236,21 @@ internal sealed class FoundationStory
         "An allowed Read skill call supplies the package's full instructions for a later model request. Loading this text neither executes its steps nor enables new tools.",
     ]);
 
-    internal const string ContextManagementSummary = "Selects and assembles the information supplied to the model.";
+    internal const string ContextManagementSummary = "Selects the instructions, task, conversation messages, tool results and tool descriptions supplied to the model.";
+
+    private static readonly IReadOnlyList<LearningNode> ContextParts = Array.AsReadOnly<LearningNode>(
+    [
+        new("instructions", "Instructions", "Guidance on how the model should respond."),
+        new("available-tools", "Tool descriptions", "Names, descriptions and expected arguments of the tools the model can request."),
+        new("harness-context", "Task", "The user's current request."),
+        new("context-history", "Conversation history", "Earlier messages in this conversation selected for this request."),
+        new("context-results", "Tool results", "Content returned by tools and selected for this request."),
+    ]);
 
     private static readonly IReadOnlyList<string> HarnessCaptions = Array.AsReadOnly<string>(
     [
         ContextManagementSummary,
-        AgentTurnStory.Execution.Summary,
-        .. AgentTurnStory.ContextAspects.Select(item => item.Summary),
+        .. ContextParts.Select(item => item.Detail),
     ]);
 
     private static readonly IReadOnlyList<string> LandscapeCaptions = Array.AsReadOnly<string>(
@@ -253,7 +261,7 @@ internal sealed class FoundationStory
 
     private static readonly IReadOnlyList<string> CompositionCaptions = Array.AsReadOnly<string>(
     [
-        "Agent = Harness + Model. The harness handles input, manages context and controls execution. The model generates responses from the supplied input.",
+        "Agent = Harness + Model. The harness manages context and execution. The model generates answers and tool requests.",
     ]);
 
     private static readonly IReadOnlyList<string> EnvironmentCaptions = Array.AsReadOnly<string>(

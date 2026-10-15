@@ -23,6 +23,42 @@ internal sealed record LearningTurnStep(
 internal sealed record LearningTurnScenario(string Id, string Title, IReadOnlyList<LearningTurnStep> Steps);
 internal sealed record HarnessResponsibility(string NodeId, string Title, string Summary, string Input, string Operation, string Output, string Boundary);
 
+internal sealed class AgentLoopStory
+{
+    internal static IReadOnlyList<LearningNode> Steps { get; } = Array.AsReadOnly<LearningNode>(
+    [
+        new("context", "Construct the context", "The harness selects instructions, the task, conversation messages, tool results and tool descriptions to construct the context for the next model request."),
+        new("model", "Generate a response", "The harness sends the context to the model. The model reasons over it and chooses an answer or a tool-call request."),
+        new("execute", "Handle the response", "The harness handles the model response. An answer can end the turn. A tool-call request must pass the harness's checks before execution. The model does not execute the tool."),
+        new("execute", "Execute the requested tool", "The harness invokes the permitted tool and receives its result. A failed call returns an error. A rejected request does not execute the tool."),
+        new("context", "Construct the next context", "The harness passes the tool result to context management. Context management selects it with the other inputs for the next model request."),
+        new("model", "Generate the next response", "The harness sends the new context to the model. The model reasons over it and returns an answer or another tool-call request. Another tool-call request goes through the harness again."),
+        new("execute", "Pass the response to the user", "When the model returns an answer, the harness passes it to the user. No tool call is needed."),
+        new("answer", "Answer", "The user receives the answer and the turn ends. The harness can also stop because of cancellation, a limit or a failure. Ending the turn does not mean the task is complete."),
+    ]);
+
+    internal int Beat { get; private set; }
+    internal bool ShowAll { get; private set; }
+    internal LearningNode Step => Steps[Beat];
+    internal bool CanPrevious => Beat > 0;
+    internal bool CanNext => Beat < Steps.Count - 1;
+    internal void Move(int offset)
+    {
+        Beat = (int)Math.Clamp((long)Beat + offset, 0, Steps.Count - 1);
+        ShowAll = false;
+    }
+    internal void Complete()
+    {
+        Beat = Steps.Count - 1;
+        ShowAll = true;
+    }
+    internal void Restart()
+    {
+        Beat = 0;
+        ShowAll = false;
+    }
+}
+
 internal sealed class AgentTurnStory
 {
     internal const string Task = "Read meeting-notes.txt and list the agreed actions.";

@@ -40,19 +40,20 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Intro** and follows four root topics, with six subtopics grouped under
+The guide opens at **Intro** and follows four root topics, with seven subtopics grouped under
 **Agent**, **One foundation, many systems** and **Where agents run**.
-The ten lessons retain their reading order. Bookmark any stage with
+The guide has eleven lessons; existing lesson IDs remain unchanged. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
 | Number | Topic | ID | Focus |
 | --- | --- | --- | --- |
 | 1 | Intro | `why-agents` | The user and chat application, then the LLM, ChatGPT with web search, and the harness + model. |
-| 2 | Agent | `model-to-agent` | Harness + model and their responsibilities, shown together. |
-| 2.1 | Inside the harness | `inside-the-harness` | Context management and execution, then four context aspects with examples on demand. |
-| 2.2 | The agent loop | `agent-loop` | Follow a meeting-notes task through model requests, a checked file read, returned content and a response. |
-| 2.3 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls. |
+| 2 | Agent | `model-to-agent` | Agent = Harness + Model, with each part's responsibilities. |
+| 2.1 | Context management | `inside-the-harness` | Instructions, task, conversation history, tool results and tool descriptions selected for a model request. |
+| 2.2 | Model response | `tool-calling` | Answer text, tool-call requests and how the harness handles them; links to Live flow. |
+| 2.3 | The agent loop | `agent-loop` | The generic cycle, its result return path and the response-or-stop exit, without a task example. |
+| 2.4 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls; existing configurations are unchanged. |
 | 3 | One foundation, many systems | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
 | 3.1 | Different purposes, same pattern | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
 | 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
@@ -97,7 +98,7 @@ sequence. The guide does not make model or search calls.
 **Left/Right arrow keys** combine reveal and lesson navigation. Right advances one reveal;
 after the last reveal it opens the next lesson at its first reveal. Left goes back one reveal;
 from the first reveal it opens the previous lesson at its final reveal. Both directions visit
-all ten lessons, including subtopics: Agent advances directly to the first reveal of `2.1`, not to `3`.
+all eleven lessons, including subtopics: Agent advances directly to the first reveal of `2.1`, not to `3`.
 Lessons without reveal controls take one key press to leave. The journey does not wrap at either
 end. Backward entry shows the loop's final explanation, not **Show all steps**. Lesson URLs change
 only when crossing a lesson boundary; reveal progress is not saved in the URL.
@@ -107,51 +108,59 @@ selectors and other controls with their own arrow-key behavior keep their native
 modified arrows such as Alt+Left/Right for browser history. Held-key repeats do not advance the
 guide. Stage changes focus the lesson heading; hiding a focused reveal restores that focus.
 
-The navigation nests **Inside the harness**, **The agent loop** and **Anatomy of an agent** beneath
-**Agent**, with matching `2.1`-`2.3` lesson labels. **Different purposes, same pattern** and
+The navigation nests **Context management**, **Model response**, **The agent loop** and **Anatomy of an agent** beneath
+**Agent**, with matching `2.1`-`2.4` lesson labels. **Different purposes, same pattern** and
 **Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
 **Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
-visits every lesson in order, including the subtopics; the progress counter counts all ten lessons.
+visits every lesson in order, including the subtopics; the progress counter counts all eleven lessons.
 
-Inside the harness has six cumulative reveals: **Context management**, then **Execution**, then
-**Instructions**, **Context**, **Tool descriptions** and **Memory** beneath Context management.
-Earlier nodes remain visible. Context management is a static parent; the other five nodes each
-toggle an independent example when clicked or activated with Enter/Space. On desktop the box
-appears to that node's right; constrained layouts stack the example beneath its node.
-Examples use the loop's meeting-notes task and distinguish guidance from enforced controls,
-tool descriptions from implementations, and retained memory from selected context.
-Examples start closed, can remain open independently and do not advance the reveals.
-Earlier examples stay open when advancing; stepping back clears examples for unreached nodes.
-**Show complete diagram** reveals all nodes without opening examples. Restart and lesson reentry
-close examples. Unreached nodes and closed examples take no focus or assistive-technology space.
+**Agent** is a single view of **Agent = Harness + Model**. Two parts describe their responsibilities:
+the harness supplies context, calls the model and executes permitted tool requests; the model
+interprets the supplied input and generates an answer or tool request. The model does not execute
+tools itself. The root does not repeat Intro's conversation diagram or use reveal controls.
+The child lessons expand on context management, model responses and the loop.
 
-Agent shows **Agent = Harness + Model** immediately, with two matching responsibility boxes.
-The harness handles input, manages context and controls execution; the model generates responses
-from the supplied input. This overview has no tool example, exchange paths or reveal controls.
+**Context management** has six cumulative reveals: an overview, **Instructions**, **Tool descriptions**,
+**Task**, **Conversation history** and **Tool results**. Each part has a separate,
+short description. The task is the current request; conversation history is selected earlier
+messages; tool results are returned content selected for the next request. Earlier parts remain
+visible. Memory is omitted for now. This lesson does not include execution, a worked task or
+example toggles.
 
-The loop keeps four boxes and their connecting paths visible from the start: **Context management**,
-**Model**, **Execution** and **Response or stop**. **Next step** reveals the latest reached step inside
-its box and shows its explanation below; unreached boxes show only their headings with dashed borders.
-The active box is outlined, and traversed paths are highlighted. Tool results return from Execution
-to Context management, which assembles the next model request. Responses and stops exit through
-Execution. On narrow screens the exit sits below Execution. **Messages and tool definitions** expands the supplied
-request content. **Show all steps** reveals all reached boxes and the full sequence of explanations;
-**Restart** clears the reveals back to the user message. Changing stages or reloading resets the sequence.
-Unreached steps remain unrevealed; Execution still handles completion when notes are already supplied.
+**Model response** has two numbered steps: **Model response is: Answer**, then
+**Model response is: Tool Call**. The model reasons over supplied
+context and chooses the next action to fulfill the request: answer directly with text or request
+a tool call from the harness. Both steps show a Harness box and an LLM
+box, with top-aligned content and compact spacing. Context is sent to the LLM and its response
+returns to the harness. In Answer, the model determines that it can answer directly without
+requesting anything further from the harness, which returns the answer to the user. Tool call places an example
+Web search tool ("Finds online information") inside the harness box, with call/result arrows. The harness checks and invokes the requested
+tool, then passes the result to context management for the next request. This is a conceptual diagram,
+not a task walkthrough or a claim that every tool runs in the harness process. Previous/Next, Restart
+and Left/Right keyboard navigation switch the two steps; backward entry starts at Tool call.
+A tool request is not execution or permission.
 
-The first model request contains instructions, the task, selected session state and a `read_file`
-description, but no file content. A new session has no earlier messages. Tool descriptions are
-model input, not invocations. Execution applies configured checks before every tool invocation,
-including a request from the first model response. Only after Context management includes the result
-in a second request does the model receive the notes. The answer preserves unstated owners and
-deadlines as **not stated**. Retention is separate from selecting context, and does not retrain
-the model. Responses can include text, tool requests or both; ending a run does not prove success.
+**Open live flow** links to `/flow` for the interactive experience. It does not configure or start
+a run. Preconfigured cases, scenario-specific links and prepared calls are deferred. The previous
+Wikipedia walkthrough is no longer displayed; its fixture remains available to existing tests.
 
-**Other outcomes** is optional and initially closed: denied access, a missing file, cancellation,
-a zero tool-call limit, or notes already supplied by the user. Selecting a case resets its steps;
-Restart preserves the selection. Denied/stopped cases never invoke a file tool; a missing-file
-case invokes it but returns an error. These are synthetic examples, not live operations, provider
-API formats, production policies or a filesystem sandbox.
+**The agent loop** connects Context management and Model response from the preceding lessons.
+It keeps four nodes and their paths visible: **Context management**, **Model response**,
+**Harness execution** and **Answer**. Its eight conceptual steps construct context, generate
+a response, handle the response, execute a permitted tool, construct the next context, generate
+the next response, pass an answer to the user through harness execution and end the turn.
+The model chooses an answer or a tool-call request; the harness checks requests,
+executes permitted calls and passes results to context management for the next model request. **Next step**
+updates the reached node and the explanation below; unreached nodes have dashed borders and no
+step detail. The active node is outlined and traversed paths are highlighted. Results return to
+context management; answers and stops exit through harness execution. An answer can end the turn
+without a tool call. Cancellation, a limit or a failure can also stop it. Ending does not establish
+success. **Show all steps** displays all eight explanations;
+Restart and reentry return to context assembly. No task fixture or outcome selector appears here.
+The earlier meeting-notes fixtures remain available to unit tests, not as this lesson's example.
+
+Worked examples for these subtopics are deferred. This refresh does not add or change
+Anatomy's existing configurations or interactions.
 
 The content introduces one concept at a time, using explicit actors, inputs and outputs.
 More detail is available on demand rather than through a terminology-heavy first screen.
@@ -214,8 +223,11 @@ explanations are product-agnostic. Put Agentic Lab-specific details in one trail
 `In this application (Agentic Lab)` section. Product topics are the exception.
 
 [AgentLearningJourney](../src/AgenticLab.Web/Learning/AgentLearningJourney.cs) owns stages and topic
-references; [AgentTurnStory](../src/AgenticLab.Web/Learning/AgentTurnStory.cs) owns the synthetic
-meeting-notes trace, responsibility examples and outcome navigation; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
+references. [ToolCallingLesson](../src/AgenticLab.Web/Components/Pages/LearningParts/ToolCallingLesson.razor)
+renders the two-step Model response lesson under the preserved `tool-calling` stage ID;
+[ToolCallingStory](../src/AgenticLab.Web/Learning/ToolCallingStory.cs) retains the earlier Wikipedia fixture.
+[AgentTurnStory](../src/AgenticLab.Web/Learning/AgentTurnStory.cs) retains the meeting-notes fixtures
+and defines the conceptual `AgentLoopStory`; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
 [HostingStory](../src/AgenticLab.Web/Learning/HostingStory.cs) own illustrative content and reveal
 state. Keep source-review dates aligned with the curated hosting list when rechecking it.
 
@@ -228,4 +240,7 @@ dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 For backend-free desktop interaction and screenshot checks, run
 `node tools/web-smoke.mjs --learn-only` against the standalone Web URL using the temporary
 Playwright setup in [tools/README.md](../tools/README.md). This checks keyboard reveals, cumulative
-nodes, optional configurations and all six synthetic loop outcomes without model or tool calls.
+nodes, conceptual loop paths and Anatomy configurations without model or tool calls. Journey unit
+tests cover the current lesson order, context reveals and eight-step loop. The browser script still
+contains selectors for the earlier Wikipedia walkthrough and harness lesson; update those before
+final browser verification. Browser checks remain deferred during fast Learn iteration.

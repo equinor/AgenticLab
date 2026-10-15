@@ -44,73 +44,57 @@
     else if (StageId == "model-to-agent")
     {
         <div class="composition agent-overview" data-diagram="composition">
-            <div class="agent-boundary complete">
-                <p class="section-label">Agent = Harness + Model</p>
+            <div class="agent-boundary complete" role="group" aria-label="Agent consists of harness and model">
+                <p class="agent-equation">Agent = Harness + Model</p>
                 <div class="composition-grid">
-                    <div class="application-node story-node" data-node="harness">
+                    <section class="story-node application-node" data-node="harness">
                         <span class="story-icon application-icon" aria-hidden="true"></span>
                         <h3>Harness</h3>
-                        <p>Handles input, manages context and controls execution.</p>
-                    </div>
+                        <p>The software that manages context and execution.</p>
+                        <ul class="node-list">
+                            <li>Supplies context to the model.</li>
+                            <li>Calls the model and handles its responses.</li>
+                            <li>Checks and executes permitted tool requests.</li>
+                        </ul>
+                    </section>
                     <span class="plus" aria-hidden="true">+</span>
-                    <div class="model-node story-node" data-node="model">
+                    <section class="story-node model-node" data-node="model">
                         <span class="story-icon model-icon" aria-hidden="true"></span>
-                        <h3>Model</h3>
-                        <p>Generates responses from the supplied input.</p>
-                    </div>
+                        <h3>Model (LLM)</h3>
+                        <p>Generates a response from the supplied context.</p>
+                        <ul class="node-list">
+                            <li>Reasons over the supplied context.</li>
+                            <li>Produces an answer or requests a tool call.</li>
+                            <li>Does not execute the tool itself.</li>
+                        </ul>
+                    </section>
                 </div>
             </div>
         </div>
     }
     else if (StageId == "inside-the-harness")
     {
-        RenderFragment<HarnessResponsibility> responsibilityNode = responsibility => @<li class="harness-row" @key="responsibility.NodeId">
-            @{
-                var isOpen = _story.IsHarnessExampleOpen(responsibility.NodeId);
-                var exampleId = $"harness-example-{responsibility.NodeId}";
-            }
-                    <button type="button" class="story-node harness-node" data-node="@responsibility.NodeId"
-                            aria-label="@($"{responsibility.Title}: example and limits")"
-                            aria-expanded="@(isOpen ? "true" : "false")" aria-controls="@exampleId"
-                            @onclick="() => _story.ToggleHarnessExample(responsibility.NodeId)">
-                        <span class="harness-node-title">@responsibility.Title</span>
-                        <span class="harness-example-icon" aria-hidden="true"><MiniIcon Name="@(isOpen ? "close" : "expand")" /></span>
-                        <span class="harness-node-summary">@responsibility.Summary</span>
-                    </button>
-                    <section id="@exampleId" class="story-node harness-example" hidden="@(!isOpen)"
-                             aria-label="@($"{responsibility.Title} example")" data-example="@responsibility.NodeId">
-                        <h3>@responsibility.Title example</h3>
-                        <dl>
-                            <dt>Input</dt><dd>@responsibility.Input</dd>
-                            <dt>What the harness does</dt><dd>@responsibility.Operation</dd>
-                            <dt>Output</dt><dd>@responsibility.Output</dd>
-                            <dt>Limit</dt><dd>@responsibility.Boundary</dd>
-                        </dl>
-                    </section>
-        </li>;
-        <ol class="harness-responsibilities" data-diagram="harness">
-            <li class="harness-context-group">
-                <div class="harness-row">
-                    <section class="story-node" data-node="context-management">
-                        <h3>Context management</h3>
-                        <p>@FoundationStory.ContextManagementSummary</p>
-                    </section>
-                </div>
-                @if (_story.Beat >= 2)
+        <div class="harness-columns" data-diagram="harness">
+            <section class="harness-context-group">
+                <header class="harness-responsibility" data-node="context-management">
+                    <span class="story-icon application-icon" aria-hidden="true"></span>
+                    <h3>Context management</h3>
+                    <p>@FoundationStory.ContextManagementSummary</p>
+                </header>
+                @if (_story.Beat >= 1)
                 {
                     <ol class="harness-context-aspects" aria-label="Context management aspects">
                         @foreach (var aspect in _story.VisibleContextAspects)
                         {
-                            @responsibilityNode(aspect)
+                            <li data-node="@aspect.Id">
+                                <h4>@aspect.Title</h4>
+                                <p>@aspect.Detail</p>
+                            </li>
                         }
                     </ol>
                 }
-            </li>
-            @if (_story.Beat >= 1)
-            {
-                @responsibilityNode(AgentTurnStory.Execution)
-            }
-        </ol>
+            </section>
+        </div>
     }
     else if (StageId == "anatomy-of-agent")
     {
@@ -280,7 +264,7 @@
     private string LessonLabel => StageId switch
     {
         "model-to-agent" => "Agent responsibilities",
-        "inside-the-harness" => "Build up harness responsibilities",
+        "inside-the-harness" => "Build up context management",
         "agents-everywhere" => "Compare agent environments",
         "anatomy-of-agent" => "Anatomy of an agent",
         _ => "Explore the agentic landscape",

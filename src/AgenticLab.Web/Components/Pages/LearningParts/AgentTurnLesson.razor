@@ -1,102 +1,49 @@
 @using AgenticLab.Web.Learning
 
-<section class="turn-lesson" aria-label="Follow one agent turn" data-diagram="loop" data-scenario="@_story.Scenario.Id" data-beat="@_story.Beat">
+<section class="turn-lesson" aria-label="Explore the agent loop" data-diagram="loop" data-beat="@_story.Beat">
     <div class="turn-toolbar" role="group" aria-label="Turn steps">
         <LabButton Label="Previous step" Icon="prev" IconOnly="true" Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
-        <span class="step-count">@(_story.Beat + 1) / @_story.Scenario.Steps.Count</span>
+        <span class="step-count">@(_story.Beat + 1) / @AgentLoopStory.Steps.Count</span>
         <LabButton Label="Next step" Icon="next" IconOnly="true" Disabled="@(!_story.CanNext)" OnClick="() => _story.Move(1)" />
         <LabButton Label="Show all steps" Icon="expand" Disabled="@_story.ShowAll" OnClick="_story.Complete" />
         <LabButton Label="Restart" Variant="quiet" Disabled="@(_story.Beat == 0)" OnClick="_story.Restart" />
     </div>
-    <p class="example-label">Example: list the actions agreed in meeting notes.</p>
-    <div class="turn-loop" role="group" aria-label="Agent loop: context management to model to execution, then back to context management or a response or stop">
+    <p class="loop-introduction">One user request can require several model requests. Each uses context constructed by the harness.</p>
+    <div class="turn-loop" role="group" aria-label="Agent loop: context management to model response to harness execution, then back to context management or an answer">
         @foreach (var node in LoopNodes)
         {
-            var reached = _story.Scenario.Steps.Take(_story.Beat + 1).LastOrDefault(step =>
-                step.LoopNodeId == node.Id || node.Id == "execute" && step.Id is "finish" or "stop");
+            var reached = AgentLoopStory.Steps.Take(_story.Beat + 1).LastOrDefault(step => step.Id == node.Id);
             <section class="loop-node loop-@node.Id @(reached is null ? "pending" : "reached")"
-                     data-loop-node="@node.Id" aria-current="@(_story.Step.LoopNodeId == node.Id ? "step" : null)">
+                     data-loop-node="@node.Id" aria-current="@(_story.Step.Id == node.Id ? "step" : null)">
                 <h3><span class="loop-icon @node.Icon" aria-hidden="true"></span>@node.Title</h3>
                 @if (reached is not null)
                 {
                     <div class="node-detail">
-                        <small>@reached.Actor</small>
+                        <small>@(node.Id == "model" ? "Model" : "Harness")</small>
                         <p>@reached.Title</p>
                     </div>
                 }
             </section>
         }
-        <span class="loop-edge context-edge @(HasReached("request-1") ? "traversed" : null)" aria-hidden="true"><span>Model request</span></span>
-        <span class="loop-edge tool-edge @(HasReached("permission") || HasReached("finish") || HasReached("stop") ? "traversed" : null)" aria-hidden="true"><span>Model response</span></span>
-        <span class="loop-edge answer-edge @(HasReached("finish") || HasReached("stop") ? "traversed" : null)" aria-hidden="true"></span>
-        <span class="return-edge @(HasReached("request-2") ? "traversed" : null)" aria-hidden="true"><span>Result into next context</span></span>
+        <span class="loop-edge context-edge @(_story.Beat >= 1 ? "traversed" : null)" aria-hidden="true"><span>Context</span></span>
+        <span class="loop-edge tool-edge @(_story.Beat >= 2 ? "traversed" : null)" aria-hidden="true"><span>Response</span></span>
+        <span class="loop-edge answer-edge @(_story.Beat >= 7 ? "traversed" : null)" aria-hidden="true"></span>
+        <span class="return-edge @(_story.Beat >= 4 ? "traversed" : null)" aria-hidden="true"><span>Tool results</span></span>
     </div>
     <div class="turn-evidence" aria-live="polite" aria-atomic="true">
-        @foreach (var step in _story.ShowAll ? _story.Scenario.Steps : new[] { _story.Step })
+        @foreach (var step in _story.ShowAll ? AgentLoopStory.Steps : new[] { _story.Step })
         {
-            <section class="step-evidence" @key="step.Id" data-step="@step.Id">
+            <section class="step-evidence" data-step="@step.Id">
                 <h3>@step.Title</h3>
-                <p>@step.Explanation</p>
-                @if (step.Request is { } request)
-                {
-                    <dl class="request-summary">
-                        <dt>Messages supplied</dt>
-                        <dd>@string.Join("; ", request.Messages.Select(message => MessageLabel(message.Role)))</dd>
-                        <dt>Tools described</dt>
-                        <dd>@(request.Tools.Count == 0 ? "None" : string.Join(", ", request.Tools.Select(tool => tool.Name)))</dd>
-                        <dt>Meeting notes supplied</dt>
-                        <dd>@(request.Messages.Any(message => message.Text.Contains(AgentTurnStory.FileContent)) ? "Yes" : "No")</dd>
-                    </dl>
-                    <details>
-                        <summary>Messages and tool definitions</summary>
-                        @foreach (var message in request.Messages)
-                        {
-                            <h4>@MessageLabel(message.Role)</h4>
-                            @if (message.ToolCall is { } call)
-                            {
-                                <pre>@AgentTurnStory.Json(call)</pre>
-                            }
-                            else
-                            {
-                                <pre>@message.Text</pre>
-                            }
-                        }
-                        @foreach (var tool in request.Tools)
-                        {
-                            <h4>@tool.Name</h4>
-                            <p>@tool.Description</p>
-                            <p>Required argument: <code>path</code>, a string containing the file name.</p>
-                        }
-                    </details>
-                }
-                else if (step.Id == "tool-request")
-                {
-                    <p class="call-summary"><code>read_file(path: "meeting-notes.txt")</code></p>
-                    <details><summary>Tool request data</summary><pre>@step.Evidence</pre></details>
-                }
-                else
-                {
-                    <h4>@step.EvidenceLabel</h4>
-                    <pre class="text-evidence">@step.Evidence</pre>
-                }
+                <p>@step.Detail</p>
             </section>
         }
     </div>
-    <details class="other-outcomes">
-        <summary>Other outcomes</summary>
-        <label for="turn-outcome">Example outcome</label>
-        <select id="turn-outcome" value="@_story.Scenario.Id" @onchange="SelectOutcome">
-            @foreach (var scenario in AgentTurnStory.Scenarios)
-            {
-                <option value="@scenario.Id">@scenario.Title</option>
-            }
-        </select>
-    </details>
-    <p class="example-note">Illustrative messages and configured checks, not a live file read or a provider's API format.</p>
+    <p class="loop-note">The model requests actions. The harness executes permitted actions and controls the loop.</p>
 </section>
 
 @code {
-    private readonly AgentTurnStory _story = new();
+    private readonly AgentLoopStory _story = new();
 
     /// <summary>Moves one step, returning false when the page must navigate to another lesson.</summary>
     public bool TryMoveStep(int direction)
@@ -117,21 +64,9 @@
     private static readonly (string Id, string Title, string Icon)[] LoopNodes =
     [
         ("context", "Context management", "workflow-icon"),
-        ("model", "Model", "model-icon"),
-        ("execute", "Execution", "workflow-icon"),
-        ("answer", "Response or stop", "workflow-icon"),
+        ("model", "Model response", "model-icon"),
+        ("execute", "Harness execution", "workflow-icon"),
+        ("answer", "Answer", "workflow-icon"),
     ];
 
-    private bool HasReached(string id) => _story.Scenario.Steps.Take(_story.Beat + 1).Any(step => step.Id == id);
-
-    private void SelectOutcome(ChangeEventArgs args) => _story.Select(args.Value?.ToString() ?? "read");
-
-    private static string MessageLabel(string role) => role switch
-    {
-        "instructions" => "Instruction text",
-        "user" => "User message",
-        "assistant" => "Model's tool request",
-        "tool" => "Tool result",
-        _ => role,
-    };
 }

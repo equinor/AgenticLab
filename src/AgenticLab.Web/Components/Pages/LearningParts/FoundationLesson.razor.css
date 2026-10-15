@@ -1,5 +1,38 @@
 .foundation-lesson { min-width: 0; }
 .foundation-lesson * { box-sizing: border-box; }
+.partnership { max-width: 900px; margin: 1.5rem auto 0; }
+.partnership-flow { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); grid-template-rows: 96px 88px 96px; margin-bottom: 3rem; }
+.partnership-paths { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.partnership-paths > path { vector-effect: non-scaling-stroke; }
+.partnership-actor { position: relative; display: flex; flex-direction: column; justify-content: center; gap: .35rem; height: 96px; min-width: 0; padding: .75rem; border: 1px solid var(--line); border-left: 3px solid var(--app); background: var(--surface); }
+.partnership-actor strong { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
+.partnership-actor span { color: var(--muted); font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.partnership-user { grid-area: 1 / 1; border-left-color: var(--lab-user); }
+.partnership-model { grid-area: 1 / 5; border-left-color: var(--lab-model); }
+.partnership-application { z-index: 1; grid-area: 1 / 3 / 4 / 4; display: grid; grid-template-rows: subgrid; border: 1px solid var(--line); border-left: 3px solid var(--app); background: var(--surface); margin-bottom: -16px; }
+.partnership-heading { border: 0; }
+.partnership-harness { display: grid; grid-area: 2 / 1 / 4 / 2; grid-template-rows: 24px 64px 96px; margin: 0 8px 8px; padding: 4px 8px; border: 1px solid var(--line); min-width: 0; }
+.partnership-harness > strong { font-size: 14px; }
+.partnership-search { height: auto; border-left-color: var(--lab-tool); padding: .5rem; }
+.partnership-search-link { display: flex; align-items: center; justify-content: space-between; gap: .25rem; min-width: 0; color: var(--muted); font-size: 11px; }
+.partnership-search-link > span:nth-child(2) { font-size: 22px; white-space: nowrap; }
+.partnership-link { z-index: 1; display: grid; grid-template-rows: 48px 48px; padding-top: 8px; text-align: center; font-size: 12px; color: var(--muted); }
+.partnership-user-link { grid-area: 1 / 2; }
+.partnership-model-link { grid-area: 1 / 4; }
+.partnership-boundary { grid-area: 1 / 3 / 4 / 6; margin: -12px -8px -40px; border: 1px dashed var(--accent); position: relative; }
+.partnership-boundary span { position: absolute; bottom: 0; left: .75rem; padding: .4rem; background: var(--surface); color: var(--accent); font-size: 12px; font-weight: 600; }
+.partnership-roles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.5rem; margin: 0; }
+.partnership-roles > div { min-width: 0; border-top: 2px solid var(--app); padding-top: .75rem; }
+.partnership-roles > div:last-child { border-color: var(--blue); }
+.partnership-roles dt { font-size: 14px; font-weight: 600; color: var(--ink); }
+.partnership-roles dd { min-height: 0; margin: .5rem 0 0; }
+.partnership-note { color: var(--muted); font-size: 13px; line-height: 1.6; margin: 1rem 0 0; }
+@container (max-width: 620px) {
+    .partnership-actor { padding: .4rem; }
+    .partnership-harness { margin-inline: 3px; padding-inline: 3px; }
+    .partnership-search-link { flex-wrap: wrap; justify-content: center; }
+    .partnership-search-link > span:nth-child(2) { font-size: 16px; }
+}
 .story-toolbar { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 button, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; }
 button { cursor: pointer; min-height: 40px; }
@@ -10,19 +43,21 @@ button:focus-visible, select:focus-visible { outline: var(--lab-focus-ring); out
 .story-caption { min-height: 4.8em; margin: 1rem 0; max-width: 95ch; line-height: 1.6; color: var(--ink); }
 .reveal { transition: opacity 240ms ease; }
 .unrevealed { visibility: hidden; opacity: 0; pointer-events: none; }
-.harness-responsibilities { display: grid; gap: .85rem; list-style: none; margin: 0; padding: 0; }
+.harness-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; margin: 1.5rem 0 0; }
+.foundation-lesson[data-story="inside-the-harness"] .harness-columns { grid-template-columns: minmax(0, 1fr); max-width: 850px; margin-inline: auto; }
 .harness-context-group { min-width: 0; }
-.harness-context-aspects { display: grid; gap: .85rem; list-style: none; margin: .85rem 0 0 1rem; padding: 0 0 0 1rem; border-left: 1px solid var(--line); }
-.harness-row { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1rem; align-items: start; min-width: 0; }
-.harness-node { display: grid; grid-template-columns: minmax(0, 1fr) 18px; gap: .5rem; width: 100%; text-align: left; border-radius: 0; }
-.harness-node-title { font: 500 18px/1.5 var(--lab-font-sans); overflow-wrap: anywhere; }
-.harness-node-summary { grid-column: 1 / -1; color: var(--muted); font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
-.harness-node[aria-expanded='true'] { border-color: var(--app); }
-.harness-node .harness-example-icon { display: inline-flex; width: 18px; height: 18px; align-self: center; color: var(--app); }
-.harness-example[hidden] { display: none; }
-.harness-example h3 { margin-top: 0; }
-.harness-example dl { margin-bottom: 0; }
-.harness-example dd { min-height: 0; }
+.harness-responsibility { display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: .5rem; border-top: 3px solid var(--app); padding-top: 1rem; }
+.foundation-lesson[data-story="inside-the-harness"] .harness-responsibility { border-top: 0; border-left: 3px solid var(--app); padding: .75rem; }
+.harness-responsibility h3 { margin: 0; }
+.harness-responsibility > p { grid-column: 1 / -1; margin: .35rem 0; color: var(--muted); line-height: 1.6; font-size: 13px; }
+.harness-context-aspects { display: grid; list-style: none; margin: 1rem 0 0; padding: 0 0 0 1rem; border-left: 1px solid var(--line); }
+.harness-context-aspects > li { padding: .75rem 0; border-bottom: 1px solid var(--line); }
+.harness-context-aspects h4 { font-size: 14px; font-weight: 500; margin: 0 0 .4rem; }
+.harness-context-aspects p, .harness-execution-parts { font-size: 13px; line-height: 1.6; margin: .4rem 0 0; }
+.harness-execution { min-width: 0; }
+.harness-execution-parts { padding-left: 1.25rem; margin-top: 1rem; }
+.harness-execution-parts li { padding: .5rem 0; }
+.harness-boundary-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
 .anatomy-story { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr) minmax(0, .9fr); gap: 1.25rem; align-items: stretch; }
 .anatomy-story > .unrevealed { display: none; }
 .anatomy-purpose-picker { margin-bottom: .75rem; }
@@ -117,6 +152,7 @@ button:focus-visible, select:focus-visible { outline: var(--lab-focus-ring); out
 .cycle-note { color: var(--muted); font-size: 12px; line-height: 1.6; margin: 1rem 0 0; }
 .composition { max-width: 850px; margin: auto; }
 .agent-overview { margin-top: 1.5rem; }
+.agent-equation { margin: 0 0 1rem; text-align: center; font-size: 20px; font-weight: 500; }
 .agent-overview .composition-grid { grid-template-columns: minmax(0, 1fr) 48px minmax(0, 1fr); }
 .trigger-line { display: flex; justify-content: center; align-items: center; gap: .6rem; margin: 0 0 .75rem; font-size: 12px; min-height: 28px; }
 .agent-boundary { padding: 1rem; border: 1px dashed transparent; }
@@ -170,7 +206,7 @@ dd { margin: 0 0 .5rem; min-height: 3em; overflow-wrap: anywhere; }
 .trigger-settings select { padding: .5rem; min-height: 40px; max-width: 100%; }
 .trigger-settings p { flex: 1 1 220px; margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted); }
 @container (max-width: 620px) {
-    .harness-row { grid-template-columns: minmax(0, 1fr); }
+    .harness-columns { grid-template-columns: minmax(0, 1fr); }
     .cycle-diagram { grid-template-columns: 22px minmax(0, 1fr) 28px minmax(65px, .65fr); grid-template-rows: auto 28px auto 55px auto 28px auto; }
     .cycle-prepare { grid-area: 1 / 2; }
     .prepare-decide { grid-area: 2 / 2; transform: rotate(90deg); }

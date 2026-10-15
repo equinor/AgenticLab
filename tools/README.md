@@ -56,12 +56,13 @@ the UI smoke profile below.
 Use `--learn-only` against a standalone Web instance to check the guide without AiService,
 credentials or model/tool calls. This mode uses desktop viewports only (1440, 1024 and 1920 pixels).
 It checks Intro navigation and the nested Harness/Web search diagram,
-the static Harness + Model overview, six grouped harness reveals and cumulative Anatomy reveals,
-independent right-side example boxes and pointer/keyboard activation,
+the three-step Agent bridge, six Wikipedia article-read steps and result timing,
+six conceptual harness reveals and unchanged cumulative Anatomy reveals,
 Left/Right progression using the rendered lesson order and step counts, backward last-reveal landing, endpoint bounds,
 history/reload resets, focus recovery and native selector/modifier keys. It covers optional skills,
-persistent four-box loop and all six synthetic outcomes, including their different keyboard step
-counts. It also captures screenshots and checks fonts, overflow and browser errors.
+the conceptual four-node loop, its return path and response/stop exit. Harness and loop checks
+assert the absence of worked task examples. Local-only requests are enforced, with no Wikipedia,
+model or other tool calls. It also captures screenshots and checks fonts, overflow and browser errors.
 
 ```sh
 AGENTICLAB_URL=http://127.0.0.1:5140 \
