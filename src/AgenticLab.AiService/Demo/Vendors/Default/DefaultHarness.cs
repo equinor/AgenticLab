@@ -34,10 +34,10 @@ public sealed class DefaultHarness : IVendorHarness
     /// </summary>
     public IReadOnlyList<VendorMode> Modes { get; } = new[]
     {
-        new VendorMode(ChatAgent.AgentName, "chat"),
-        new VendorMode(WikiAssistantAgent.AgentName, "wiki"),
-        new VendorMode(TimeKeeperAgent.AgentName, "time"),
-        new VendorMode(OrchestratorAgent.AgentName, "orchestrator"),
+        new VendorMode(ChatAgent.AgentName, "chatbot"),
+        new VendorMode(WikiAssistantAgent.AgentName, "wikiagent"),
+        new VendorMode(TimeKeeperAgent.AgentName, "timeUsingMCP"),
+        new VendorMode(OrchestratorAgent.AgentName, "orchestratorA2A"),
         new VendorMode(AskAgent.AgentName, "ask"),
         new VendorMode(PlanAgent.AgentName, "plan"),
     };
