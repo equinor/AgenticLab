@@ -1,31 +1,40 @@
-.tool-lesson { min-width: 0; }
-.tool-lesson * { box-sizing: border-box; }
-.tool-toolbar { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
+.model-response { min-width: 0; max-width: 850px; margin: .75rem auto 0; }
+.model-response * { box-sizing: border-box; }
+.response-toolbar { position: sticky; top: calc(-1 * var(--lesson-scroll-inset, 0px)); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .75rem 0; border-bottom: 1px solid var(--line); background: var(--surface); }
 .step-count { min-width: 3rem; text-align: center; font: var(--lab-text-sm) var(--lab-font-mono); color: var(--muted); }
-.task { line-height: 1.7; margin: 1.25rem 0; }
-.task strong { display: block; color: var(--muted); font-size: 12px; }
-.tool-actors { display: grid; grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr) 80px minmax(0, 1fr); align-items: stretch; margin: 1.5rem 0; }
-.tool-actor { min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: .5rem; min-height: 120px; padding: .85rem; border: 1px solid var(--line); border-left: 3px solid var(--lab-model); background: var(--surface); overflow-wrap: anywhere; }
-.tool-actor strong { font-size: 16px; }
-.tool-actor > span { color: var(--muted); font-size: 12px; line-height: 1.5; }
-.harness { border-left-color: var(--lab-host); }
-.wikipedia { border-left-color: var(--lab-tool); }
-.tool-actor[aria-current='step'] { outline: 2px solid var(--accent); outline-offset: 3px; }
-.exchange { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: .35rem; color: var(--muted); font-size: 11px; text-align: center; }
-.exchange > span:last-child { color: var(--accent); font-size: 26px; }
-.tool-step { border-top: 1px solid var(--line); padding-top: 1rem; min-width: 0; }
-.actor-label { font: var(--lab-text-xs) var(--lab-font-mono); color: var(--muted); margin: 0 0 .5rem; }
-h3 { font-size: 19px; font-weight: 500; margin: 0 0 .75rem; }
-h4 { font-size: 12px; font-weight: 500; color: var(--muted); margin: 1rem 0 .5rem; }
-.tool-step > p:not(.actor-label) { max-width: 85ch; line-height: 1.7; }
-pre { font: 12px/1.7 var(--lab-font-mono); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: .85rem; border-left: 3px solid var(--line); background: var(--lab-surface-muted); max-width: 100%; }
-details { border-top: 1px solid var(--line); margin-top: 1rem; padding-top: .75rem; }
-summary { cursor: pointer; font-size: 13px; padding: .25rem 0; }
-summary:focus-visible { outline: var(--lab-focus-ring); outline-offset: var(--lab-focus-offset); }
-details pre { margin-top: .75rem; }
-.fixture-note { color: var(--muted); font-size: 12px; line-height: 1.6; border-top: 1px solid var(--line); margin: 1.25rem 0 0; padding-top: .75rem; }
+.mode-heading { margin: .85rem 0; }
+.mode-heading strong { font-weight: 600; }
+.response-diagram { display: grid; grid-template-columns: minmax(0, 1fr) 130px minmax(0, 1fr); align-items: start; }
+.response-box { min-width: 0; min-height: 180px; padding: .75rem; border: 1px solid var(--line); border-left: 3px solid var(--lab-host); background: var(--surface); text-align: left; }
+.model-box { border-left-color: var(--lab-model); }
+.response-box h3, .example-tool h4 { display: flex; align-items: center; justify-content: flex-start; gap: .5rem; }
+.response-icon { display: inline-block; flex: 0 0 24px; width: 24px; height: 24px; background: currentColor; mask: var(--icon) center / contain no-repeat; }
+.harness-icon { --icon: url('/icons/lucide/workflow.svg'); color: var(--lab-host); }
+.model-icon { --icon: url('/icons/lucide/cpu.svg'); color: var(--lab-model); }
+.tool-icon { --icon: url('/icons/lucide/wrench.svg'); color: var(--lab-tool); }
+.response-exchange { display: flex; flex-direction: column; justify-content: flex-start; gap: 1.25rem; min-width: 0; padding-top: 2rem; }
+.response-exchange > div { display: grid; gap: .5rem; text-align: center; font-size: 12px; color: var(--muted); }
+.response-exchange > div > span:not(.path-line) { padding-inline: .25rem; overflow-wrap: anywhere; }
+.path-line { position: relative; height: 2px; background: var(--lab-host); }
+.path-line::after { content: ''; position: absolute; top: -3px; right: 0; width: 8px; height: 8px; border-top: 2px solid var(--lab-host); border-right: 2px solid var(--lab-host); transform: rotate(45deg); }
+.model-path .path-line { background: var(--lab-model); }
+.model-path .path-line::after { right: auto; left: 0; border-color: var(--lab-model); transform: rotate(-135deg); }
+.tool-exchange { display: flex; align-items: center; justify-content: center; gap: .5rem; padding: .5rem 0; color: var(--muted); font-size: 12px; }
+.tool-exchange > span:nth-child(2) { color: var(--lab-tool); font-size: 22px; }
+.example-tool { min-width: 0; padding: .75rem; border: 1px solid var(--line); border-left: 3px solid var(--lab-tool); }
+.example-tool h4 { font-size: 14px; font-weight: 500; margin: 0; overflow-wrap: anywhere; }
+.example-tool .response-icon { flex-basis: 18px; width: 18px; height: 18px; }
+.example-tool p { font-size: 12px; margin-bottom: 0; }
+.response-note { color: var(--muted); margin: 1rem 0 0; }
+h3 { font-size: 18px; font-weight: 500; margin: 0 0 .5rem; overflow-wrap: anywhere; }
+p { font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+p { margin: .5rem 0; }
 @container (max-width: 620px) {
-    .tool-actors { grid-template-columns: minmax(0, 1fr) 45px minmax(0, 1fr) 45px minmax(0, 1fr); }
-    .tool-actor { padding: .5rem; }
-    .exchange { padding: .15rem; font-size: 10px; }
+    .response-diagram { grid-template-columns: minmax(0, 1fr) 90px minmax(0, 1fr); }
+    .response-box { padding: .65rem; }
+}
+@container (max-width: 420px) {
+    .response-diagram { grid-template-columns: minmax(0, 1fr); }
+    .response-box { min-height: 0; }
+    .response-exchange { padding: 1.25rem; gap: 1.5rem; }
 }

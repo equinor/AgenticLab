@@ -299,6 +299,19 @@ overrides to AiService; A2A specialists use the global default. See
 - Services reach each other by Aspire resource name (e.g. `https+http://aiservice`) through service discovery, not hardcoded URLs.
 - Agents are stateless; the shared `IChatClient` and the `AgentCatalog` are registered as singletons. Per-conversation history lives outside the agents in the singleton `ConversationStore` (keyed by `ConversationId`), not on the agents themselves, and expires after the configured sliding inactivity window.
 
+## Learn Fast Iteration
+
+These rules apply only when the user requests fast, exploratory iteration on `/learn`, its lesson
+content, diagrams, components, state or scoped CSS. They do not change the normal workflow for
+other features or final verification and publication.
+
+- KISS: keep changes small and direct. Reuse existing components and styles; avoid unnecessary abstractions, cleanup and planning.
+- Use simple, precise wording in lessons and conversation. No fluff, filler, flashy phrasing, buzzwords or AI promotion. Explain what things do and how they work; make distinctions clear.
+- Skip routine tests, screenshots and extended validation during exploration. Use a focused check only when necessary to resolve a blocker or uncertainty. Do not expand verification for reassurance.
+- Defer test updates and full verification until the content and layout are settled or the user asks. Required contribution and publication checks still apply before delivery.
+- Reuse the running Web preview in watch mode for edits. Build or restart only when needed to show a change; do not run the whole solution for a lesson edit.
+- Do not change lesson **2.4 Anatomy of an agent** without specific, explicit permission. This includes indirect changes through shared components, state or styles.
+
 ## Documentation
 
 - **Keep documentation present and up to date.** Whenever you change behavior, structure, or conventions, update the relevant docs in the same change so they never drift from the code.

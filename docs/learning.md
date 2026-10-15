@@ -42,16 +42,16 @@ Discovery entry.
 
 The guide opens at **Intro** and follows four root topics, with seven subtopics grouped under
 **Agent**, **One foundation, many systems** and **Where agents run**.
-The eleven lessons include a new Tool calling lesson; existing lesson IDs remain unchanged. Bookmark any stage with
+The guide has eleven lessons; existing lesson IDs remain unchanged. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
 | Number | Topic | ID | Focus |
 | --- | --- | --- | --- |
 | 1 | Intro | `why-agents` | The user and chat application, then the LLM, ChatGPT with web search, and the harness + model. |
-| 2 | Agent | `model-to-agent` | Continue Intro's diagram, distinguish responsibilities and identify the harness/model partnership. |
-| 2.1 | Tool calling | `tool-calling` | Follow a Wikipedia article-read request through invocation, returned content and the next model request. |
-| 2.2 | What makes up the harness | `inside-the-harness` | Context management and execution, with four context aspects and no worked task example. |
+| 2 | Agent | `model-to-agent` | Agent = Harness + Model, with each part's responsibilities. |
+| 2.1 | Context management | `inside-the-harness` | Instructions, task, conversation history, tool results and tool descriptions selected for a model request. |
+| 2.2 | Model response | `tool-calling` | Answer text, tool-call requests and how the harness handles them; links to Live flow. |
 | 2.3 | The agent loop | `agent-loop` | The generic cycle, its result return path and the response-or-stop exit, without a task example. |
 | 2.4 | Anatomy of an agent | `anatomy-of-agent` | Distinguish text supplied to the model from tool configuration and executable controls; existing configurations are unchanged. |
 | 3 | One foundation, many systems | `agents-everywhere` | Compare purposes, local/cloud settings and user/schedule/event triggers. |
@@ -108,35 +108,41 @@ selectors and other controls with their own arrow-key behavior keep their native
 modified arrows such as Alt+Left/Right for browser history. Held-key repeats do not advance the
 guide. Stage changes focus the lesson heading; hiding a focused reveal restores that focus.
 
-The navigation nests **Tool calling**, **What makes up the harness**, **The agent loop** and **Anatomy of an agent** beneath
+The navigation nests **Context management**, **Model response**, **The agent loop** and **Anatomy of an agent** beneath
 **Agent**, with matching `2.1`-`2.4` lesson labels. **Different purposes, same pattern** and
 **Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
 **Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
 visits every lesson in order, including the subtopics; the progress counter counts all eleven lessons.
 
-**Agent** has three reveals. It starts with Intro's familiar User, Chat application, Harness,
-Web search tool and LLM arrangement. The second reveal adds the harness/model responsibilities;
-the third groups the partnership as **Agent = Harness + Model**, leaving the user outside.
-This is a responsibility grouping, not a deployment boundary or a claim about ChatGPT internals.
+**Agent** is a single view of **Agent = Harness + Model**. Two parts describe their responsibilities:
+the harness supplies context, calls the model and executes permitted tool requests; the model
+interprets the supplied input and generates an answer or tool request. The model does not execute
+tools itself. The root does not repeat Intro's conversation diagram or use reveal controls.
+The child lessons expand on context management, model responses and the loop.
 
-**Tool calling** has six manual steps using `GetWikiPage(title: "Alan Turing")`:
-tool description, model request, harness checks and invocation, returned article extract,
-the next model request, and an answer based on the supplied content. There is no separate search
-step. The name, argument and summary-extract behavior match the application's Wikipedia reader;
-the content and messages are original local teaching fixtures, not a live read or provider wire format.
-The diagram keeps Model, Harness and Wikipedia tool separate. The model never directly browses
-Wikipedia. Results return to the harness and reach the model only in the next supplied request.
-**Messages and tool definitions** expands the first or second model input; it starts closed.
-Restart returns to the tool description and a request with no article content. A direct answer
-without tools is possible when the supplied information is sufficient.
+**Context management** has six cumulative reveals: an overview, **Instructions**, **Tool descriptions**,
+**Task**, **Conversation history** and **Tool results**. Each part has a separate,
+short description. The task is the current request; conversation history is selected earlier
+messages; tool results are returned content selected for the next request. Earlier parts remain
+visible. Memory is omitted for now. This lesson does not include execution, a worked task or
+example toggles.
 
-**What makes up the harness** has six cumulative reveals: **Context management**, then
-**Execution**, then **Instructions**, **Context**, **Tool descriptions** and **Memory** beneath
-Context management. Earlier nodes remain visible. Two unframed responsibility columns distinguish
-selecting model input from calling the model, handling responses, checking tool requests and
-continuing or stopping. No worked task, example toggles or payloads appear in this lesson.
-Memory is retained information; context is what is selected for one request. Instruction text
-guides the model, while executable controls enforce configured rules. Tools can run in another service.
+**Model response** has two numbered steps: **Model response is: Answer**, then
+**Model response is: Tool Call**. The model reasons over supplied
+context and chooses the next action to fulfill the request: answer directly with text or request
+a tool call from the harness. Both steps show a Harness box and an LLM
+box, with top-aligned content and compact spacing. Context is sent to the LLM and its response
+returns to the harness. In Answer, the model determines that it can answer directly without
+requesting anything further from the harness, which returns the answer to the user. Tool call places an example
+Web search tool ("Finds online information") inside the harness box, with call/result arrows. The harness checks and invokes the requested
+tool, then passes the result to context management for the next request. This is a conceptual diagram,
+not a task walkthrough or a claim that every tool runs in the harness process. Previous/Next, Restart
+and Left/Right keyboard navigation switch the two steps; backward entry starts at Tool call.
+A tool request is not execution or permission.
+
+**Open live flow** links to `/flow` for the interactive experience. It does not configure or start
+a run. Preconfigured cases, scenario-specific links and prepared calls are deferred. The previous
+Wikipedia walkthrough is no longer displayed; its fixture remains available to existing tests.
 
 **The agent loop** keeps four nodes and their paths visible: **Context management**, **Model**,
 **Execution** and **Response or stop**. Its six conceptual steps assemble context, call the model,
@@ -148,7 +154,7 @@ call. Ending does not establish success. **Show all steps** displays all six exp
 Restart and reentry return to context assembly. No task fixture or outcome selector appears here.
 The earlier meeting-notes fixtures remain available to unit tests, not as this lesson's example.
 
-Example design for the harness, loop and Anatomy is deferred. This refresh does not add or change
+Worked examples for these subtopics are deferred. This refresh does not add or change
 Anatomy's existing configurations or interactions.
 
 The content introduces one concept at a time, using explicit actors, inputs and outputs.
@@ -212,7 +218,9 @@ explanations are product-agnostic. Put Agentic Lab-specific details in one trail
 `In this application (Agentic Lab)` section. Product topics are the exception.
 
 [AgentLearningJourney](../src/AgenticLab.Web/Learning/AgentLearningJourney.cs) owns stages and topic
-references; [ToolCallingStory](../src/AgenticLab.Web/Learning/ToolCallingStory.cs) owns the local Wikipedia exchange.
+references. [ToolCallingLesson](../src/AgenticLab.Web/Components/Pages/LearningParts/ToolCallingLesson.razor)
+renders the two-step Model response lesson under the preserved `tool-calling` stage ID;
+[ToolCallingStory](../src/AgenticLab.Web/Learning/ToolCallingStory.cs) retains the earlier Wikipedia fixture.
 [AgentTurnStory](../src/AgenticLab.Web/Learning/AgentTurnStory.cs) retains the meeting-notes fixtures
 and defines the conceptual `AgentLoopStory`; [FoundationStory](../src/AgenticLab.Web/Learning/FoundationStory.cs) and
 [HostingStory](../src/AgenticLab.Web/Learning/HostingStory.cs) own illustrative content and reveal
@@ -227,4 +235,7 @@ dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 For backend-free desktop interaction and screenshot checks, run
 `node tools/web-smoke.mjs --learn-only` against the standalone Web URL using the temporary
 Playwright setup in [tools/README.md](../tools/README.md). This checks keyboard reveals, cumulative
-nodes, Wikipedia result timing, conceptual loop paths and unchanged Anatomy configurations without model or tool calls.
+nodes, conceptual loop paths and Anatomy configurations without model or tool calls. During fast
+Learn iteration, test updates and these checks are deferred until the content settles. Existing
+assertions for the Wikipedia walkthrough and six-reveal harness lesson describe the earlier content
+and need updating before final verification.

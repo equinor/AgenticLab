@@ -1,52 +1,75 @@
-@using AgenticLab.Web.Learning
-
-<section class="tool-lesson" aria-label="Read a Wikipedia article with a tool" data-diagram="tool-calling" data-beat="@_story.Beat">
-    <div class="tool-toolbar" role="group" aria-label="Tool calling steps">
-        <LabButton Label="Previous step" Icon="prev" IconOnly="true" Disabled="@(!_story.CanPrevious)" OnClick="() => _story.Move(-1)" />
-        <span class="step-count">@(_story.Beat + 1) / @ToolCallingStory.Steps.Count</span>
-        <LabButton Label="Next step" Icon="next" IconOnly="true" Disabled="@(!_story.CanNext)" OnClick="() => _story.Move(1)" />
-        <LabButton Label="Show complete diagram" Icon="expand" Disabled="@(!_story.CanNext)" OnClick="_story.Complete" />
-        <LabButton Label="Restart" Variant="quiet" Disabled="@(!_story.CanPrevious)" OnClick="_story.Restart" />
+<section class="model-response" aria-label="Model response" data-diagram="model-response" data-beat="@_step" data-mode="@(IsToolCall ? "tool-call" : "answer")">
+    <div class="response-toolbar" role="group" aria-label="Model response steps">
+        <LabButton Label="Previous step" Icon="prev" IconOnly="true" Disabled="@(_step == 0)" OnClick="() => Move(-1)" />
+        <span class="step-count">@(_step + 1) / 2</span>
+        <LabButton Label="Next step" Icon="next" IconOnly="true" Disabled="@IsToolCall" OnClick="() => Move(1)" />
+        <LabButton Label="Restart" Variant="quiet" Disabled="@(_step == 0)" OnClick="Restart" />
     </div>
-    <p class="task"><strong>User</strong> @ToolCallingStory.Task</p>
-    <div class="tool-actors" role="group" aria-label="The model exchanges requests and results with the harness, which invokes the Wikipedia tool">
-        <div class="tool-actor model" data-node="model" aria-current="@(_story.Step.Actor == "Model" ? "step" : null)"><strong>Model</strong><span>Proposes a tool request or answer</span></div>
-        <div class="exchange" aria-hidden="true"><span>Request / result</span><span>&harr;</span></div>
-        <div class="tool-actor harness" data-node="harness" aria-current="@(_story.Step.Actor == "Harness" ? "step" : null)"><strong>Harness</strong><span>Checks, invokes and supplies context</span></div>
-        <div class="exchange" aria-hidden="true"><span>Call / return</span><span>&harr;</span></div>
-        <div class="tool-actor wikipedia" data-node="wikipedia-tool" aria-current="@(_story.Step.Actor == "Wikipedia tool" ? "step" : null)"><strong>Wikipedia tool</strong><span>Reads an article's summary extract</span></div>
+    <h3 class="mode-heading" role="status" aria-live="polite">@(_step + 1). Model response is: <strong>@(IsToolCall ? "Tool Call" : "Answer")</strong></h3>
+    @if (IsToolCall)
+    {
+        <p>The model requests actions that the harness should execute.</p>
+    }
+    <div class="response-diagram" role="group" aria-label="@(IsToolCall ? "Harness supplies context to the LLM, receives a tool-call request and invokes its example tool" : "Harness supplies context to the LLM and receives an answer")">
+        <section class="response-box harness-box" data-node="harness">
+            <h3><span class="response-icon harness-icon" aria-hidden="true"></span>Harness</h3>
+            <p>Supplies context to the LLM.</p>
+            @if (IsToolCall)
+            {
+                <p>Checks and invokes the requested tool.</p>
+                <div class="tool-exchange" aria-hidden="true"><span>Call</span><span>&darr; &uarr;</span><span>Result</span></div>
+                <div class="example-tool" data-node="example-tool">
+                    <h4><span class="response-icon tool-icon" aria-hidden="true"></span>Web search tool</h4>
+                    <p>Finds online information</p>
+                </div>
+                <p>Passes the result to context management for the next request in the loop.</p>
+            }
+            else
+            {
+                <p>Returns the answer to the user. No tool call is needed.</p>
+            }
+        </section>
+        <div class="response-exchange" aria-hidden="true">
+            <div class="context-path"><span>Context</span><span class="path-line"></span></div>
+            <div class="model-path"><span class="path-line"></span><span>@(IsToolCall ? "Tool-call request" : "Answer")</span></div>
+        </div>
+        <section class="response-box model-box" data-node="model">
+            <h3><span class="response-icon model-icon" aria-hidden="true"></span>LLM</h3>
+            <p>Reasons over the supplied context and chooses the next action to fulfill each request.</p>
+            @if (IsToolCall)
+            {
+                <p>Requests that the harness call a tool, specifying its name and arguments.</p>
+                <p>The model does not execute the tool.</p>
+            }
+            else
+            {
+                <p>Here the model determines that it can answer directly, without requesting anything further from the harness.</p>
+            }
+        </section>
     </div>
-    <section class="tool-step" data-step="@_story.Step.Id" aria-live="polite" aria-atomic="true">
-        <p class="actor-label">@_story.Step.Actor</p>
-        <h3>@_story.Step.Title</h3>
-        <p>@_story.Step.Explanation</p>
-        <h4>@_story.Step.EvidenceLabel</h4>
-        <pre>@_story.Step.Evidence</pre>
-        @if (_story.Step.Request is { } request)
-        {
-            <p class="article-supplied">Article content supplied to model: <strong>@(request.Messages.Any(message => message.Role == "tool") ? "Yes" : "No")</strong></p>
-            <details @key="_story.Step.Id"><summary>Messages and tool definitions</summary><pre>@AgentTurnStory.Json(request)</pre></details>
-        }
-    </section>
-    <p class="fixture-note">Illustrative content, not a live Wikipedia read. The tool returns a summary extract, not the full article. A model can also answer without a tool when the supplied information is sufficient.</p>
 </section>
 
 @code {
-    private readonly ToolCallingStory _story = new();
+    private int _step;
+    private bool IsToolCall => _step == 1;
 
-    /// <summary>Moves one reveal, or returns false so the page can cross a lesson boundary.</summary>
+    /// <summary>Switches response step, returning false when navigation must cross a lesson boundary.</summary>
     public bool TryMoveStep(int direction)
     {
-        if (!(direction == -1 ? _story.CanPrevious : direction == 1 && _story.CanNext)) return false;
-        _story.Move(direction);
+        var next = _step + direction;
+        if (direction is not (-1 or 1) || next is < 0 or > 1) return false;
+        _step = next;
         StateHasChanged();
         return true;
     }
 
-    /// <summary>Enters the final reveal when navigating backward from the next lesson.</summary>
+    /// <summary>Shows the tool-call step when entering from the following lesson.</summary>
     public void MoveToLastStep()
     {
-        _story.Move(int.MaxValue);
+        _step = 1;
         StateHasChanged();
     }
+
+    private void Move(int direction) => TryMoveStep(direction);
+    private void Restart() => _step = 0;
 }
