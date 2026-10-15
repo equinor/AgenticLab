@@ -240,7 +240,7 @@ dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
 For backend-free desktop interaction and screenshot checks, run
 `node tools/web-smoke.mjs --learn-only` against the standalone Web URL using the temporary
 Playwright setup in [tools/README.md](../tools/README.md). This checks keyboard reveals, cumulative
-nodes, conceptual loop paths and Anatomy configurations without model or tool calls. During fast
-Learn iteration, test updates and these checks are deferred until the content settles. Existing
-assertions for the Wikipedia walkthrough and six-reveal harness lesson describe the earlier content
-and need updating before final verification.
+nodes, conceptual loop paths and Anatomy configurations without model or tool calls. Journey unit
+tests cover the current lesson order, context reveals and eight-step loop. The browser script still
+contains selectors for the earlier Wikipedia walkthrough and harness lesson; update those before
+final browser verification. Browser checks remain deferred during fast Learn iteration.
