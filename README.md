@@ -256,9 +256,18 @@ root Dockerfile's stages.
 - Only `web` is public, behind the Radix OAuth2 proxy restricted to the Equinor Entra ID tenant.
   `aiservice`, `mcpserver` and `a2aserver` are internal and reach each other at
   `http://<component>:8080`.
-- Prod's official address is the app alias <https://agenticlab.app.radix.equinor.com>; dev is
-  <https://web-agenticlab-dev.radix.equinor.com>. Every address users sign in through needs its
-  `/oauth2/callback` URL registered as a Web redirect URI on the Entra ID app registration.
+- Prod's address is <https://agenticlab.radix.equinor.com>; dev is
+  <https://agenticlab-dev.radix.equinor.com>. The existing prod app alias
+  <https://agenticlab.app.radix.equinor.com> and generated component addresses remain available.
+  Aliases must be available in the Radix cluster and take effect when the corresponding environment
+  is deployed with this configuration.
+- Dev uses the `agenticlab-web-dev` Entra ID app registration
+  (`75b9ff42-b090-4385-af70-82dcbfafac0b`); prod keeps
+  `742062d5-ef31-475a-84b1-282b21343b7f`. Register
+  `https://agenticlab-dev.radix.equinor.com/oauth2/callback` as a **Web** redirect URI on the dev
+  registration and `https://agenticlab.radix.equinor.com/oauth2/callback` on the prod registration.
+  Every other address users sign in through also needs its `/oauth2/callback` URL registered on
+  the corresponding environment's registration.
 - `aiservice` runs with `Workspace__Mode=ReadOnlySample`: Ask, Plan and the Guide agent work on the
   bundled `sample-workspace` with read-only tools. Users can't choose server folders, write files,
   run commands or fetch web pages. See [read-only sample mode](docs/workspace.md#read-only-sample-mode).
@@ -267,7 +276,8 @@ root Dockerfile's stages.
 - `aiservice` and `web` set `Examples__copilot365__Enabled=true`, adding the Copilot 365 app next to
   Default. Its Microsoft 365 data and tools are simulated. See the
   [Copilot 365 example](src/AgenticLab.Examples.Copilot365/README.md).
-- In the web console, set `web`'s OAuth2 client secret and the `AzureOpenAI__Endpoint` and
+- In the web console, set `web`'s OAuth2 client secret from that environment's Entra registration
+  (dev requires a secret from `agenticlab-web-dev`) and the `AzureOpenAI__Endpoint` and
   `AzureOpenAI__ApiKey` secrets of `aiservice` and `a2aserver`, in each environment.
 - `aiservice` and `a2aserver` set `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix
   Prometheus scrapes their `/metrics` endpoints and the metrics appear in Radix Grafana next to CPU
