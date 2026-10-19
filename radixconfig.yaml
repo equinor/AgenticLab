@@ -14,6 +14,13 @@ spec:
   dnsAppAlias:
     environment: prod
     component: web
+  dnsAlias:
+    - alias: agenticlab
+      environment: prod
+      component: web
+    - alias: agenticlab-dev
+      environment: dev
+      component: web
   components:
     # Only public component. Sign-in is enforced by the Radix OAuth2 proxy, limited to the
     # Equinor Entra ID tenant. Set the client secret in the web console for each environment.
@@ -31,6 +38,11 @@ spec:
           sessionStoreType: systemManaged
           oidc:
             issuerUrl: https://login.microsoftonline.com/3aa4a235-b6e2-48d5-9195-7fcf05b459b0/v2.0
+      environmentConfig:
+        - environment: dev
+          authentication:
+            oauth2:
+              clientId: 75b9ff42-b090-4385-af70-82dcbfafac0b
       variables:
         services__aiservice__http__0: http://aiservice:8080
         # Loads the Copilot 365 example's metadata (logo, resources, tool risks); must match aiservice.
