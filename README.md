@@ -276,18 +276,15 @@ root Dockerfile's stages.
 - `aiservice` and `web` set `Examples__copilot365__Enabled=true`, adding the Copilot 365 app next to
   Default. Its Microsoft 365 data and tools are simulated. See the
   [Copilot 365 example](src/AgenticLab.Examples.Copilot365/README.md).
-- Dev's OAuth2 proxy uses `credentials: azureWorkloadIdentity`, not a client secret. After deploying
-  this configuration, open Radix Console's `dev` / `web` component and the **Azure** link beside
-  **OAuth2 identity enabled for Azure**. In Entra's `agenticlab-web-dev` registration, open
-  **Certificates & secrets / Federated credentials / Add credential**, choose **Other issuer**,
-  and copy the exact issuer, subject and audience from Radix's OAuth2 identity details. These are
-  not the regular component identity details or the Microsoft login issuer in the configuration.
-  Dev sign-in will fail until this trust exists; the Web redirect URIs above are still required.
-  Verify a fresh dev sign-in before removing any obsolete client secret, and first confirm that
-  no other consumers use it. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
-- Prod still requires `web`'s OAuth2 client secret from its Entra registration in the Radix web
-  console. Both environments still require the `AzureOpenAI__Endpoint` and `AzureOpenAI__ApiKey`
-  secrets of `aiservice` and `a2aserver`; OAuth2 federation does not replace these or Radix's cookie secret.
+- Both environments use OAuth2 workload identity. Before switching an environment, add its Entra
+  trust using the current issuer(s) from `rx get cluster-config --context platform`, audience
+  `api://AzureADTokenExchange` and verified OAuth2 subject
+  `system:serviceaccount:agenticlab-<environment>:web-aux-oauth-sa`. Create one credential per issuer;
+  keep the Web redirect URIs above. Missing trust prevents sign-in.
+- After deployment, run `rx validate workload-identity --application agenticlab --context platform
+  --exclude-obsolete` and inspect missing credentials, then test a fresh sign-in. Remove old client
+  secrets only after confirming no other consumers use them. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
+- Backend Azure OpenAI secrets and Radix's cookie secret are unchanged.
 - `aiservice` and `a2aserver` set `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix
   Prometheus scrapes their `/metrics` endpoints and the metrics appear in Radix Grafana next to CPU
   and memory. `aiservice` exports all of the following; `a2aserver` exports token usage and requests:
