@@ -5,7 +5,7 @@
         {
             <div class="chat-empty">
                 <p>No messages yet.</p>
-                @if (View.Agent.SuggestedPrompts.Count > 0)
+                @if (View.Agent.SuggestedPrompts.Count > 0 && string.IsNullOrWhiteSpace(View.Message))
                 {
                     <div class="chat-suggestions" role="group" aria-label="Suggested messages">
                         <span class="chat-suggestions-label">Try asking</span>

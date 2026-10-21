@@ -74,8 +74,8 @@ it, a counter shows the characters used, and Send stays disabled over the limit.
 entered.
 
 An empty conversation lists the selected agent's `suggestedPrompts` from `GET /agents` under **Try
-asking**. Clicking one replaces the draft; nothing is sent until the user presses Send. Agents without
-suggestions show only "No messages yet."
+asking** while the composer is empty. Clicking one replaces the draft and hides the list; nothing is
+sent until the user presses Send. Agents without suggestions show only "No messages yet."
 
 ### Deep links
 
