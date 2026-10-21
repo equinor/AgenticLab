@@ -110,6 +110,9 @@ The conversation/live-flow split supports:
 - Auto/Manual, Next, Pause/Resume, Stop and live mode changes.
 - SSE-driven User, Harness, Model and Tools activity, pairing calls/results by call ID.
 - Loading, empty, failed, interrupted and stopped states; keyboard/IME input and reduced motion.
+- An empty conversation offers the selected agent's `suggestedPrompts` from `GET /agents` (falling
+  back to three generic questions). Clicking one fills the draft; nothing is sent. There are no
+  React URL parameters; [deep links](web-flow-page.md#deep-links) are a Blazor `/flow` feature.
 
 Learn, Details/anatomy, replay, discovery, workspace tools and model simulations stay in Blazor.
 The model label uses declared deployment metadata; [ForceDefaultModel](agents.md#per-agent-models)

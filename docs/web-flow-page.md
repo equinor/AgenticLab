@@ -73,6 +73,32 @@ it, a counter shows the characters used, and Send stays disabled over the limit.
 "Data notice" banner below the header: Agentic Lab is educational, and only Open information may be
 entered.
 
+An empty conversation lists the selected agent's `suggestedPrompts` from `GET /agents` under **Try
+asking**. Clicking one replaces the draft; nothing is sent until the user presses Send. Agents without
+suggestions show only "No messages yet."
+
+### Deep links
+
+`/flow` accepts query parameters that prepare the page for one load. Everything is optional and
+unknown values are ignored; the prompt is pre-filled, never sent. A deep link describes the whole
+starting state, so it replaces the stored host preference for that load without overwriting it.
+
+| Parameter | Values | Effect |
+|-----------|--------|--------|
+| `host` | catalogue key or legacy alias, e.g. `chatgpt` | Selects the App and its default agent. Not saved to `agenticlab-vendor`. |
+| `agent` | an agent name offered by the selected host | Selects the Agent (resets per-agent toggles). |
+| `view` | `basic` \| `technical` | Applies the diagram preset. |
+| `harness` | `1` | Expands the harness anatomy (makes the view Custom). |
+| `mode` | `auto` \| `manual` | Sets the stepping mode. |
+| `breakpoints` | comma-separated kinds: `before-model`, `after-model`, `before-tool`, `after-tool` | Enables those breakpoints. |
+| `tools` | comma-separated tool names; a leading `-` disables | Toggles the selected agent's tools for the run. |
+| `prompt` | text | Pre-fills the composer, truncated to the service's input limit. |
+
+Order of application is host, agent, view, run options, prompt, after both catalogues load.
+`FlowDeepLink` in [Flow/FlowDeepLink.cs](../src/AgenticLab.Web/Flow/FlowDeepLink.cs) builds (`Href`),
+parses and applies links; the [agent guide](learning.md#agent-guide) uses it for **Show in live flow**.
+There is no workspace-path parameter.
+
 ### Run controls
 
 The toolbar above live flow owns **Auto / Manual**, delay, Pause/Resume, Next and Stop. Auto advances

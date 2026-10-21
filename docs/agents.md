@@ -15,6 +15,11 @@ are implemented in [AgentEndpoints](../src/AgenticLab.AiService/Endpoints/AgentE
 
 Returns `agents` and a `default` name (`ChatAgent`). Each entry describes tools, workspace/skills
 support, model, risk and guardrails, plus optional `exampleId`/`requiresExampleUi` metadata.
+Each entry may also carry `suggestedPrompts`: short example messages the agent advertises. Clients offer
+them as composer pre-fills (Blazor's empty conversation shows a **Try asking** list; React replaces its
+generic suggestions with them) and never send them automatically or as instructions. Code-defined agents
+override `SuggestedPrompts` on `AgentDefinitionBase` (default empty); workspace agents declare a
+`prompts:` list (see [workspace-defined agents](workspace.md#workspace-defined-agents-the-agents-folder)).
 A2A-capable agents also list `remoteAgentNames`, the remote specialists the service bounds them to
 (see [protocols](protocols.md#a2a-server-the-orchestrator-agent)); clients should render that list
 rather than the global `GET /a2a` roster.

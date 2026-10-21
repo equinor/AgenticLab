@@ -67,7 +67,8 @@ public sealed class AgentCatalog
             d.Guardrails,
             deployments[d.Name],
             Array.Empty<ToolMapping>(),
-            RemoteAgentNames: d.RemoteAgentNames)).ToList();
+            RemoteAgentNames: d.RemoteAgentNames,
+            SuggestedPrompts: d.SuggestedPrompts)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

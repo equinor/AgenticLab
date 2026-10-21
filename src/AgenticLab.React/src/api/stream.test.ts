@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { readFlowStream } from './stream'
 import { api } from './client'
-import { availableVendors, type FlowEvent } from './contracts'
+import { agentsSchema, availableVendors, type FlowEvent } from './contracts'
 
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers() })
 
@@ -53,10 +53,19 @@ describe('POST event stream', () => {
 
   it('offers only vendor modes backed by non-workspace agents', () => {
     const vendors = availableVendors({ defaultAgent: 'chat', agents: [
-      { name: 'chat', description: '', tools: [], requiresWorkspace: false },
-      { name: 'coder', description: '', tools: [], requiresWorkspace: true },
-      { name: 'process', description: '', tools: [], requiresWorkspace: false, requiresExampleUi: true },
+      { name: 'chat', description: '', tools: [], requiresWorkspace: false, suggestedPrompts: [] },
+      { name: 'coder', description: '', tools: [], requiresWorkspace: true, suggestedPrompts: [] },
+      { name: 'process', description: '', tools: [], requiresWorkspace: false, requiresExampleUi: true, suggestedPrompts: [] },
     ], vendors: [{ key: 'test', displayName: 'Test', modes: [{ agent: 'chat', label: 'Chat' }, { agent: 'coder', label: 'Code' }, { agent: 'process', label: 'Process' }] }] })
     expect(vendors[0].modes).toEqual([{ agent: 'chat', label: 'Chat' }])
+  })
+
+  it('reads per-agent suggested prompts and defaults them to none for older services', () => {
+    const parsed = agentsSchema.parse({ default: 'wiki', agents: [
+      { name: 'wiki', description: '', tools: ['SearchWiki'], suggestedPrompts: ['Who was Ada Lovelace?'] },
+      { name: 'chat', description: '', tools: [] },
+    ] })
+    expect(parsed.agents[0].suggestedPrompts).toEqual(['Who was Ada Lovelace?'])
+    expect(parsed.agents[1].suggestedPrompts).toEqual([])
   })
 })

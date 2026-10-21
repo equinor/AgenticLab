@@ -1,3 +1,5 @@
+using AgenticLab.Web.Flow;
+
 namespace AgenticLab.Web.Learning;
 
 internal sealed record LearningNode(string Id, string Title, string Detail);
@@ -20,6 +22,17 @@ internal sealed record LearningStage(
 
 internal static class AgentLearningJourney
 {
+    /// <summary>
+    /// The "Show in live flow" link for the tool-calling lesson: the Wikipedia agent in the technical view with its
+    /// tools switched off for the run and a general-knowledge question pre-filled, so one send shows the model
+    /// answering directly instead of requesting a tool call.
+    /// </summary>
+    internal static string ToolCallingFlowLink { get; } = FlowDeepLink.Href(new FlowLinkRequest(
+        Agent: "WikiAssistant",
+        Prompt: "Who is the king of Norway",
+        View: DiagramPreset.Technical,
+        Tools: ["-SearchWiki", "-GetWikiPage"]));
+
     internal static IReadOnlyList<LearningExample> HarnessExamples { get; } = Array.AsReadOnly<LearningExample>(
         AgentTurnStory.Responsibilities.Select(item => new LearningExample(item.NodeId, item.Output)).ToArray());
 
@@ -133,7 +146,7 @@ internal static class AgentLearningJourney
             "The model requests actions that the harness should execute.",
             false,
             ["tools", "llm", "harness", "guardrails"], ["model", "harness", "execution-controls"],
-            "Open live flow", "/flow", ParentId: "model-to-agent"),
+            "Show in live flow", ToolCallingFlowLink, ParentId: "model-to-agent"),
         new("agent-loop", "The agent loop",
             "The harness constructs context and calls the model. The model returns an answer or requests a tool call. The harness handles the response and continues the loop or ends the turn.",
             "Tool results return to context management for the next model request. The loop ends when the harness returns an answer or stops the turn.",

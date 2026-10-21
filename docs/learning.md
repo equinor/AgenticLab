@@ -140,8 +140,11 @@ not a task walkthrough or a claim that every tool runs in the harness process. P
 and Left/Right keyboard navigation switch the two steps; backward entry starts at Tool call.
 A tool request is not execution or permission.
 
-**Open live flow** links to `/flow` for the interactive experience. It does not configure or start
-a run. Preconfigured cases, scenario-specific links and prepared calls are deferred. The previous
+**Show in live flow** opens a [deep link](web-flow-page.md#deep-links) to `/flow` with the
+Wikipedia agent selected, the technical view applied, both Wikipedia tools switched off for the run
+and a general-knowledge question pre-filled in the composer, so the model answers directly rather
+than requesting a tool. It does not start a run: the user still presses Send. Other lessons' **Open
+live flow** links remain plain `/flow`. All of these open in a new tab so the guide stays in place. The previous
 Wikipedia walkthrough is no longer displayed; its fixture remains available to existing tests.
 
 **The agent loop** connects Context management and Model response from the preceding lessons.
