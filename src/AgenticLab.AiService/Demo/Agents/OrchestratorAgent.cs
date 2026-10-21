@@ -39,6 +39,13 @@ public sealed class OrchestratorAgent(CalculatorTool calculator, A2AAgentProvide
     ];
 
     /// <inheritdoc />
+    public override IReadOnlyList<string> SuggestedPrompts =>
+    [
+        "Ask the research agent who invented the World Wide Web, then compute how many years ago that was from 2026.",
+        "Have the poet write two lines about the number 42, then calculate 42 squared.",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Orchestrator, a coordinating assistant. You have two ways to answer: " +
         "for arithmetic, call the Calculate tool and report the result; " +

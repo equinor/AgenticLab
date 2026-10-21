@@ -254,7 +254,7 @@ public sealed class AgentLearningJourneyTests
         }
     }
 
-    /// <summary>Demo actions are limited to existing local pages and stage URLs remain predictable.</summary>
+    /// <summary>Demo actions are limited to the local flow page (optionally deep-linked) and stage URLs remain predictable.</summary>
     [Fact]
     public void DemoActions_OnlyNavigateToExistingLocalPages()
     {
@@ -262,12 +262,29 @@ public sealed class AgentLearningJourneyTests
         {
             if (stage.ActionHref is not null)
             {
-                Assert.Equal("/flow", stage.ActionHref);
+                Assert.True(stage.ActionHref == "/flow" || stage.ActionHref.StartsWith("/flow?", StringComparison.Ordinal), stage.ActionHref);
                 Assert.False(string.IsNullOrWhiteSpace(stage.ActionLabel));
             }
 
             Assert.Equal($"/learn?stage={stage.Id}", AgentLearningJourney.Href(stage.Id));
         }
+    }
+
+    /// <summary>Only the tool-calling lesson pre-selects the Wikipedia agent, technical view, disabled tools and a question; nothing is auto-sent.</summary>
+    [Fact]
+    public void ToolCallingStage_DeepLinksToPreparedFlow()
+    {
+        var stage = AgentLearningJourney.Resolve("tool-calling");
+
+        Assert.Equal("Show in live flow", stage.ActionLabel);
+        Assert.StartsWith("/flow?", stage.ActionHref);
+        Assert.Contains("agent=WikiAssistant", stage.ActionHref);
+        Assert.Contains("view=technical", stage.ActionHref);
+        Assert.Contains("tools=-SearchWiki%2C-GetWikiPage", stage.ActionHref);
+        Assert.Contains("prompt=Who%20is%20the%20king%20of%20Norway", stage.ActionHref);
+        Assert.DoesNotContain("host=", stage.ActionHref);
+        Assert.Equal("/flow", AgentLearningJourney.Resolve("agent-loop").ActionHref);
+        Assert.Equal("/flow", AgentLearningJourney.Resolve("run-and-improve").ActionHref);
     }
 
     /// <summary>The loop lesson distinguishes decisions, execution, observations and the answer exit.</summary>

@@ -4,6 +4,7 @@ export const agentSchema = z.object({
   name: z.string(), description: z.string(), tools: z.array(z.string()),
   requiresWorkspace: z.boolean().default(false), modelId: z.string().nullish(),
   exampleId: z.string().nullish(), requiresExampleUi: z.boolean().optional(),
+  suggestedPrompts: z.array(z.string()).default([]),
 })
 export const agentsSchema = z.object({ agents: z.array(agentSchema), default: z.string() })
 export const vendorSchema = z.object({

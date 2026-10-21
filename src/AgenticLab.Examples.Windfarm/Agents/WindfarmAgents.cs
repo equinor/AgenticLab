@@ -26,6 +26,10 @@ internal sealed class WindfarmCoordinator(WindfarmTools tools, IMcpToolSource mc
         "No approval tool: an explicit human decision must match the immutable proposal.",
         "Deterministic evidence/resource checks, idempotent approval and bounded isolated cases.",
     ];
+    public override IReadOnlyList<string> SuggestedPrompts =>
+    [
+        "Investigate the current alarm and prepare a reviewed maintenance proposal for my approval.",
+    ];
     protected override string Harness => WindfarmHarness.Instructions;
     protected override string Persona => "You are the Windfarm Coordinator at fictional Fjordvik Wind Farm. " +
         "Start with WindfarmGetCase. Use all five Windfarm MCP reads to investigate the current scenario, distinguishing a trend alarm from a confirmed diagnosis. " +

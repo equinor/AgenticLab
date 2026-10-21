@@ -28,6 +28,13 @@ public sealed class ChatGptAgent(IHostToolSource tools) : AgentDefinitionBase
     ];
 
     /// <inheritdoc />
+    public override IReadOnlyList<string> SuggestedPrompts =>
+    [
+        "How tall is Mount Everest, and how many times taller is it than the Eiffel Tower?",
+        "Look up the population of Norway and divide it by the number of its counties.",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are a helpful, friendly conversational assistant. " +
         "When available, use SearchWiki to find relevant Wikipedia articles, GetWikiPage to read them, " +

@@ -288,7 +288,7 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null, IReadOnlyList<string>? SuggestedPrompts = null);
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record ChatLimitsInfo(int MaxMessageLength);

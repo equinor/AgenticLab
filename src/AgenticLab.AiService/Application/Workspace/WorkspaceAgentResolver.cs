@@ -69,7 +69,8 @@ public sealed class WorkspaceAgentResolver
                     d.RiskLevel.ToString(),
                     d.Guardrails,
                     _clients.ResolveDeployment(agent),
-                    d.ToolMappings);
+                    d.ToolMappings,
+                    SuggestedPrompts: d.SuggestedPrompts);
             })
             .ToList();
 

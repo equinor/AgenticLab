@@ -37,6 +37,13 @@ public sealed class PlanAgent(FileSystemTool files, AskQuestionTool ask) : Agent
     ];
 
     /// <inheritdoc />
+    public override IReadOnlyList<string> SuggestedPrompts =>
+    [
+        "Plan how to add due dates to the todo items in src/todo.py, including tests.",
+        "Propose a plan to add a `clear` command that removes completed items.",
+    ];
+
+    /// <inheritdoc />
     protected override string Persona =>
         "You are Plan, a careful software architect operating in read-only mode. " +
         "Your job is to turn a request into a clear, actionable implementation plan — not to make the change. " +

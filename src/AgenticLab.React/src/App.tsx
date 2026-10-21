@@ -98,7 +98,7 @@ export default function App() {
         {catalogError && <button type="button" onClick={() => { setCatalogError(null); setReload(value => value + 1) }}><RotateCcw size={14} />Retry</button>}
       </div>}
       <main className={styles.workspace}>
-        <Conversation run={run} draft={draft} onDraft={setDraft} onSend={send} identity={identity} loading={!catalogs && !catalogError} />
+        <Conversation run={run} draft={draft} onDraft={setDraft} onSend={send} identity={identity} loading={!catalogs && !catalogError} suggestions={agent?.suggestedPrompts} />
         <aside className={styles.observation} aria-label="Live execution">
           <div className={styles.flowHead}>
             <div><span className={styles.sectionNumber}>02</span><h2>Live flow</h2></div>
