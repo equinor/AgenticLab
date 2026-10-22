@@ -152,6 +152,17 @@ a workspace or supports skills. Workplace data and `SendMail` are simulated: no 
 delivery. The Medium risk label illustrates sending; confirmation is a persona instruction, not an
 enforced approval gate. The researcher's Wikipedia tools still make real public requests.
 
+### Optional Security Lab example
+
+Enable `Examples:security:Enabled=true` (already enabled in AppHost Development) for the
+[Security Lab](../src/AgenticLab.Examples.Security/README.md): `InjectedBrowser`, `LeakyAssistant`,
+`PoisonedTools`, `ReceiptReader`, `BuildHelper` and the hardened `DefendedAssistant`. Each implements `IScriptedModelAgent`, so
+`AgentCatalog` wraps its deterministic `ScenarioModel` (declared `ModelId` `scripted-scenario`) in
+the normal host pipeline instead of the configured provider; the scripted model ignores
+`Models:ForceDefaultModel` and per-agent model overrides and costs nothing. Capture, breakpoints,
+per-run tool toggles and conversation history behave exactly as for live-model agents. Every page,
+document, mail, image transcription, repository file, shell and third-party tool is simulated in-process: no network, mail or process runs.
+
 ### ChatGPT lookup and calculation demo
 
 Enable `Examples:chatgpt:Enabled=true` for the [ChatGPT example](../src/AgenticLab.Examples.ChatGpt/README.md)

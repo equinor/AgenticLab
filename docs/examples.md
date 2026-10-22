@@ -8,11 +8,11 @@ or module sandbox. See the [catalogue](#catalogue) for complete examples.
 ## Default startup
 
 Base configuration enables only **Default**. AppHost Development additionally enables **ChatGPT**,
-**GitHub Copilot** and **Copilot 365**. Other environments and standalone services need explicit
+**GitHub Copilot**, **Copilot 365** and **Security Lab**. Other environments and standalone services need explicit
 example configuration; `--Examples:<id>:Enabled=false` overrides a Development default.
 
 Enable modules with `Examples:<id>:Enabled=true`. IDs are `chatgpt`, `gemini`, `copilot`,
-`claude-code`, `claude`, `copilot365` and `windfarm`; flags can be combined. Copilot365's API host
+`claude-code`, `claude`, `copilot365`, `security` and `windfarm`; flags can be combined. Copilot365's API host
 key is `microsoft365`; the others use their module ID.
 
 ```sh
@@ -140,4 +140,5 @@ shared Learn content. See the [design system](design-system.md).
 | Claude Code | Representative host prompt over shared Plan and Coder modes | [Project README](../src/AgenticLab.Examples.ClaudeCode/README.md), [module tests](../src/AgenticLab.Examples.ClaudeCode/Tests) |
 | Claude | Representative host prompt over the shared tool-free chat agent | [Project README](../src/AgenticLab.Examples.Claude/README.md), [module tests](../src/AgenticLab.Examples.Claude/Tests) |
 | Copilot 365 | Workplace chat, research and analysis over synthetic Microsoft 365 data; no custom panel | [Project README](../src/AgenticLab.Examples.Copilot365/README.md), [module tests](../src/AgenticLab.Examples.Copilot365/Tests) |
+| Security Lab | Scripted, fully simulated attack scenarios (indirect prompt injection, data exfiltration via a tool, tool poisoning, hidden text in an image, dangerous command execution) plus a defended twin; offline `IScriptedModelAgent` model, read-only briefing panel with a receipt image | [Project README](../src/AgenticLab.Examples.Security/README.md), [adding an agent](../src/AgenticLab.Examples.Security/Agents/README.md), [module tests](../src/AgenticLab.Examples.Security/Tests) |
 | Windfarm | Synthetic alarm investigation, remote specialist review and human-approved planned inspection | [Project README](../src/AgenticLab.Examples.Windfarm/README.md), [module tests](../src/AgenticLab.Examples.Windfarm/Tests) |

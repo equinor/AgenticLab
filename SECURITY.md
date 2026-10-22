@@ -61,6 +61,16 @@ command or argument is rejected. This allowlist and the timeout are limited safe
 Use operating-system isolation and least privilege for stronger protection; do not rely on prompts,
 manual stepping, or the working directory to constrain a process.
 
+### Security Lab Example
+
+The optional `security` example demonstrates indirect prompt injection, data exfiltration through a
+tool, tool poisoning, hidden text in an image and dangerous command execution with a scripted model and
+in-process fakes. Its pages, documents, mail, image transcriptions, repository files, shell and third-party
+tools are simulated; it performs no network requests, sends no mail, decodes no images and starts no
+processes. Its "token", payee, hosts and addresses are
+placeholders. The scenarios illustrate the failure modes
+above; they do not harden the real tools, and the defended twin's checks live in that example only.
+
 ## Credentials, Data, and Costs
 
 Keep Azure OpenAI, OpenAI or Gemini credentials in the AppHost's local user-secrets store or

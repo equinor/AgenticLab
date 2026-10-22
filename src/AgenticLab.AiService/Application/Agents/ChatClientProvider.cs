@@ -78,9 +78,17 @@ public sealed class ChatClientProvider
             ? DefaultDeployment
             : declaredDeployment.Trim();
 
-    private IChatClient Build(string deployment) =>
-        _factory.Create(deployment)
-            .AsBuilder()
+    private IChatClient Build(string deployment) => Wrap(_factory.Create(deployment));
+
+    /// <summary>
+    /// Wraps a raw model client in the shared tool filtering, flow-controlled function invocation, capture and
+    /// telemetry pipeline. Used for every provider client and for <see cref="IScriptedModelAgent"/> models,
+    /// so a scripted model is subject to the same per-run controls as a real one.
+    /// </summary>
+    /// <param name="raw">The unwrapped model client.</param>
+    /// <returns>The pipeline-wrapped <see cref="IChatClient"/>.</returns>
+    public IChatClient Wrap(IChatClient raw) =>
+        raw.AsBuilder()
             // Outermost: strip the tools the caller disabled for this run before function invocation or
             // the model ever see them. The agent framework only unions per-run tools, so restricting to a
             // subset of an agent's tools must happen here rather than through run options.
