@@ -117,7 +117,7 @@ public sealed class AgentLearningJourneyTests
     public void Stages_PreserveOrderedPermalinks()
     {
         Assert.Equal(
-                ["why-agents", "model-to-agent", "inside-the-harness", "tool-calling", "agent-loop", "anatomy-of-agent", "agents-everywhere", "agent-landscape", "wider-ecosystem", "where-to-run", "what-can-go-wrong", "run-and-improve"],
+                ["why-agents", "model-to-agent", "inside-the-harness", "tool-calling", "agent-loop", "anatomy-of-agent", "agents-everywhere", "agent-landscape", "wider-ecosystem", "where-to-run", "run-and-improve", "what-can-go-wrong"],
             AgentLearningJourney.Stages.Select(stage => stage.Id).ToArray());
     }
 
@@ -126,7 +126,7 @@ public sealed class AgentLearningJourneyTests
     public void Hierarchy_GroupsSubtopicsWithoutChangingReadingOrder()
     {
         Assert.Equal(
-            ["why-agents", "model-to-agent", "agents-everywhere", "where-to-run"],
+            ["why-agents", "model-to-agent", "agents-everywhere", "where-to-run", "what-can-go-wrong"],
             AgentLearningJourney.RootStages.Select(stage => stage.Id).ToArray());
         Assert.Equal(
             ["inside-the-harness", "tool-calling", "agent-loop", "anatomy-of-agent"],
@@ -135,9 +135,10 @@ public sealed class AgentLearningJourneyTests
             ["agent-landscape", "wider-ecosystem"],
             AgentLearningJourney.Children("agents-everywhere").Select(stage => stage.Id).ToArray());
         Assert.Equal(
-            ["what-can-go-wrong", "run-and-improve"],
+            ["run-and-improve"],
             AgentLearningJourney.Children("where-to-run").Select(stage => stage.Id).ToArray());
         Assert.Empty(AgentLearningJourney.Children("why-agents"));
+        Assert.Empty(AgentLearningJourney.Children("what-can-go-wrong"));
         Assert.Equal(12, AgentLearningJourney.Stages.Count);
         Assert.Equal(AgentLearningJourney.Stages,
             AgentLearningJourney.RootStages.SelectMany(root => new[] { root }.Concat(AgentLearningJourney.Children(root.Id))).ToArray());
@@ -158,8 +159,8 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-landscape", "3.1")]
     [InlineData("wider-ecosystem", "3.2")]
     [InlineData("where-to-run", "4")]
-    [InlineData("what-can-go-wrong", "4.1")]
-    [InlineData("run-and-improve", "4.2")]
+    [InlineData("run-and-improve", "4.1")]
+    [InlineData("what-can-go-wrong", "5")]
     [InlineData("AGENT-LOOP", "2.3")]
     [InlineData("map-to-foundry", "1")]
     [InlineData(null, "1")]
@@ -303,8 +304,10 @@ public sealed class AgentLearningJourneyTests
         Assert.Contains("view=technical", stage.ActionHref);
         Assert.Contains("breakpoints=before-tool", stage.ActionHref);
         Assert.Contains("prompt=", stage.ActionHref);
-        Assert.Equal(["attack-injection", "attack-exfiltration", "attack-poisoning"], stage.HighlightedNodes.ToArray());
-        Assert.Equal("where-to-run", stage.ParentId);
+        Assert.Equal(["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image"], stage.HighlightedNodes.ToArray());
+        Assert.Equal("Security/AppSec", stage.Title);
+        Assert.Null(stage.ParentId);
+        Assert.Equal("/learn?stage=what-can-go-wrong", AgentLearningJourney.Href(stage.Id));
     }
 
     /// <summary>The loop lesson distinguishes decisions, execution, observations and the answer exit.</summary>
@@ -331,9 +334,9 @@ public sealed class AgentLearningJourneyTests
     [Fact]
     public void Navigation_SkipsHiddenFoundryStage()
     {
-        Assert.Equal("what-can-go-wrong", AgentLearningJourney.Move("where-to-run", 1).Id);
-        Assert.Equal("what-can-go-wrong", AgentLearningJourney.Move("run-and-improve", -1).Id);
-        Assert.Equal(11, AgentLearningJourney.IndexOf("run-and-improve"));
+        Assert.Equal("run-and-improve", AgentLearningJourney.Move("where-to-run", 1).Id);
+        Assert.Equal("run-and-improve", AgentLearningJourney.Move("what-can-go-wrong", -1).Id);
+        Assert.Equal(11, AgentLearningJourney.IndexOf("what-can-go-wrong"));
         Assert.All(AgentLearningJourney.Stages, stage => Assert.False(stage.Hidden));
     }
 
@@ -348,7 +351,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
     [InlineData("where-to-run", "hosting-runtime,hosting-model,hosting-access,hosting-owner")]
-    [InlineData("what-can-go-wrong", "attack-injection,attack-exfiltration,attack-poisoning")]
+    [InlineData("what-can-go-wrong", "attack-injection,attack-exfiltration,attack-poisoning,attack-image")]
     [InlineData("run-and-improve", "lifecycle-run,lifecycle-observe,lifecycle-evaluate,lifecycle-improve")]
     public void Stage_SelectsOnlyItsFocusedNodes(string stageId, string expectedNodeIds)
     {
@@ -367,7 +370,7 @@ public sealed class AgentLearningJourneyTests
         Assert.Equal("agent-landscape", AgentLearningJourney.Move("wider-ecosystem", -1).Id);
         Assert.Equal("where-to-run", AgentLearningJourney.Move("wider-ecosystem", 1).Id);
         Assert.Equal("wider-ecosystem", AgentLearningJourney.Move("where-to-run", -1).Id);
-        Assert.Equal("what-can-go-wrong", AgentLearningJourney.Move("where-to-run", 1).Id);
+        Assert.Equal("run-and-improve", AgentLearningJourney.Move("where-to-run", 1).Id);
         Assert.Equal("/learn?stage=where-to-run", AgentLearningJourney.Href(AgentLearningJourney.Resolve("WHERE-TO-RUN").Id));
         Assert.Null(AgentLearningJourney.Resolve("where-to-run").ActionHref);
     }

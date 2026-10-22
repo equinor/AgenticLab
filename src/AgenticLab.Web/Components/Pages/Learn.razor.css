@@ -106,7 +106,7 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .cycle-to-run { grid-area: 2 / 1; }
 .improvement-cycle .map-node { height: 100%; }
 .cycle-arrow { display: grid; place-items: center; color: var(--accent); font-size: 28px; }
-.attack-surfaces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; max-width: 700px; margin: 0 auto; }
+.attack-surfaces { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; max-width: 700px; margin: 0 auto; }
 .attack-surfaces .map-node.highlighted { border-left-color: var(--lab-danger); }
 .map-node { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-content: center; align-items: center; gap: .45rem .5rem; padding: .8rem; min-width: 0; min-height: 110px; border: 1px solid var(--line); border-left: 3px solid #87958b; background: #f2f5f2; }
 .map-node.highlighted { background: var(--surface); border-color: #a4b5aa; border-left-color: var(--accent); }

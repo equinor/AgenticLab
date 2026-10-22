@@ -25,7 +25,7 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
 
     /// <inheritdoc />
     public ExampleManifest Manifest { get; } = new(Id, "Security Lab", [HostKey],
-        [InjectedBrowserAgent.AgentName, LeakyAssistantAgent.AgentName, PoisonedToolsAgent.AgentName, DefendedAssistantAgent.AgentName])
+        [InjectedBrowserAgent.AgentName, LeakyAssistantAgent.AgentName, PoisonedToolsAgent.AgentName, ReceiptReaderAgent.AgentName, DefendedAssistantAgent.AgentName])
     {
         HostPresentation = new Dictionary<string, ExampleHostPresentation>
         {
@@ -37,12 +37,16 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
                 "High risk in this lab: the unguarded variant accepts any recipient, so injected content can exfiltrate data. Simulated; nothing is sent."),
             [nameof(PoisonedThirdPartyTool.ConvertUnits)] = new("High",
                 "High risk: a third-party tool whose description contains hidden instructions for the model. Its note argument is logged, not transmitted."),
+            [nameof(SimulatedExpenseTool.SubmitExpense)] = new("High",
+                "High risk: files whatever amount and payee the model passes, with no check of its own. Simulated; nothing is paid."),
             [nameof(SimulatedWorkplaceTool.GetDeploymentNotes)] = new("Medium",
                 "Medium risk: returns internal notes containing a placeholder token that other tools could receive."),
             [nameof(SimulatedWorkplaceTool.ReadSharedDocument)] = new("Medium",
                 "Medium risk: returns a document containing an embedded instruction. Read-only, in-memory sample data."),
             [nameof(SimulatedWebTool.FetchPage)] = new("Medium",
                 "Medium risk: returns attacker-controlled page content with a hidden instruction. No network access; fixed in-memory pages."),
+            [nameof(SimulatedVisionTool.DescribeImage)] = new("Medium",
+                "Medium risk: returns a scripted transcription of an image, including near-invisible text. No image is decoded or uploaded."),
         },
         Resources =
         [
@@ -50,6 +54,8 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
             new("security-workplace", "Simulated workplace", "In-memory documents and mail",
                 [nameof(SimulatedWorkplaceTool.ReadSharedDocument), nameof(SimulatedWorkplaceTool.SendMail), nameof(SimulatedWorkplaceTool.GetDeploymentNotes)]),
             new("security-third-party", "Third-party converter", "Poisoned tool description", [nameof(PoisonedThirdPartyTool.ConvertUnits)]),
+            new("security-vision", "Simulated vision", "Scripted image transcription", [nameof(SimulatedVisionTool.DescribeImage)]),
+            new("security-expenses", "Simulated expenses", "In-memory submissions", [nameof(SimulatedExpenseTool.SubmitExpense)]),
         ],
     };
 
@@ -63,6 +69,7 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
         services.AddSingleton<IAgentDefinition, InjectedBrowserAgent>();
         services.AddSingleton<IAgentDefinition, LeakyAssistantAgent>();
         services.AddSingleton<IAgentDefinition, PoisonedToolsAgent>();
+        services.AddSingleton<IAgentDefinition, ReceiptReaderAgent>();
         services.AddSingleton<IAgentDefinition, DefendedAssistantAgent>();
         services.AddSingleton<IVendorHarness, SecurityHarness>();
     }

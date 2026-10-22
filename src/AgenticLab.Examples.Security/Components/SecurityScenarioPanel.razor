@@ -12,6 +12,16 @@
     {
         <h3>@scenario.Title</h3>
         <p>@scenario.Attack</p>
+        @if (scenario.ImagePath is { } imagePath)
+        {
+            <figure class="scenario-image @(_revealed ? "revealed" : null)">
+                <img src="@imagePath" alt="The receipt image the user attaches in this scenario" width="360" height="520" loading="lazy" />
+                <figcaption>
+                    <span>@(_revealed ? "Contrast raised: the near-white print the vision step transcribes." : "What the user sees. The DescribeImage result shows what the model reads.")</span>
+                    <LabButton Label="@(_revealed ? "Hide hidden text" : "Reveal hidden text")" Variant="quiet" OnClick="@(() => _revealed = !_revealed)" Pressed="@_revealed" />
+                </figcaption>
+            </figure>
+        }
         <details class="scenario-section" open>
             <summary>What you will see</summary>
             <ol>
@@ -46,6 +56,14 @@
     [Parameter, EditorRequired] public ExamplePanelContext Context { get; set; } = default!;
 
     private SecurityScenario? Scenario => SecurityScenarios.ForAgent(Context.AgentName);
+
+    private bool _revealed;
+
+    /// <summary>Hidden text is shown per panel; a new agent selection starts hidden again.</summary>
+    protected override void OnParametersSet()
+    {
+        if (Scenario?.ImagePath is null) _revealed = false;
+    }
 
     /// <summary>The panel holds no state across conversations.</summary>
     public Task BeforeResetAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;

@@ -11,4 +11,7 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
     <ProjectReference Include="../AgenticLab.Examples.Security.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="../wwwroot/receipt-0423.svg" Link="receipt-0423.svg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
