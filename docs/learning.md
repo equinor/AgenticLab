@@ -59,7 +59,7 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 | 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
 | 4 | Where agents run | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
 | 4.1 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
-| 5 | Security/AppSec | `what-can-go-wrong` | Injected content, data exfiltration through a tool, poisoned tool descriptions and hidden text in an image; the prompt is not a security boundary. **Show in live flow** deep-links to the Security Lab's exfiltration scenario with a before-tool breakpoint (requires the optional `security` example). |
+| 5 | Security/AppSec | `what-can-go-wrong` | Injected content, data exfiltration through a tool, poisoned tool descriptions, hidden text in an image and dangerous command execution; the prompt is not a security boundary. **Show in live flow** deep-links to the Security Lab's exfiltration scenario with a before-tool breakpoint (requires the optional `security` example). |
 
 Shared foundations do not imply identical capabilities, tools or permissions. Hosting is a separate
 choice: a local harness can use a remote model, and observation and evaluation matter wherever it runs.

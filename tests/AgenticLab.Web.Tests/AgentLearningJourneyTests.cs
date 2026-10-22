@@ -304,7 +304,7 @@ public sealed class AgentLearningJourneyTests
         Assert.Contains("view=technical", stage.ActionHref);
         Assert.Contains("breakpoints=before-tool", stage.ActionHref);
         Assert.Contains("prompt=", stage.ActionHref);
-        Assert.Equal(["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image"], stage.HighlightedNodes.ToArray());
+        Assert.Equal(["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image", "attack-command"], stage.HighlightedNodes.ToArray());
         Assert.Equal("Security/AppSec", stage.Title);
         Assert.Null(stage.ParentId);
         Assert.Equal("/learn?stage=what-can-go-wrong", AgentLearningJourney.Href(stage.Id));
@@ -351,7 +351,7 @@ public sealed class AgentLearningJourneyTests
     [InlineData("agent-loop", "loop-context,loop-decision,loop-execute,loop-answer")]
     [InlineData("wider-ecosystem", "connected-agent,mcp-tools,a2a-agent")]
     [InlineData("where-to-run", "hosting-runtime,hosting-model,hosting-access,hosting-owner")]
-    [InlineData("what-can-go-wrong", "attack-injection,attack-exfiltration,attack-poisoning,attack-image")]
+    [InlineData("what-can-go-wrong", "attack-injection,attack-exfiltration,attack-poisoning,attack-image,attack-command")]
     [InlineData("run-and-improve", "lifecycle-run,lifecycle-observe,lifecycle-evaluate,lifecycle-improve")]
     public void Stage_SelectsOnlyItsFocusedNodes(string stageId, string expectedNodeIds)
     {

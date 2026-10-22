@@ -126,6 +126,7 @@ internal static class AgentLearningJourney
         new("attack-exfiltration", "Data exfiltration", "Injected text plus a send-capable tool: confidential content leaves through a normal-looking call"),
         new("attack-poisoning", "Poisoned tool description", "A third-party tool's description instructs the model to gather and pass along secrets"),
         new("attack-image", "Hidden text in an image", "An image carries faint instructions; the vision step transcribes them and the model treats them as the task"),
+        new("attack-command", "Dangerous command execution", "A repository file names a shell command; a shell tool that interprets free text runs it, credentials and all"),
         new("hosting-runtime", "Harness", "Where context is managed and permitted actions execute"),
         new("hosting-model", "Model service", "Where inference happens, independently of the harness"),
         new("hosting-access", "Tools and data", "What the runtime can reach with its identity"),
@@ -215,11 +216,11 @@ internal static class AgentLearningJourney
             ["lifecycle-run", "lifecycle-observe", "lifecycle-evaluate", "lifecycle-improve"],
             "Open live flow", "/flow", ParentId: "where-to-run"),
         new("what-can-go-wrong", "Security/AppSec",
-            "Everything the harness feeds the model is input, including fetched pages, documents and tool descriptions. Text in that input can steer the model into misleading answers, leaking data through a tool, or calling tools the user never asked for.",
+            "Everything the harness feeds the model is input, including fetched pages, documents, images, repository files and tool descriptions. Text in that input can steer the model into misleading answers, leaking data through a tool, or calling tools the user never asked for.",
             "The prompt is not a security boundary. Enforce limits in the harness and its tools, where a manipulated model cannot talk its way past them.",
             false,
             ["securing-agents", "agent-risk", "guardrails", "sandbox"],
-            ["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image"],
+            ["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image", "attack-command"],
             "Show in live flow", SecurityFlowLink),
     ]);
 

@@ -1,12 +1,12 @@
 # Security Lab example
 
-An optional example module that shows **what can go wrong** in an agent's live flow. Five agents replay
+An optional example module that shows **what can go wrong** in an agent's live flow. Six agents replay
 deterministic attack scenarios through the normal AiService harness, so capture, breakpoints, per-run
 tool toggles and the Blazor live flow all show the attack step by step.
 
-Everything is simulated in process. The module makes no network requests, sends no mail, runs no
-commands, decodes no images and never calls a model provider. Addresses, URLs, payees and the "token"
-are placeholders.
+Everything is simulated in process. The module makes no network requests, sends no mail, starts no
+processes, decodes no images and never calls a model provider. Addresses, URLs, payees, hosts and the
+"token" are placeholders.
 
 ## Enable
 
@@ -30,15 +30,18 @@ model provider for the other agents; the scripted agents ignore it.
 | `LeakyAssistant` | Data exfiltration via a tool | `ReadSharedDocument` ends with an "assistant note". `SendMail` is then called with the user **and** an external address, with the full document in the body. The receipt is visible in the answer. |
 | `PoisonedTools` | Malicious tool description / tool poisoning | `ConvertUnits` carries a hidden `<IMPORTANT>` instruction. The agent first calls `GetDeploymentNotes`, then passes the fake token to the converter as a `note`. The answer hides it. |
 | `ReceiptReader` | Hidden text in an image | `DescribeImage` plays the vision step: it transcribes a receipt photo including near-white print addressed to the assistant. `SubmitExpense` is then called with 4870.00 EUR to `Reimbursements Ltd` while the answer reports a 48.70 EUR lunch. The panel shows the receipt and can raise its contrast to reveal the print. |
+| `BuildHelper` | Dangerous command execution | `ReadFile` returns `build.log` and `scripts/setup.sh`; the script ends with a "maintainer note" naming `curl … \| bash && rm -rf ~/.ssh ~/.aws`. `RunCommand` (a simulated, unrestricted shell) is called with that line before the real fix; the answer mentions only `npm ci`. The transcript classifies the hazards instead of running anything. |
 | `DefendedAssistant` | Defended twin | Same prompt and document as `LeakyAssistant`, but documents are wrapped as untrusted and `SendMail` rejects recipients outside `contoso.example` in code. |
 
-Try these harness controls on the first four:
+Try these harness controls on the first five:
 
 - Set a **before-tool** breakpoint and inspect the tool arguments before releasing the call.
-- Disable the second tool (`SendMail`, `ConvertUnits`, `SubmitExpense`) in the run options; the scripted model reports
+- Disable the second tool (`SendMail`, `ConvertUnits`, `SubmitExpense`, `RunCommand`) in the run options; the scripted model reports
   that the step cannot happen and stops without an error.
 - Compare the captured LLM request for `LeakyAssistant` and `DefendedAssistant`: the injected text is
   identical; only the tool boundary differs.
+- Compare `BuildHelper`'s `RunCommand` with the harness's real `TerminalTool` (Coder agent): the real tool
+  runs an exact allowlist by absolute path and never hands free text to a shell.
 
 The Learn lesson **5 Security/AppSec** links to the exfiltration scenario with a before-tool
 breakpoint already set.
@@ -53,7 +56,9 @@ breakpoint already set.
   host pipeline (tool filtering, function invocation, capture, telemetry) is unchanged.
 - [Tools](Tools) hold the in-process fakes: `SimulatedWebTool`, `SimulatedWorkplaceTool` (guarded or
   not), `PoisonedThirdPartyTool`, `SimulatedVisionTool` (a scripted transcription standing in for a
-  vision model; no image is decoded) and `SimulatedExpenseTool`. Guarded behaviour is code, not prompt text.
+  vision model; no image is decoded), `SimulatedExpenseTool`, `SimulatedRepoTool` (fixed in-memory files)
+  and `SimulatedShellTool` (classifies the command text and returns a transcript; it never starts a
+  process). Guarded behaviour is code, not prompt text.
 - [wwwroot/receipt-0423.svg](wwwroot/receipt-0423.svg) is the viewable receipt, served at
   `_content/AgenticLab.Examples.Security/receipt-0423.svg`. Its near-white lines repeat
   `SimulatedVisionTool.HiddenInstruction`; keep the two in sync (a test checks the key phrases).

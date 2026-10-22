@@ -25,7 +25,7 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
 
     /// <inheritdoc />
     public ExampleManifest Manifest { get; } = new(Id, "Security Lab", [HostKey],
-        [InjectedBrowserAgent.AgentName, LeakyAssistantAgent.AgentName, PoisonedToolsAgent.AgentName, ReceiptReaderAgent.AgentName, DefendedAssistantAgent.AgentName])
+        [InjectedBrowserAgent.AgentName, LeakyAssistantAgent.AgentName, PoisonedToolsAgent.AgentName, ReceiptReaderAgent.AgentName, BuildHelperAgent.AgentName, DefendedAssistantAgent.AgentName])
     {
         HostPresentation = new Dictionary<string, ExampleHostPresentation>
         {
@@ -39,6 +39,8 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
                 "High risk: a third-party tool whose description contains hidden instructions for the model. Its note argument is logged, not transmitted."),
             [nameof(SimulatedExpenseTool.SubmitExpense)] = new("High",
                 "High risk: files whatever amount and payee the model passes, with no check of its own. Simulated; nothing is paid."),
+            [nameof(SimulatedShellTool.RunCommand)] = new("High",
+                "High risk: an unrestricted shell that would run any command line the model passes. Simulated; no process is started."),
             [nameof(SimulatedWorkplaceTool.GetDeploymentNotes)] = new("Medium",
                 "Medium risk: returns internal notes containing a placeholder token that other tools could receive."),
             [nameof(SimulatedWorkplaceTool.ReadSharedDocument)] = new("Medium",
@@ -47,6 +49,8 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
                 "Medium risk: returns attacker-controlled page content with a hidden instruction. No network access; fixed in-memory pages."),
             [nameof(SimulatedVisionTool.DescribeImage)] = new("Medium",
                 "Medium risk: returns a scripted transcription of an image, including near-invisible text. No image is decoded or uploaded."),
+            [nameof(SimulatedRepoTool.ReadFile)] = new("Medium",
+                "Medium risk: returns repository files, one of which carries a note addressed to AI agents. Fixed in-memory content."),
         },
         Resources =
         [
@@ -56,6 +60,8 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
             new("security-third-party", "Third-party converter", "Poisoned tool description", [nameof(PoisonedThirdPartyTool.ConvertUnits)]),
             new("security-vision", "Simulated vision", "Scripted image transcription", [nameof(SimulatedVisionTool.DescribeImage)]),
             new("security-expenses", "Simulated expenses", "In-memory submissions", [nameof(SimulatedExpenseTool.SubmitExpense)]),
+            new("security-repo", "Simulated repository", "In-memory files", [nameof(SimulatedRepoTool.ReadFile)]),
+            new("security-shell", "Simulated shell", "No process is started", [nameof(SimulatedShellTool.RunCommand)]),
         ],
     };
 
@@ -70,6 +76,7 @@ public sealed class SecurityExample : IAiServiceExample, IWebExample
         services.AddSingleton<IAgentDefinition, LeakyAssistantAgent>();
         services.AddSingleton<IAgentDefinition, PoisonedToolsAgent>();
         services.AddSingleton<IAgentDefinition, ReceiptReaderAgent>();
+        services.AddSingleton<IAgentDefinition, BuildHelperAgent>();
         services.AddSingleton<IAgentDefinition, DefendedAssistantAgent>();
         services.AddSingleton<IVendorHarness, SecurityHarness>();
     }

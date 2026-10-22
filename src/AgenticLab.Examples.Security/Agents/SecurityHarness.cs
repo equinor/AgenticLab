@@ -30,6 +30,7 @@ public sealed class SecurityHarness : IVendorHarness
         new VendorMode(LeakyAssistantAgent.AgentName, "exfiltration"),
         new VendorMode(PoisonedToolsAgent.AgentName, "poisoning"),
         new VendorMode(ReceiptReaderAgent.AgentName, "image"),
+        new VendorMode(BuildHelperAgent.AgentName, "command"),
         new VendorMode(DefendedAssistantAgent.AgentName, "defended"),
     ];
 }

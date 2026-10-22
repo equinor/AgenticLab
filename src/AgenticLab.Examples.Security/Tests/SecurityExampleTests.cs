@@ -33,7 +33,7 @@ public sealed class SecurityExampleTests
             .AddExample<SecurityExample>(Configuration(true), ExampleHost.AiService)
             .BuildServiceProvider(new ServiceProviderOptions { ValidateOnBuild = true });
         var agents = provider.GetServices<IAgentDefinition>().ToArray();
-        Assert.Equal(["InjectedBrowser", "LeakyAssistant", "PoisonedTools", "ReceiptReader", "DefendedAssistant"], agents.Select(a => a.Name));
+        Assert.Equal(["InjectedBrowser", "LeakyAssistant", "PoisonedTools", "ReceiptReader", "BuildHelper", "DefendedAssistant"], agents.Select(a => a.Name));
         Assert.All(agents, agent =>
         {
             Assert.IsAssignableFrom<IScriptedModelAgent>(agent);
@@ -46,7 +46,8 @@ public sealed class SecurityExampleTests
         Assert.Equal(["ReadSharedDocument", "SendMail"], agents[1].Tools.Select(t => t.Name));
         Assert.Equal(["GetDeploymentNotes", "ConvertUnits"], agents[2].Tools.Select(t => t.Name));
         Assert.Equal(["DescribeImage", "SubmitExpense"], agents[3].Tools.Select(t => t.Name));
-        Assert.Equal(["ReadSharedDocument", "SendMail"], agents[4].Tools.Select(t => t.Name));
+        Assert.Equal(["ReadFile", "RunCommand"], agents[4].Tools.Select(t => t.Name));
+        Assert.Equal(["ReadSharedDocument", "SendMail"], agents[5].Tools.Select(t => t.Name));
 
         var harness = Assert.Single(provider.GetServices<IVendorHarness>());
         Assert.Equal("security", harness.Key);
@@ -178,6 +179,51 @@ public sealed class SecurityExampleTests
         Assert.Contains("48.70 EUR", svg);
         Assert.Contains("SYSTEM NOTE FOR THE AI EXPENSE ASSISTANT", svg);
         Assert.Contains($"{SimulatedVisionTool.HiddenAmount} EUR payable to {SimulatedVisionTool.AttackerPayee}", svg);
+    }
+
+    [Fact]
+    public async Task RepositoryNoteDrivesTheDangerousCommandAndTheAnswerHidesIt()
+    {
+        var agent = new BuildHelperAgent();
+        var (text, calls) = await RunAsync(agent, agent.Tools);
+
+        Assert.Equal(["ReadFile", "ReadFile", "RunCommand", "RunCommand"], calls.Select(c => c.Name));
+        Assert.Equal(SimulatedRepoTool.InjectedCommand, calls[2].Arguments!["command"]);
+        Assert.Equal(BuildHelperAgent.FixCommand, calls[3].Arguments!["command"]);
+        Assert.Contains(BuildHelperAgent.FixCommand, text);
+        Assert.DoesNotContain("curl", text);
+        Assert.DoesNotContain("rm -rf", text);
+    }
+
+    [Fact]
+    public async Task DisablingRunCommandStopsTheCommandChain()
+    {
+        var agent = new BuildHelperAgent();
+        var (text, calls) = await RunAsync(agent, agent.Tools.Where(t => t.Name != "RunCommand").ToList());
+
+        Assert.Equal(["ReadFile", "ReadFile"], calls.Select(c => c.Name));
+        Assert.Contains("RunCommand", text);
+        Assert.Contains("not available", text);
+    }
+
+    [Fact]
+    public void SimulatedShellClassifiesWithoutExecutingAndTheRepoCarriesTheNote()
+    {
+        var shell = new SimulatedShellTool();
+        var transcript = shell.RunCommand(SimulatedRepoTool.InjectedCommand);
+        Assert.Contains("No process was started", transcript);
+        Assert.Contains("remote code execution", transcript);
+        Assert.Contains("credential stores", transcript);
+        Assert.Contains("exit code 0", shell.RunCommand("npm ci"));
+        Assert.Equal([SimulatedRepoTool.InjectedCommand, "npm ci"], shell.Commands.Select(c => c.Command));
+        Assert.Empty(shell.Commands.Last().Hazards);
+        Assert.Equal(3, shell.Commands.First().Hazards.Count);
+
+        var repo = new SimulatedRepoTool();
+        Assert.EndsWith(SimulatedRepoTool.InjectedNote + "\n", repo.ReadFile(SimulatedRepoTool.SetupScriptPath));
+        Assert.Contains(SimulatedRepoTool.SetupScriptPath, repo.ReadFile(SimulatedRepoTool.BuildLogPath));
+        Assert.Contains("Files in this repository:", repo.ReadFile("secrets.env"));
+        Assert.Equal(repo.ReadFile(SimulatedRepoTool.SetupScriptPath), repo.ReadFile("scripts\\setup.sh"));
     }
 
     [Fact]
