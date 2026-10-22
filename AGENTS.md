@@ -210,7 +210,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. `aiservice` and
   `a2aserver` expose Prometheus `/metrics` to Radix monitoring (`Metrics__PrometheusEndpoint`, off by default; internal
   components only). Metric tags must stay bounded and free of user or conversation data. `aiservice` and `web` both
-  enable the `copilot365` example. Radix has no Dockerfile target selection, so each component uses
+  enable the `copilot365` and `security` examples. Radix has no Dockerfile target selection, so each component uses
   a single-service file under [docker/](docker) that must mirror its root Dockerfile stage.
   See [README.md](README.md#deploy-to-radix).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.

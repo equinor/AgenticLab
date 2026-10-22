@@ -276,6 +276,10 @@ root Dockerfile's stages.
 - `aiservice` and `web` set `Examples__copilot365__Enabled=true`, adding the Copilot 365 app next to
   Default. Its Microsoft 365 data and tools are simulated. See the
   [Copilot 365 example](src/AgenticLab.Examples.Copilot365/README.md).
+- `aiservice` and `web` also set `Examples__security__Enabled=true`, adding the Security Lab host. Its
+  agents replay scripted attack scenarios over an offline model and in-memory fakes, so they use no
+  Azure OpenAI tokens and never send mail, read files, run commands or open connections. See the
+  [Security Lab](src/AgenticLab.Examples.Security/README.md).
 - Dev's OAuth2 proxy uses `credentials: azureWorkloadIdentity`, not a client secret. After deploying
   this configuration, open Radix Console's `dev` / `web` component and the **Azure** link beside
   **OAuth2 identity enabled for Azure**. In Entra's `agenticlab-web-dev` registration, open
