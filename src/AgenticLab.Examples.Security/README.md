@@ -72,6 +72,9 @@ breakpoint already set.
 
 ## Add a scenario
 
+See [Agents/README.md](Agents/README.md) for the step-by-step guide with code from the BuildHelper
+scenario. In short:
+
 1. Add any fake tool under `Tools/` with `[Description]` methods and an `AsTools()` list.
 2. Add an agent under `Agents/` inheriting `ScenarioAgentBase` with a `Playbook` ending in a
    `ScriptedAnswer`, a `Prompt` and a `RiskLevel`/`Guardrails`.
