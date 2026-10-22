@@ -1,0 +1,52 @@
+@using AgenticLab.Examples.Security.Scenarios
+@implements IExamplePanel
+
+<section class="security-panel" aria-label="Security Lab scenario">
+    <header class="lab-heading">
+        <div>
+            <h2>Security Lab</h2>
+            <LabStatus Label="Scripted, fully simulated" Tone="warning" />
+        </div>
+    </header>
+    @if (Scenario is { } scenario)
+    {
+        <h3>@scenario.Title</h3>
+        <p>@scenario.Attack</p>
+        <details class="scenario-section" open>
+            <summary>What you will see</summary>
+            <ol>
+                @foreach (var step in scenario.WhatHappens)
+                {
+                    <li>@step</li>
+                }
+            </ol>
+        </details>
+        <details class="scenario-section">
+            <summary>What stops it</summary>
+            <ul>
+                @foreach (var mitigation in scenario.Mitigations)
+                {
+                    <li>@mitigation</li>
+                }
+            </ul>
+        </details>
+        <div class="scenario-actions">
+            <LabButton Label="Use scenario prompt" Icon="new" OnClick="@(() => Context.SetDraft(scenario.Prompt))" Disabled="@Context.Running" />
+            <span class="scenario-id">@scenario.Id</span>
+        </div>
+    }
+    else
+    {
+        <p>Pick one of the Security Lab agents to see its scenario briefing.</p>
+    }
+</section>
+
+@code {
+    /// <summary>The current host-page snapshot and its narrowly scoped commands.</summary>
+    [Parameter, EditorRequired] public ExamplePanelContext Context { get; set; } = default!;
+
+    private SecurityScenario? Scenario => SecurityScenarios.ForAgent(Context.AgentName);
+
+    /// <summary>The panel holds no state across conversations.</summary>
+    public Task BeforeResetAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
+}

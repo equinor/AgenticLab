@@ -106,6 +106,8 @@ button:focus-visible, a:focus-visible, [tabindex="-1"]:focus-visible { outline: 
 .cycle-to-run { grid-area: 2 / 1; }
 .improvement-cycle .map-node { height: 100%; }
 .cycle-arrow { display: grid; place-items: center; color: var(--accent); font-size: 28px; }
+.attack-surfaces { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; max-width: 700px; margin: 0 auto; }
+.attack-surfaces .map-node.highlighted { border-left-color: var(--lab-danger); }
 .map-node { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-content: center; align-items: center; gap: .45rem .5rem; padding: .8rem; min-width: 0; min-height: 110px; border: 1px solid var(--line); border-left: 3px solid #87958b; background: #f2f5f2; }
 .map-node.highlighted { background: var(--surface); border-color: #a4b5aa; border-left-color: var(--accent); }
 .map-node strong { font-size: 14px; line-height: 1.4; overflow-wrap: anywhere; }
@@ -183,6 +185,7 @@ figcaption { margin-top: .85rem; font-size: 12px; line-height: 1.5; color: var(-
     .execution-loop { grid-template-columns: 18px minmax(0, 1fr) 22px minmax(80px, .65fr); }
     .execution-loop .map-node { grid-template-columns: minmax(0, 1fr); padding: .6rem; }
     .harness-anatomy { grid-template-columns: 1fr; }
+    .attack-surfaces { grid-template-columns: 1fr; }
     .map-node { min-height: 85px; }
     .stage-actions { grid-template-columns: 1fr 1fr; }
     .stage-actions .next { grid-column: 2; }

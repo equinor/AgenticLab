@@ -236,6 +236,15 @@
                     </div>
                     <figcaption>Release the tested version, then repeat.</figcaption>
                 }
+                else if (_stage.Id == "what-can-go-wrong")
+                {
+                    <div class="attack-surfaces" data-diagram="attacks">
+                        @DiagramNode("attack-injection")
+                        @DiagramNode("attack-exfiltration")
+                        @DiagramNode("attack-poisoning")
+                    </div>
+                    <figcaption>Each is a scripted, fully simulated scenario in the Security Lab host. Toggle a tool off or break before tools to see the chain stop.</figcaption>
+                }
             </figure>
             }
 

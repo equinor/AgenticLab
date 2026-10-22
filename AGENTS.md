@@ -30,6 +30,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.Examples.Claude](src/AgenticLab.Examples.Claude/README.md) | Optional Claude host prompt and branding over the shared tool-free chat agent. |
 | [src/AgenticLab.Examples.Gemini](src/AgenticLab.Examples.Gemini/README.md) | Optional Gemini host prompt and branding over the shared tool-free chat agent. |
 | [src/AgenticLab.Examples.Copilot365](src/AgenticLab.Examples.Copilot365/README.md) | Optional workplace Copilot example: three agents, host prompt, simulated Microsoft 365 tools/data, resource/risk metadata and tests. No custom panel or protocol service. |
+| [src/AgenticLab.Examples.Security](src/AgenticLab.Examples.Security/README.md) | Optional Security Lab: four `IScriptedModelAgent` agents replaying deterministic attack scenarios (indirect prompt injection, data exfiltration via a tool, tool poisoning, defended twin) over in-process fakes, with a read-only briefing panel and tests. No provider, network, mail or command use. |
 | [src/AgenticLab.Examples.Windfarm](src/AgenticLab.Examples.Windfarm/README.md) | Optional self-contained example RCL. All domain content, API/protocol adapters, UI, assets, docs and tests stay here; existing hosts load its role contributions. |
 | [src/AgenticLab.McpServer](src/AgenticLab.McpServer/Program.cs) | Minimal Model Context Protocol (MCP) server exposing a `GetCurrentTime` tool over HTTP. Consumed by the AiService over MCP. |
 | [src/AgenticLab.A2AServer](src/AgenticLab.A2AServer/Program.cs) | Minimal Agent2Agent (A2A) server hosting **config-declared persona-only agents** (a Research agent and a Poet by default) over the A2A protocol (Microsoft Agent Framework's `AddAIAgent` + `MapA2AJsonRpc`), plus a `GET /agents` discovery endpoint. Called by the AiService's `Orchestrator` agent over A2A. |
@@ -123,6 +124,10 @@ domain enum entries, Flow state properties or tools to core. See [docs/examples.
 `IAgentDefinition`, `AgentDefinitionBase`, `AgentRiskLevel`, `IVendorHarness` and `VendorMode` now live
 in `AgenticLab.Extensibility.Agents`; runtime catalogues remain in AiService's `Application/Agents`.
 `IAgentRunContext` exposes host-owned identity through `AgentRunScope`, reactivated by `RunScopeSet`.
+An agent that implements `IScriptedModelAgent` supplies its own `IChatClient` through `CreateModel()`;
+`AgentCatalog` passes it through `ChatClientProvider.Wrap` so tool filtering, function invocation,
+capture and telemetry still apply while the configured provider is bypassed for that agent. Use this
+only for deterministic teaching scenarios (the Security Lab), never to hide real model calls.
 MCP/A2A shared interfaces expose bounded tool selection and typed delegation outcomes, not host
 implementation types. Startup discovery precedes catalogue creation; rediscovery refreshes both
 the executable agents and their advertised tool lists. Names an enabled manifest claims via
@@ -157,9 +162,9 @@ registration/listing: AiService discovers protocols before listening. Do not int
 default items. Module-specific launch and verification steps belong in its README.
 
 Base configuration enables only Default. AppHost's Development settings additionally enable `chatgpt`,
-`copilot` and `copilot365`; `Examples:<id>:Enabled=false` overrides these defaults. Other environments
+`copilot`, `copilot365` and `security`; `Examples:<id>:Enabled=false` overrides these defaults. Other environments
 remain Default-only unless configured otherwise. The additional host module IDs are
-`chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`, `copilot365` and `windfarm`; use
+`chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`, `copilot365`, `security` and `windfarm`; use
 `Examples:<id>:Enabled=true` to opt in. AiService and Web explicitly register the participating
 modules. Harness-only manifests declare no owned agents: `SharedAgentNames` supplies the existing
 ChatAgent/Ask/Plan/Coder identities, registered once in core. ChatGPT alone adds its dedicated

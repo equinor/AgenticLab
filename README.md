@@ -318,13 +318,15 @@ Optional examples are registered as independent projects, keeping their domain c
 tests and documentation together. See the [example catalogue and contributor guide](docs/examples.md)
 and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo,
 or [Copilot 365](src/AgenticLab.Examples.Copilot365/README.md) for workplace chat, research and analysis
-over synthetic Microsoft 365 data.
+over synthetic Microsoft 365 data. The [Security Lab](src/AgenticLab.Examples.Security/README.md) replays
+scripted, fully simulated attacks (indirect prompt injection, data exfiltration via a tool, tool poisoning)
+offline, without a model provider.
 Every non-default host is an opt-in example, including **ChatGPT**, **Gemini**, **GitHub Copilot**,
-**Claude Code**, **Claude**, **Copilot 365** and **Windfarm**. Each owns its host-specific prompts,
+**Claude Code**, **Claude**, **Copilot 365**, **Security Lab** and **Windfarm**. Each owns its host-specific prompts,
 branding and tests. The shared learning guide remains available independently of enabled examples.
 Use `Examples:<id>:Enabled=true` with IDs `chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`,
-`copilot365` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
-`copilot` and `copilot365`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
+`copilot365`, `security` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
+`copilot`, `copilot365` and `security`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
 start with only Default unless examples are explicitly enabled.
 
 For example, enable the workplace Copilot host and its three agents:

@@ -11,6 +11,7 @@
     <Project Path="src/AgenticLab.Examples.ClaudeCode/AgenticLab.Examples.ClaudeCode.csproj" />
     <Project Path="src/AgenticLab.Examples.Gemini/AgenticLab.Examples.Gemini.csproj" />
     <Project Path="src/AgenticLab.Examples.Copilot365/AgenticLab.Examples.Copilot365.csproj" />
+    <Project Path="src/AgenticLab.Examples.Security/AgenticLab.Examples.Security.csproj" />
     <Project Path="src/AgenticLab.Examples.Windfarm/AgenticLab.Examples.Windfarm.csproj" />
     <Project Path="src/AgenticLab.McpServer/AgenticLab.McpServer.csproj" />
     <Project Path="src/AgenticLab.ModelProviders/AgenticLab.ModelProviders.csproj" />
@@ -27,6 +28,7 @@
     <Project Path="src/AgenticLab.Examples.ClaudeCode/Tests/AgenticLab.Examples.ClaudeCode.Tests.csproj" />
     <Project Path="src/AgenticLab.Examples.Copilot/Tests/AgenticLab.Examples.Copilot.Tests.csproj" />
     <Project Path="src/AgenticLab.Examples.Gemini/Tests/AgenticLab.Examples.Gemini.Tests.csproj" />
+    <Project Path="src/AgenticLab.Examples.Security/Tests/AgenticLab.Examples.Security.Tests.csproj" />
     <Project Path="src/AgenticLab.Examples.Windfarm/Tests/AgenticLab.Examples.Windfarm.Tests.csproj" />
     <Project Path="tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj" />
     <Project Path="tests/AgenticLab.Bff.Tests/AgenticLab.Bff.Tests.csproj" />

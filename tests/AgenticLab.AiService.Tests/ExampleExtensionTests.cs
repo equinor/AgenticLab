@@ -14,6 +14,7 @@ using AgenticLab.Examples.ClaudeCode;
 using AgenticLab.Examples.Copilot;
 using AgenticLab.Examples.Copilot365;
 using AgenticLab.Examples.Gemini;
+using AgenticLab.Examples.Security.Agents;
 using AgenticLab.Examples.Windfarm;
 using Microsoft.Extensions.AI;
 using Microsoft.AspNetCore.Builder;
@@ -22,6 +23,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AgenticLab.AiService.Tests;
@@ -264,6 +266,42 @@ public sealed class ExampleExtensionTests
         catalog.RefreshDiscoveryAgents();
         Assert.Empty(Assert.Single(catalog.Agents).Tools);
         Assert.Empty(Assert.Single(catalog.Agents).RemoteAgentNames!);
+    }
+
+    /// <summary>A scripted agent runs on its own offline model inside the host pipeline, so per-run tool toggles still apply and the provider is never called.</summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ScriptedAgentRunsOfflineThroughHostPipelineAndHonoursToolToggles(bool disableSendMail)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["AzureOpenAI:Endpoint"] = "https://unused.invalid", ["AzureOpenAI:Deployment"] = "test",
+            ["AzureOpenAI:ApiKey"] = "not-used-by-this-test", ["Models:ForceDefaultModel"] = "true",
+        }).Build();
+        var definition = new LeakyAssistantAgent();
+        var catalog = new AgentCatalog(new ChatClientProvider(configuration), [definition]);
+        Assert.Equal("scripted-scenario", Assert.Single(catalog.Agents).ModelId);
+        Assert.True(catalog.TryResolve(definition.Name, out var agent, out _));
+        using var conversations = new ConversationStore(Options.Create(new ConversationStoreOptions()), TimeProvider.System);
+        var session = await conversations.GetOrCreateAsync("scripted", agent, timeout.Token);
+        using var filter = ToolFilterScope.Begin(disableSendMail ? ["SendMail"] : []);
+
+        var reply = new System.Text.StringBuilder();
+        await foreach (var update in agent.RunStreamingAsync(definition.Prompt, session, cancellationToken: timeout.Token))
+            reply.Append(update.Text);
+
+        if (disableSendMail)
+        {
+            Assert.Contains("SendMail", reply.ToString());
+            Assert.Contains("not available", reply.ToString());
+        }
+        else
+        {
+            Assert.Contains("mail queued", reply.ToString());
+            Assert.Contains("data-collector.example", reply.ToString());
+        }
     }
 
     private sealed class WikipediaHandler : HttpMessageHandler

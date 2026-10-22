@@ -33,6 +33,19 @@ internal static class AgentLearningJourney
         View: DiagramPreset.Technical,
         Tools: ["-SearchWiki", "-GetWikiPage"]));
 
+    /// <summary>
+    /// The "Show in live flow" link for the security lesson: the Security Lab's exfiltration scenario in the
+    /// technical view with a breakpoint before tools and its prompt pre-filled, so the viewer can read the SendMail
+    /// arguments before the simulated send runs. Requires the optional <c>security</c> example to be enabled;
+    /// otherwise the host is ignored and Flow falls back to the stored selection.
+    /// </summary>
+    internal static string SecurityFlowLink { get; } = FlowDeepLink.Href(new FlowLinkRequest(
+        Host: "security",
+        Agent: "LeakyAssistant",
+        Prompt: "Read the 'Q3 pricing' document and mail me a short summary at me@contoso.example.",
+        View: DiagramPreset.Technical,
+        Breakpoints: ["before-tool"]));
+
     internal static IReadOnlyList<LearningExample> HarnessExamples { get; } = Array.AsReadOnly<LearningExample>(
         AgentTurnStory.Responsibilities.Select(item => new LearningExample(item.NodeId, item.Output)).ToArray());
 
@@ -109,6 +122,9 @@ internal static class AgentLearningJourney
         new("connected-agent", "Agent", "Uses external capabilities when needed"),
         new("mcp-tools", "Tool server", "Exposes tools the agent can call"),
         new("a2a-agent", "Another agent", "Accepts delegated tasks and returns results"),
+        new("attack-injection", "Injected content", "A fetched page or document carries text written for the model; it answers as the attacker intended"),
+        new("attack-exfiltration", "Data exfiltration", "Injected text plus a send-capable tool: confidential content leaves through a normal-looking call"),
+        new("attack-poisoning", "Poisoned tool description", "A third-party tool's description instructs the model to gather and pass along secrets"),
         new("hosting-runtime", "Harness", "Where context is managed and permitted actions execute"),
         new("hosting-model", "Model service", "Where inference happens, independently of the harness"),
         new("hosting-access", "Tools and data", "What the runtime can reach with its identity"),
@@ -190,6 +206,13 @@ internal static class AgentLearningJourney
             true,
             ["where-agents-run", "llm", "tools"],
             ["foundry-runtime", "foundry-model", "foundry-tools"], Hidden: true),
+        new("what-can-go-wrong", "What can go wrong",
+            "Everything the harness feeds the model is input, including fetched pages, documents and tool descriptions. Text in that input can steer the model into misleading answers, leaking data through a tool, or calling tools the user never asked for.",
+            "The prompt is not a security boundary. Enforce limits in the harness and its tools, where a manipulated model cannot talk its way past them.",
+            false,
+            ["securing-agents", "agent-risk", "guardrails", "sandbox"],
+            ["attack-injection", "attack-exfiltration", "attack-poisoning"],
+            "Show in live flow", SecurityFlowLink, ParentId: "where-to-run"),
         new("run-and-improve", "Run and improve",
             "Use evidence from runs and repeatable tests to improve the next version. This cycle spans versions, not tool calls within a turn.",
             "A trace shows what happened. An evaluation checks how well it worked.",

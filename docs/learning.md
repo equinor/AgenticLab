@@ -40,9 +40,9 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Intro** and follows four root topics, with seven subtopics grouped under
+The guide opens at **Intro** and follows four root topics, with eight subtopics grouped under
 **Agent**, **One foundation, many systems** and **Where agents run**.
-The guide has eleven lessons; existing lesson IDs remain unchanged. Bookmark any stage with
+The guide has twelve lessons; existing lesson IDs remain unchanged. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
@@ -58,7 +58,8 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 | 3.1 | Different purposes, same pattern | `agent-landscape` | Chat, coding, office and custom purposes share one foundation. |
 | 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
 | 4 | Where agents run | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
-| 4.1 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+| 4.1 | What can go wrong | `what-can-go-wrong` | Injected content, data exfiltration through a tool and poisoned tool descriptions; the prompt is not a security boundary. **Show in live flow** deep-links to the Security Lab's exfiltration scenario with a before-tool breakpoint (requires the optional `security` example). |
+| 4.2 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
 
 Shared foundations do not imply identical capabilities, tools or permissions. Hosting is a separate
 choice: a local harness can use a remote model, and observation and evaluation matter wherever it runs.
@@ -111,8 +112,8 @@ guide. Stage changes focus the lesson heading; hiding a focused reveal restores 
 The navigation nests **Context management**, **Model response**, **The agent loop** and **Anatomy of an agent** beneath
 **Agent**, with matching `2.1`-`2.4` lesson labels. **Different purposes, same pattern** and
 **Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
-**Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
-visits every lesson in order, including the subtopics; the progress counter counts all eleven lessons.
+**What can go wrong** and **Run and improve** sit beneath **Where agents run** as `4.1`-`4.2`. Page-level **Previous/Next** still
+visits every lesson in order, including the subtopics; the progress counter counts all twelve lessons.
 
 **Agent** is a single view of **Agent = Harness + Model**. Two parts describe their responsibilities:
 the harness supplies context, calls the model and executes permitted tool requests; the model

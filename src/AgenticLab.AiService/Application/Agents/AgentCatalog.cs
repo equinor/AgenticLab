@@ -24,6 +24,8 @@ public sealed class AgentCatalog
     /// declared model (see <see cref="ChatClientProvider.ResolveDeployment"/>) for display, but it
     /// runs on the client for its <see cref="ChatClientProvider.ExecutionDeployment"/>. Force-default
     /// configuration makes the declared model display-only, retaining the legacy Azure setting as a fallback.
+    /// An <see cref="IScriptedModelAgent"/> runs on its own model wrapped by <see cref="ChatClientProvider.Wrap"/>,
+    /// ignoring provider deployments and force-default configuration.
     /// </summary>
     /// <param name="clients">Provides the selected backend's chat client for each agent's model or deployment.</param>
     /// <param name="definitions">The agent definitions to expose.</param>
@@ -43,7 +45,9 @@ public sealed class AgentCatalog
         _supportsSkills = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         foreach (var definition in list)
         {
-            var client = clients.Get(clients.ExecutionDeployment(deployments[definition.Name]));
+            var client = definition is IScriptedModelAgent scripted
+                ? clients.Wrap(scripted.CreateModel())
+                : clients.Get(clients.ExecutionDeployment(deployments[definition.Name]));
             _agents[definition.Name] = new ChatClientAgent(
                 client,
                 instructions: definition.Instructions,
