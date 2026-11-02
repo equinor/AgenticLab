@@ -4,8 +4,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        For suspected vulnerabilities, use [private vulnerability reporting](https://github.com/o-viken/agenticlab/security/advisories/new), not this form.
-        Read the [security policy](https://github.com/o-viken/agenticlab/blob/main/SECURITY.md).
+        For suspected vulnerabilities, use [private vulnerability reporting](https://github.com/equinor/agenticlab/security/advisories/new), not this form.
+        Read the [security policy](https://github.com/equinor/agenticlab/blob/main/SECURITY.md).
         Use synthetic examples. Remove credentials, private prompts, workspace contents, personal data, and internal deployment details from all text and attachments.
   - type: input
     id: revision

@@ -66,7 +66,7 @@ export default function App() {
         </div>
         <div className={styles.headerActions}>
           <span className={styles.edition}>Flow workspace <span>React</span></span>
-          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/o-viken/agenticlab"
+          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/equinor/agenticlab"
             target="_blank" rel="noopener noreferrer" title="View Agentic Lab on GitHub (opens in a new tab)"
             aria-label="View Agentic Lab on GitHub (opens in a new tab)">
             <span className={styles.repositoryIcon} aria-hidden="true" />

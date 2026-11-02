@@ -8,7 +8,7 @@ production-ready agent platform.
 
 ## Reporting a Vulnerability
 
-Use [GitHub private vulnerability reporting](https://github.com/o-viken/agenticlab/security/advisories/new).
+Use [GitHub private vulnerability reporting](https://github.com/equinor/agenticlab/security/advisories/new).
 Do not open a public issue or pull request for a suspected vulnerability or publish exploit details.
 The form requires a public repository with private reporting enabled; if it is unavailable, do not
 post sensitive details in a public channel.

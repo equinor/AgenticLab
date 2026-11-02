@@ -118,7 +118,7 @@ needs just the .NET SDK and the source code, without model credentials or Aspire
 ### Get the Source
 
 ```sh
-git clone https://github.com/o-viken/agenticlab.git
+git clone https://github.com/equinor/agenticlab.git
 cd agenticlab
 ```
 

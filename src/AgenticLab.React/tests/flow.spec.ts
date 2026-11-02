@@ -61,7 +61,7 @@ test('Default-only catalogue keeps host and agent selection usable', async ({ pa
 })
 
 test('repository link opens GitHub separately without losing the draft', async ({ page, context }, testInfo) => {
-  const repository = 'https://github.com/o-viken/agenticlab'
+  const repository = 'https://github.com/equinor/agenticlab'
   await context.route(repository, route => route.fulfill({ contentType: 'text/html', body: '<title>Agentic Lab on GitHub</title>' }))
   await open(page)
   const message = page.getByRole('textbox', { name: 'Message', exact: true })
