@@ -1,7 +1,7 @@
 ## Summary
 
 Describe the problem, focused scope, and relevant issue. Report suspected vulnerabilities through
-[private vulnerability reporting](https://github.com/o-viken/agenticlab/security/advisories/new),
+[private vulnerability reporting](https://github.com/equinor/agenticlab/security/advisories/new),
 not a public pull request.
 
 ## Verification

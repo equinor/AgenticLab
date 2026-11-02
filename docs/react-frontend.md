@@ -118,7 +118,7 @@ Learn, Details/anatomy, replay, discovery, workspace tools and model simulations
 The model label uses declared deployment metadata; [ForceDefaultModel](agents.md#per-agent-models)
 can make the execution deployment differ. Responses render Markdown without raw HTML. Events are
 execution records, not token deltas or hidden reasoning; only `final` delivers the answer.
-The header's repository link opens [Agentic Lab on GitHub](https://github.com/o-viken/agenticlab)
+The header's repository link opens [Agentic Lab on GitHub](https://github.com/equinor/agenticlab)
 in a new tab.
 
 ## Transport and state

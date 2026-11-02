@@ -1,7 +1,7 @@
 # Contributing to Agentic Lab
 
 Contributions can improve code, tests, documentation, lessons, and examples. Discuss substantial
-changes in an [issue](https://github.com/o-viken/agenticlab/issues/new/choose) before implementing
+changes in an [issue](https://github.com/equinor/agenticlab/issues/new/choose) before implementing
 them. Use the bug form for reproducible defects and the feature form for proposed improvements.
 Report suspected vulnerabilities privately as described in [SECURITY.md](SECURITY.md), not in issues.
 

@@ -292,7 +292,7 @@ overrides to AiService; A2A specialists use the global default. See
   do not introduce per-host runtime version settings or an independent npm application version.
 
 - Product name: **Agentic Lab**; project/namespace prefix: `AgenticLab`; React package:
-  `agentic-lab-react`. Use `https://github.com/o-viken/agenticlab` for project repository links,
+  `agentic-lab-react`. Use `https://github.com/equinor/agenticlab` for project repository links,
   `agenticlab-*` for container image names and browser preference keys, and `AGENTICLAB_*` for
   browser-tool environment variables. This is a clean rename: do not add legacy product-name
   fallbacks or migrate old browser preferences. Preserve the AppHost `UserSecretsId`.
