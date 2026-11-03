@@ -8,6 +8,9 @@ GET {{bff}}/api/agents
 ### Host/vendor modes
 GET {{bff}}/api/vendors
 
+### Selectable models and the default
+GET {{bff}}/api/models
+
 ### Start a manually paced run (the request stays open)
 POST {{bff}}/api/chat/stream
 Content-Type: application/json
@@ -19,7 +22,8 @@ Accept: text/event-stream
   "sessionId": "{{session}}",
   "conversationId": "{{conversation}}",
   "manual": true,
-  "stepDelayMs": 600
+  "stepDelayMs": 600,
+  "model": null
 }
 
 ### Advance the running stream from a second request

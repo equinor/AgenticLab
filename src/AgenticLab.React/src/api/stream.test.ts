@@ -52,10 +52,10 @@ describe('POST event stream', () => {
   })
 
   it('offers only vendor modes backed by non-workspace agents', () => {
-    const vendors = availableVendors({ defaultAgent: 'chat', agents: [
-      { name: 'chat', description: '', tools: [], requiresWorkspace: false, suggestedPrompts: [] },
-      { name: 'coder', description: '', tools: [], requiresWorkspace: true, suggestedPrompts: [] },
-      { name: 'process', description: '', tools: [], requiresWorkspace: false, requiresExampleUi: true, suggestedPrompts: [] },
+    const vendors = availableVendors({ defaultAgent: 'chat', models: [], defaultModel: null, agents: [
+      { name: 'chat', description: '', tools: [], requiresWorkspace: false, suggestedPrompts: [], scriptedModel: false },
+      { name: 'coder', description: '', tools: [], requiresWorkspace: true, suggestedPrompts: [], scriptedModel: false },
+      { name: 'process', description: '', tools: [], requiresWorkspace: false, requiresExampleUi: true, suggestedPrompts: [], scriptedModel: false },
     ], vendors: [{ key: 'test', displayName: 'Test', modes: [{ agent: 'chat', label: 'Chat' }, { agent: 'coder', label: 'Code' }, { agent: 'process', label: 'Process' }] }] })
     expect(vendors[0].modes).toEqual([{ agent: 'chat', label: 'Chat' }])
   })

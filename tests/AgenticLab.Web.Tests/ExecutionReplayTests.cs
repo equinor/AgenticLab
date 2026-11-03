@@ -505,7 +505,9 @@ public sealed class ExecutionReplayTests
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
         using var run = new FlowRunController(new AiServiceClient(http), view, new());
         var settings = Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run));
-        Assert.Equal($"Declared model: {model ?? "Service default"}", settings.Text);
+        Assert.Equal($"Model: {model ?? "Service default"}", settings.Text);
+        view.Models.Set(new ModelsResponse([new("gpt-4o", "GPT-4o")], "gpt-4o"));
+        Assert.Equal("Model: gpt-4o", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run)).Text);
         Assert.Equal("Exact host prompt", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.SystemPrompt, view, run)).Text);
         Assert.Equal("Selected persona description", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Persona, view, run)).Text);
         Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Skills, view, run));
@@ -535,6 +537,110 @@ public sealed class ExecutionReplayTests
         await run.SendAsync();
         Assert.False(run.Running);
         Assert.Equal(new string('x', 12), view.Message);
+    }
+
+    [Fact]
+    public async Task ModelSelection_SendsTheChoiceAndShowsWhichModelAnsweredEachTurn()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("ChatAgent", "Chats", [], ModelId: "declared")]);
+        view.SelectedAgent = "ChatAgent";
+        Assert.Equal("declared", view.Agent.Model);
+        // The browser preference can arrive before the list; it is applied once the list loads.
+        Assert.False(view.Models.Restore("gpt-4o"));
+        view.Models.Set(new ModelsResponse([new("gpt-5.6-luna", "GPT-5.6 Luna"), new("gpt-4o", "GPT-4o")], "gpt-5.6-luna"));
+        Assert.Equal("gpt-4o", view.Agent.Model);
+        view.Models.Selected = "not-offered";
+        Assert.Equal("gpt-4o", view.Models.Selected);
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        async Task SendAsync(string model)
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Models.Selected = model;
+            view.Message = "Compare me";
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        await SendAsync("gpt-4o");
+        await SendAsync("gpt-5.6-luna");
+
+        Assert.Equal(["gpt-4o", "gpt-5.6-luna"], handler.Models);
+        Assert.Equal("gpt-4o", Assert.Single(run.Turns).AnsweredBy);
+        Assert.Equal("gpt-5.6-luna", run.LiveTurn.AnsweredBy);
+        Assert.Equal("1.2 s · 812 tokens · 1 tool call", RunSummaryText.Describe(run.LiveTurn.Run!));
+        var storage = new DelayedPanelStorage();
+        storage.Complete();
+        await using var services = new ServiceCollection().AddLogging().AddSingleton<IJSRuntime>(storage).BuildServiceProvider();
+        await using var renderer = new Microsoft.AspNetCore.Components.Web.HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+        var html = await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            RenderFragment content = builder =>
+            {
+                builder.OpenComponent<CascadingValue<FlowRunController>>(0);
+                builder.AddAttribute(1, "Value", run);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(child =>
+                {
+                    child.OpenComponent<AgenticLab.Web.Components.Pages.FlowParts.FlowChat>(0);
+                    child.CloseComponent();
+                }));
+                builder.CloseComponent();
+            };
+            var root = await renderer.RenderComponentAsync<CascadingValue<FlowViewState>>(ParameterView.FromDictionary(
+                new Dictionary<string, object?> { ["Value"] = view, ["ChildContent"] = content }));
+            return root.ToHtmlString();
+        });
+        Assert.Contains(">GPT-4o</span>", html);
+        Assert.Contains(">GPT-5.6 Luna</span>", html);
+    }
+
+    [Fact]
+    public async Task ModelSelection_DoesNotApplyToScriptedAgents()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Roster.SetAgents([new AgentInfo("Scenario", "Replays", [], ModelId: "scripted-scenario", ScriptedModel: true)]);
+        view.SelectedAgent = "Scenario";
+        view.Models.Set(new ModelsResponse([new("gpt-5.6-luna", "GPT-5.6 Luna"), new("gpt-4o", "GPT-4o")], "gpt-5.6-luna"));
+        using var handler = new ReplayHandler();
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view, new());
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+
+        view.Message = "Run the scenario";
+        await run.SendAsync();
+        await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.Equal("scripted-scenario", view.Agent.Model);
+        Assert.Null(Assert.Single(handler.Models));
+        Assert.Equal("scripted-scenario", run.LiveTurn.AnsweredBy);
+    }
+
+    [Fact]
+    public void ModelSelection_IgnoresMissingListsAndOmitsUnreportedTokens()
+    {
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        view.Models.Set(null);
+        Assert.Empty(view.Models.Choices);
+        Assert.Null(view.Models.Selected);
+        view.Models.Set(new ModelsResponse([new("only", "Only")], "missing"));
+        Assert.Equal("only", view.Models.Selected);
+        Assert.False(view.Models.CanChoose);
+        Assert.Equal("unknown", view.Models.NameFor("unknown"));
+        Assert.Equal("0.4 s · 0 tool calls", RunSummaryText.Describe(new RunSummary("only", 400, 0, 0, 1, 0)));
     }
 
     [Theory]
@@ -1087,6 +1193,7 @@ public sealed class ExecutionReplayTests
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
         internal List<string> ConversationIds { get; } = [];
+        internal List<string?> Models { get; } = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
@@ -1102,11 +1209,14 @@ public sealed class ExecutionReplayTests
             Assert.Equal("/chat/stream", request.RequestUri.AbsolutePath);
             using var payload = JsonDocument.Parse(await request.Content!.ReadAsStringAsync(cancellationToken));
             ConversationIds.Add(payload.RootElement.GetProperty("conversationId").GetString()!);
+            var model = payload.RootElement.TryGetProperty("model", out var requested) ? requested.GetString() : null;
+            Models.Add(model);
             FlowEvent[] events =
             [
                 Event(1, "llm-request", 1) with
                 { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
-                Event(2, "final", 1) with { Detail = Reply, Data = Reply },
+                Event(2, "final", 1) with
+                { Detail = Reply, Data = Reply, Run = model is null ? null : new RunSummary(model, 1200, 600, 212, 2, 1) },
             ];
             return new HttpResponseMessage(HttpStatusCode.OK)
             {

@@ -12,7 +12,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using AgenticLab.A2AServer;
 using AgenticLab.AiService.Application.Discovery;
+using AgenticLab.AiService.Application.Models;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.McpServer.Tools;
 using AgenticLab.ModelProviders;
@@ -135,6 +137,45 @@ public sealed class ProtocolIntegrationTests
         Assert.True((await provider.InvokeAsync("windfarm-risk", "Direct.", timeout.Token)).Success);
     }
 
+    [Fact]
+    public async Task A2ADelegationsAnswerOnTheRunsSelectedModelAndRejectOthers()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var modelConfiguration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Models:Provider"] = "OpenAI",
+            ["OpenAI:ApiKey"] = "test-key",
+            ["OpenAI:Model"] = "gpt-5.6-luna",
+            ["Models:Choices:0:Id"] = "gpt-5.6-luna",
+            ["Models:Choices:1:Id"] = "gpt-4o",
+        }).Build();
+        var choices = new ModelChoices(modelConfiguration, new ModelConnectionOptions(modelConfiguration));
+        var builder = CreateBuilder();
+        builder.Services.AddSingleton(SelectableModels.CreateChatClient("gpt-5.6-luna", model => new EchoModel($"{model}:")));
+        var agent = builder.AddAIAgent("research", instructions: "Echo the question.");
+        agent.AddA2AServer();
+        await using var server = builder.Build();
+        server.UseModelSelection(choices);
+        server.MapA2AJsonRpc(agent, "/a2a/research");
+        server.MapGet("/agents", () => Results.Ok(new
+        {
+            Agents = new[] { new { Name = "research", Path = "/a2a/research", Description = "Test specialist" } },
+        }));
+        await server.StartAsync(timeout.Token);
+        using var provider = new A2AAgentProvider(EndpointConfiguration("A2A:Endpoint", server), NullLogger<A2AAgentProvider>.Instance);
+        await provider.ConnectAsync(timeout.Token);
+
+        Assert.Equal("gpt-5.6-luna: Q", (await provider.InvokeAsync("research", "Q", timeout.Token)).Text);
+        using (ModelSelectionScope.Begin("gpt-4o"))
+        {
+            Assert.Equal("gpt-4o: Q", (await provider.InvokeAsync("research", "Q", timeout.Token)).Text);
+        }
+        using (ModelSelectionScope.Begin("not-listed"))
+        {
+            Assert.False((await provider.InvokeAsync("research", "Q", timeout.Token)).Success);
+        }
+    }
+
     // A stand-in enabled example claiming protocol names, so ownership exclusion can be tested without a host.
     private sealed class ClaimingModule(string[]? mcpToolNames = null, string[]? remoteAgentNames = null) : IExampleModule
     {
@@ -192,7 +233,7 @@ public sealed class ProtocolIntegrationTests
         }
     }
 
-    private sealed class EchoModel : IChatClient
+    private sealed class EchoModel(string prefix = "Answer:") : IChatClient
     {
         public Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
             CancellationToken cancellationToken = default)
@@ -218,8 +259,8 @@ public sealed class ProtocolIntegrationTests
             };
         }
 
-        private static string Answer(IEnumerable<ChatMessage> messages) =>
-            $"Answer: {messages.Last(message => message.Role == ChatRole.User).Text}";
+        private string Answer(IEnumerable<ChatMessage> messages) =>
+            $"{prefix} {messages.Last(message => message.Role == ChatRole.User).Text}";
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 

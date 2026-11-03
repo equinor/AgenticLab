@@ -64,7 +64,18 @@ spec:
       variables:
         Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
+        # The default model; it must also be listed in the selectable models below.
+        AzureOpenAI__Deployment: gpt-5.6-luna
+        # Models users may choose per conversation; requests naming any other model are rejected.
+        # Keep this list identical on a2aserver, which validates delegated selections.
+        Models__Choices__0__Id: gpt-5.6-luna
+        Models__Choices__0__Name: GPT-5.6 Luna
+        Models__Choices__1__Id: gpt-5.6-terra
+        Models__Choices__1__Name: GPT-5.6 Terra
+        Models__Choices__2__Id: gpt-5.6-sol
+        Models__Choices__2__Name: GPT-5.6 Sol
+        Models__Choices__3__Id: gpt-4o
+        Models__Choices__3__Name: GPT-4o (baseline)
         # Every user works on the bundled sample workspace with read-only tools only: nobody can choose
         # a server folder, write files, run commands or fetch web pages (see SECURITY.md).
         Workspace__Mode: ReadOnlySample
@@ -100,7 +111,16 @@ spec:
       variables:
         Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
+        AzureOpenAI__Deployment: gpt-5.6-luna
+        # Same allow-list as aiservice: delegations answer on the model selected for the run.
+        Models__Choices__0__Id: gpt-5.6-luna
+        Models__Choices__0__Name: GPT-5.6 Luna
+        Models__Choices__1__Id: gpt-5.6-terra
+        Models__Choices__1__Name: GPT-5.6 Terra
+        Models__Choices__2__Id: gpt-5.6-sol
+        Models__Choices__2__Name: GPT-5.6 Sol
+        Models__Choices__3__Id: gpt-4o
+        Models__Choices__3__Name: GPT-4o (baseline)
       secrets:
         - AzureOpenAI__Endpoint
         - AzureOpenAI__ApiKey

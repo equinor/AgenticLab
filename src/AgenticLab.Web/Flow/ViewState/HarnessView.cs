@@ -22,7 +22,7 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
         ? $"Harness · AiService · {owner.SelectedAgent ?? "Agent"}"
         : "Agent service";
 
-    /// <summary>Technical labels expose the actual deployment; branded overview labels are explicitly simulated.</summary>
+    /// <summary>Technical labels expose the deployment the next run uses; branded overview labels are explicitly simulated.</summary>
     public string LlmModelLabel
     {
         get
@@ -34,7 +34,7 @@ internal sealed class HarnessView(FlowViewState owner, Action notify)
                 return $"{simulated} (simulated)";
             }
 
-            var deployment = owner.Agent.Info?.ModelId;
+            var deployment = owner.Agent.Model;
             return string.IsNullOrWhiteSpace(deployment) ? "Azure OpenAI" : $"Azure OpenAI · {deployment}";
         }
     }

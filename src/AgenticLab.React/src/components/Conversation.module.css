@@ -14,6 +14,8 @@
 .message.user { border-left-color: var(--user); }
 .messageHead { display: flex; gap: 10px; align-items: center; color: var(--muted); font-size: 11px; margin-bottom: 10px; }
 .messageHead > span { font-weight: 500; }
+.messageHead > .modelTag { padding: 0 6px; border: 1px solid var(--border); border-radius: 4px; font: 11px var(--mono); font-weight: 400; }
+.messageHead > .runMeta { font: 11px var(--mono); font-weight: 400; font-variant-numeric: tabular-nums; }
 .markdown { font-size: 14px; line-height: 1.8; }
 .markdown > :first-child { margin-top: 0; }
 .markdown > :last-child { margin-bottom: 0; }

@@ -11,12 +11,17 @@ import { TraceList } from './components/TraceList'
 import styles from './App.module.css'
 
 const appVersion = import.meta.env.VITE_APP_VERSION
+const modelStorageKey = 'agenticlab-model'
+
+function storedModel(): string | null {
+  try { return localStorage.getItem(modelStorageKey) } catch { return null }
+}
 
 export default function App() {
   const [catalogs, setCatalogs] = useState<Catalogs | null>(null)
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [reload, setReload] = useState(0)
-  const [selection, setSelection] = useState({ vendor: '', agent: '' })
+  const [selection, setSelection] = useState({ vendor: '', agent: '', model: '' })
   const [draft, setDraft] = useState('')
   const run = useFlowRun()
 
@@ -26,8 +31,10 @@ export default function App() {
       if (controller.signal.aborted) return
       const vendors = availableVendors(value)
       const vendor = vendors.find(item => item.modes.some(mode => mode.agent === value.defaultAgent)) ?? vendors[0]
+      const preferred = storedModel()
       setCatalogs(value)
-      setSelection({ vendor: vendor?.key ?? '', agent: vendor?.modes.find(mode => mode.agent === value.defaultAgent)?.agent ?? vendor?.modes[0].agent ?? '' })
+      setSelection({ vendor: vendor?.key ?? '', agent: vendor?.modes.find(mode => mode.agent === value.defaultAgent)?.agent ?? vendor?.modes[0].agent ?? '',
+        model: value.models.some(model => model.id === preferred) ? preferred! : value.defaultModel ?? value.models[0]?.id ?? '' })
     }).catch(error => {
       if (!controller.signal.aborted) setCatalogError(error instanceof Error ? error.message : 'Could not load agents.')
     })
@@ -37,12 +44,20 @@ export default function App() {
   const vendors = catalogs ? availableVendors(catalogs) : []
   const vendor = vendors.find(item => item.key === selection.vendor)
   const agent = catalogs?.agents.find(item => item.name === selection.agent)
+  // A scripted agent replays its own model, so the selection is neither sent nor shown for it.
+  const modelId = agent && !agent.scriptedModel && selection.model ? selection.model : null
   const identity: RunIdentity | null = agent ? {
     agent: agent.name, label: vendor?.modes.find(mode => mode.agent === agent.name)?.label ?? agent.name,
-    vendor: vendor?.key ?? null, model: agent.modelId || 'Azure OpenAI', tools: agent.tools,
+    vendor: vendor?.key ?? null, modelId, tools: agent.tools,
+    model: catalogs?.models.find(model => model.id === modelId)?.name ?? (agent.modelId || 'Azure OpenAI'),
   } : null
   const locked = run.state.running || run.state.resetting
   const error = catalogError ?? run.state.error
+
+  function changeModel(model: string) {
+    setSelection({ ...selection, model })
+    try { localStorage.setItem(modelStorageKey, model) } catch { }
+  }
 
   function send() {
     if (identity && run.send(draft, identity)) setDraft('')
@@ -51,7 +66,7 @@ export default function App() {
   async function changeVendor(key: string) {
     const chosen = vendors.find(item => item.key === key)
     if (!chosen || chosen.key === selection.vendor || locked) return
-    if (await run.reset()) setSelection({ vendor: chosen.key, agent: chosen.modes[0].agent })
+    if (await run.reset()) setSelection({ ...selection, vendor: chosen.key, agent: chosen.modes[0].agent })
   }
 
   return (
@@ -90,6 +105,19 @@ export default function App() {
               {vendor?.modes.map(mode => <option key={mode.agent} value={mode.agent}>{mode.label}</option>)}
             </select>
           </label>
+          {!!catalogs?.models.length && <>
+            <span className={styles.selectDivider} aria-hidden="true" />
+            <label>Model
+              <select aria-label="Model" value={modelId ?? ''} disabled={locked || catalogs.models.length < 2 || !!agent?.scriptedModel}
+                title={agent?.scriptedModel ? 'This agent replays a scripted model, so the model selection does not apply.'
+                  : 'The model for your next message. Earlier answers keep the model that produced them.'}
+                onChange={event => changeModel(event.target.value)}>
+                {agent?.scriptedModel
+                  ? <option value="">{agent.modelId} (scripted)</option>
+                  : catalogs.models.map(model => <option key={model.id} value={model.id}>{model.name}</option>)}
+              </select>
+            </label>
+          </>}
         </div>
         <div className={styles.connection}><span className={catalogs ? styles.online : ''} />{catalogs ? 'API connected' : catalogError ? 'API unavailable' : 'Connecting'}</div>
       </div>

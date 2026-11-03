@@ -50,6 +50,15 @@ default agent. The draft, workspace and view preferences survive. Changing only 
 the current host or restoring it at startup does not reset chat. If server cleanup fails, Blazor
 reports it but keeps the new local conversation ID.
 
+**Model** lists the [selectable models](agents.md#selectable-models) from `GET /models`, preselecting
+the service default or the choice saved under `agenticlab-model`. The choice is sent with every
+following message until changed. Changing it keeps the conversation, so different models can answer
+in turn. Each answer is labelled with the model that produced it, plus its duration, tokens (when the
+provider reports them) and tool calls from the `final` event; hover for the full breakdown. Scripted
+agents (the Security Lab) show their own model and lock the selector. The Model node, the anatomy
+Model line and Details > Settings show the model the next run uses. Without `GET /models` (an older
+service) the selector is hidden and runs keep each agent's model.
+
 **Settings** contains tool toggles, breakpoints, workspace paths, skills and custom instructions.
 Skills default on; instructions are opt-in. Workspace features appear for agents that support them;
 see the [workspace guide](workspace.md). When the service runs the
@@ -239,7 +248,7 @@ This preserves example-panel inputs and avoids repeated case fetches just to col
 Desktop grid rows and scroll regions use the space allocated by the workspace rather than repeatedly
 measuring the expanded diagram's intrinsic height. Stacked narrow layouts keep natural document sizing.
 
-Browser preferences use `agenticlab-vendor`, `agenticlab-panels`, `agenticlab-workspace-bases` and
+Browser preferences use `agenticlab-vendor`, `agenticlab-model`, `agenticlab-panels`, `agenticlab-workspace-bases` and
 `agenticlab-workspace-recent`. Previous product-name keys are not migrated or deleted. Existing
 six-field panel values are accepted; new values include the adaptive-width flag. Enabled host aliases
 can restore older host selections, but cannot make a disabled module available.

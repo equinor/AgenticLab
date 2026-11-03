@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -34,6 +35,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
     /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="session">The control session that paces, pauses and stops the run.</param>
     /// <param name="cancellationToken">A token to cancel the run.</param>
+    /// <param name="model">An allow-listed model for every model call of this run, or null to keep the agent's own.</param>
     /// <returns>An ordered, lazily-produced sequence of flow events.</returns>
     public async IAsyncEnumerable<FlowEvent> StreamAsync(
         string message,
@@ -45,8 +47,11 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
         IReadOnlyList<string>? enabledInstructions,
         string? vendor,
         FlowSession session,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        [EnumeratorCancellation] CancellationToken cancellationToken = default,
+        string? model = null)
     {
+        // The request span, read before the first yield resets this iterator's ambient values.
+        var activity = Activity.Current;
         var sequence = 0;
         var currentTurn = 0;
         FlowEvent Step(string kind, string label, string? detail = null, string? data = null, string? callId = null) =>
@@ -110,18 +115,20 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
         try
         {
-            ChatMetrics.RecordMessage(resolvedName, vendors.HostKey(vendor));
+            var host = vendors.HostKey(vendor);
+            var stopwatch = Stopwatch.StartNew();
+            ChatMetrics.RecordMessage(resolvedName, host);
             await session.WaitForStepAsync(token);
-            yield return Step("received", "Harness received the message", $"Agent: {resolvedName}");
+            yield return Step("received", "Harness received the message", model is null ? $"Agent: {resolvedName}" : $"Agent: {resolvedName} · Model: {model}");
 
             // Capture the real LLM round-trips (request payloads and responses) for this run only.
             using var capture = FlowCaptureScope.Begin();
             using var execution = new FlowExecutionScope(session);
 
-            // The per-run tool/skill/instruction filters plus the channel an AskQuestion tool blocks on until
-            // the user answers (via /chat/control).
+            // The per-run tool/skill/instruction filters, the selected model plus the channel an AskQuestion
+            // tool blocks on until the user answers (via /chat/control).
             using var scopes = RunScopeSet.Begin(workspaceScope, disabledTools, disabledSkills, enabledInstructions, interactive: true,
-                conversationId: conversationId, agentName: resolvedName);
+                conversationId: conversationId, agentName: resolvedName, model: model);
             session.UserInput = scopes.UserInput;
 
             var finalText = new StringBuilder();
@@ -253,8 +260,10 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             }
 
             var answer = finalText.ToString();
+            var summary = scopes.Model.Usage.Summarize(stopwatch.Elapsed);
+            ChatMetrics.RecordRun(activity, resolvedName, host, summary);
             await session.WaitForStepAsync(token);
-            yield return Step("final", "Harness → Client", answer, answer);
+            yield return Step("final", "Harness → Client", answer, answer) with { Run = summary };
         }
         finally
         {

@@ -33,6 +33,9 @@ const server = http.createServer(async (request, response) => {
   function json(value, code = 200) { response.writeHead(code, { 'Content-Type': 'application/json' }); response.end(JSON.stringify(value)) }
   if (request.url === '/health') { json({ ok: true }); return }
   if (request.url === '/agents') { json({ agents, default: 'Research' }); return }
+  if (request.url === '/models') {
+    json({ models: [{ id: 'gpt-5.6-luna', name: 'GPT-5.6 Luna' }, { id: 'gpt-4o', name: 'GPT-4o' }], default: 'gpt-5.6-luna' }); return
+  }
   if (request.url === '/vendors') {
     json({ vendors: [
       { key: 'default', displayName: 'Default', modes: agents.map(agent => ({ agent: agent.name, label: agent.name })) },
@@ -56,7 +59,8 @@ const server = http.createServer(async (request, response) => {
     )
     if (payload.agent === 'Question') events.push({ kind: 'ask-question', label: 'Question asked', data: 'Which topic should I use?', callId: 'question' })
     events.push({ kind: 'llm-response', label: 'Model response received', data: '{"text":"Answer"}' },
-      { kind: 'final', label: 'Final answer', data: `This is answer ${count}. **An agent combines a host with a model.**\n\nThe model chooses a next step. The host checks permissions and executes allowed tools.`, detail: `Answer ${count}` })
+      { kind: 'final', label: 'Final answer', data: `This is answer ${count}. **An agent combines a host with a model.**\n\nThe model chooses a next step. The host checks permissions and executes allowed tools.`, detail: `Answer ${count}`,
+        run: { model: payload.model ?? 'test-model', durationMs: 1200, inputTokens: 600, outputTokens: 212, modelCalls: 2, toolCalls: payload.agent === 'Research' ? 2 : 0 } })
     if (payload.message === 'interrupt') events.splice(2)
     if (payload.message === 'error') events.splice(2, events.length, { kind: 'error', label: 'Test error', detail: 'The upstream run failed.' })
     const session = { response, events, index: 0, manual: payload.manual, paused: false, credit: false, question: false }

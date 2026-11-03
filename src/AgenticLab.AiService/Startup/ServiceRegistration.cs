@@ -99,8 +99,9 @@ internal static class ServiceRegistration
         services.AddSingleton<IAgentDefinition, TimeKeeperAgent>();
         services.AddSingleton<IAgentDefinition, OrchestratorAgent>();
 
-        // One cached chat client per Azure OpenAI deployment so agents can run on different models.
+        // One cached chat client per agent default model, each routing to a run's selected model.
         services.AddSingleton<ChatClientProvider>();
+        services.AddSingleton(sp => sp.GetRequiredService<ChatClientProvider>().Choices);
         // The default deployment's client, for components not tied to a specific agent.
         services.AddSingleton(sp => sp.GetRequiredService<ChatClientProvider>().Get(null));
         services.AddSingleton(sp =>

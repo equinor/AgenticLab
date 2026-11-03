@@ -87,9 +87,10 @@ that browser profile establish a concurrent-user capacity guarantee.
 
 ## `POST /chat/stream`
 
-Accepts the [chat fields](agents.md#post-chat), client-supplied `conversationId` and `sessionId`,
-`manual`, optional `stepDelayMs`, and optional `breakpoints`. The session ID correlates control calls.
-An omitted/empty breakpoint array selects none; unknown names return `400 Bad Request`.
+Accepts the [chat fields](agents.md#post-chat) (including an allow-listed `model`), client-supplied
+`conversationId` and `sessionId`, `manual`, optional `stepDelayMs`, and optional `breakpoints`. The
+session ID correlates control calls. An omitted/empty breakpoint array selects none; unknown breakpoint
+names or a model outside [`GET /models`](agents.md#get-models) return `400 Bad Request` before streaming.
 
 Returns `text/event-stream` with named `flow` events:
 
@@ -100,6 +101,7 @@ Returns `text/event-stream` with named `flow` events:
 | `turn` | One-based model round-trip, with intake outside model turns. |
 | `callId` | Pairs a tool result with its call, including repeated calls to one tool. |
 | `toolCall` | Optional structured tool name/arguments; do not parse display text for routing. |
+| `run` | On `final` only: `model`, `durationMs`, `inputTokens`, `outputTokens`, `modelCalls` and `toolCalls` for the run ([selectable models](agents.md#selectable-models)). |
 
 Kinds include `received`, `llm-request`, `llm-response`, `tool-call`, `tool-result`, `ask-question`,
 `final`, `error` and `breakpoint`. Every completed model round-trip emits `llm-response`, including

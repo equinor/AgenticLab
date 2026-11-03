@@ -24,8 +24,9 @@ public sealed class AgentCatalog
     /// declared model (see <see cref="ChatClientProvider.ResolveDeployment"/>) for display, but it
     /// runs on the client for its <see cref="ChatClientProvider.ExecutionDeployment"/>. Force-default
     /// configuration makes the declared model display-only, retaining the legacy Azure setting as a fallback.
+    /// A model selected for a run overrides both at call time (see <see cref="ModelSelectionScope"/>).
     /// An <see cref="IScriptedModelAgent"/> runs on its own model wrapped by <see cref="ChatClientProvider.Wrap"/>,
-    /// ignoring provider deployments and force-default configuration.
+    /// ignoring provider deployments, run selections and force-default configuration.
     /// </summary>
     /// <param name="clients">Provides the selected backend's chat client for each agent's model or deployment.</param>
     /// <param name="definitions">The agent definitions to expose.</param>
@@ -46,7 +47,7 @@ public sealed class AgentCatalog
         foreach (var definition in list)
         {
             var client = definition is IScriptedModelAgent scripted
-                ? clients.Wrap(scripted.CreateModel())
+                ? clients.Wrap(scripted.CreateModel(), definition.ModelId)
                 : clients.Get(clients.ExecutionDeployment(deployments[definition.Name]));
             _agents[definition.Name] = new ChatClientAgent(
                 client,
@@ -72,7 +73,8 @@ public sealed class AgentCatalog
             deployments[d.Name],
             Array.Empty<ToolMapping>(),
             RemoteAgentNames: d.RemoteAgentNames,
-            SuggestedPrompts: d.SuggestedPrompts)).ToList();
+            SuggestedPrompts: d.SuggestedPrompts,
+            ScriptedModel: d is IScriptedModelAgent)).ToList();
     }
 
     /// <summary>The name of the agent used when a request does not specify one.</summary>

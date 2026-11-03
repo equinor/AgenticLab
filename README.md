@@ -177,6 +177,30 @@ Environment variables work too: use `Models__Provider`, `OpenAI__ApiKey` / `Open
 to the inference services. Live requests send context to that provider and may incur its charges.
 See [model configuration](docs/agents.md#model-providers) for model overrides and validation rules.
 
+#### Choose Selectable Models
+
+Users can pick the model behind a conversation in the **Model** selector to compare answers, speed and
+tool calls. List each selectable deployment (or OpenAI/Gemini model id) with a display name. The
+provider's default (`AzureOpenAI:Deployment` above) is the preselected choice and must be in the list:
+
+```sh
+dotnet user-secrets set "AzureOpenAI:Deployment" "gpt-5.6-luna" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:0:Id" "gpt-5.6-luna" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:0:Name" "GPT-5.6 Luna" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:1:Id" "gpt-5.6-terra" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:1:Name" "GPT-5.6 Terra" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:2:Id" "gpt-5.6-sol" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:2:Name" "GPT-5.6 Sol" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:3:Id" "gpt-4o" --project src/AgenticLab.AppHost
+dotnet user-secrets set "Models:Choices:3:Name" "GPT-4o (baseline)" --project src/AgenticLab.AppHost
+```
+
+Every id must already be deployed for your provider. Without this list only the default is offered.
+The service rejects any other model. [docker-compose.yml](docker-compose.yml) passes no list, so Docker
+offers only the default unless you add `Models__Choices__0__Id`-style entries to both `aiservice` and
+`a2aserver`. See [selectable models](docs/agents.md#selectable-models) for how the selection interacts
+with per-agent models and telemetry.
+
 ### Build and Start
 
 Using the .NET CLI:

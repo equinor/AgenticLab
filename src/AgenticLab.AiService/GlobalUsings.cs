@@ -6,6 +6,7 @@ global using AgenticLab.AiService.Application.Conversations;
 global using AgenticLab.AiService.Application.Discovery;
 global using AgenticLab.AiService.Application.Flow;
 global using AgenticLab.AiService.Application.Instructions;
+global using AgenticLab.AiService.Application.Models;
 global using AgenticLab.AiService.Application.Skills;
 global using AgenticLab.AiService.Application.Tools;
 global using AgenticLab.AiService.Application.Workspace;

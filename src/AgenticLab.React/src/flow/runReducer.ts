@@ -1,8 +1,10 @@
-import { readBreakpoint, type Breakpoint, type ControlRequest, type FlowEvent } from '../api/contracts'
+import { readBreakpoint, type Breakpoint, type ControlRequest, type FlowEvent, type RunSummary } from '../api/contracts'
 
-export type RunIdentity = { agent: string; label: string; vendor: string | null; model: string; tools: string[] }
+/** `model` is the display label; `modelId` is sent with the run (null keeps the agent's own model). */
+export type RunIdentity = { agent: string; label: string; vendor: string | null; model: string; modelId?: string | null; tools: string[] }
 export type Phase = 'idle' | 'starting' | 'running' | 'awaiting-step' | 'paused' | 'awaiting-answer' | 'completed' | 'stopped' | 'interrupted' | 'failed'
-export type Message = { id: string; role: 'user' | 'assistant'; text: string; label: string; status: 'complete' | 'pending' | 'stopped' | 'error' }
+/** An assistant message records the model it was sent to and, once final, the run's figures. */
+export type Message = { id: string; role: 'user' | 'assistant'; text: string; label: string; status: 'complete' | 'pending' | 'stopped' | 'error'; model?: string; run?: RunSummary | null }
 export type TraceEntry = Pick<FlowEvent, 'sequence' | 'kind' | 'label' | 'turn'>
 export type FlowNode = 'user' | 'host' | 'model' | 'tools'
 export type RunState = {
@@ -38,11 +40,11 @@ function progress(state: RunState): RunState {
   return { ...state, phase }
 }
 
-function finish(state: RunState, phase: Phase, text?: string, error?: string): RunState {
+function finish(state: RunState, phase: Phase, text?: string, error?: string, run?: RunSummary | null): RunState {
   return { ...state, running: false, phase, controlPending: false, stepPending: false, paused: false,
     question: null, breakpoint: null, error: error ?? null,
     messages: state.messages.map(message => message.id === state.sessionId
-      ? { ...message, text: text ?? message.text, status: phase === 'completed' ? 'complete' : phase === 'stopped' ? 'stopped' : 'error' }
+      ? { ...message, text: text ?? message.text, run: run ?? message.run, status: phase === 'completed' ? 'complete' : phase === 'stopped' ? 'stopped' : 'error' }
       : message) }
 }
 
@@ -52,7 +54,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       return progress({ ...initialState, manual: state.manual, running: true, sessionId: action.sessionId,
         identity: action.identity, messages: [...state.messages.slice(-38),
           { id: `${action.sessionId}-user`, role: 'user', text: action.message, label: 'You', status: 'complete' },
-          { id: action.sessionId, role: 'assistant', text: '', label: action.identity.label, status: 'pending' }] })
+          { id: action.sessionId, role: 'assistant', text: '', label: action.identity.label, status: 'pending', model: action.identity.model }] })
     case 'mode': return progress({ ...state, manual: action.manual })
     case 'stop': return state.running ? finish(state, 'stopped') : state
     case 'end':
@@ -102,7 +104,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
         next.manual = notice.manual
         next.paused = notice.paused
       }
-      if (event.kind === 'final') return finish(next, 'completed', event.data ?? event.detail ?? '')
+      if (event.kind === 'final') return finish(next, 'completed', event.data ?? event.detail ?? '', undefined, event.run)
       if (event.kind === 'error') return finish(next, 'failed', undefined, event.detail ?? event.label)
       return progress(next)
     }
@@ -113,4 +115,11 @@ export const phaseLabels: Record<Phase, string> = {
   idle: 'Ready', starting: 'Connecting', running: 'Running', 'awaiting-step': 'Waiting for Next',
   paused: 'Paused', 'awaiting-answer': 'Waiting for you', completed: 'Complete', stopped: 'Stopped',
   interrupted: 'Interrupted', failed: 'Failed',
+}
+
+/** A compact line such as `1.2 s · 812 tokens · 2 tool calls`; tokens are omitted when the provider reported none. */
+export function describeRun(run: RunSummary): string {
+  const tokens = run.inputTokens + run.outputTokens
+  return [`${(run.durationMs / 1000).toFixed(1)} s`, ...(tokens > 0 ? [`${tokens.toLocaleString('en-US')} tokens`] : []),
+    `${run.toolCalls} tool call${run.toolCalls === 1 ? '' : 's'}`].join(' · ')
 }

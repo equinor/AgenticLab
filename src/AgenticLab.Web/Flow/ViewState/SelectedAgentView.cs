@@ -27,6 +27,12 @@ internal sealed class SelectedAgentView(FlowViewState owner)
     /// <summary>Example messages the agent advertises; the composer offers them as pre-fill buttons and never sends them.</summary>
     public IReadOnlyList<string> SuggestedPrompts => Info?.SuggestedPrompts ?? Array.Empty<string>();
 
+    /// <summary>Whether the agent replays a scripted model, so the model selection does not apply to it.</summary>
+    public bool ScriptedModel => Info?.ScriptedModel ?? false;
+
+    /// <summary>The model the next run will use: the selection, or the agent's own for a scripted agent.</summary>
+    public string? Model => ScriptedModel ? Info?.ModelId : owner.Models.Selected ?? Info?.ModelId;
+
     // --- Risk & environment ------------------------------------------------
 
     /// <summary>The risk level (None/Low/Medium/High) surfaced in the environment &amp; risk view.</summary>

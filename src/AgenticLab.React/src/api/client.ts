@@ -1,4 +1,4 @@
-import { agentsSchema, vendorsSchema, type Catalogs, type ChatRequest, type ControlRequest, type FlowEvent } from './contracts'
+import { agentsSchema, modelsSchema, vendorsSchema, type Catalogs, type ChatRequest, type ControlRequest, type FlowEvent } from './contracts'
 import { readFlowStream } from './stream'
 
 export class ApiError extends Error {
@@ -43,11 +43,15 @@ function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
 
 export const api: FlowApi = {
   async catalogs(signal) {
-    const [agents, vendors] = await Promise.all([
+    const [agents, vendors, models] = await Promise.all([
       fetch('/api/agents', { signal }).then(checked).then(response => response.json()).then(value => agentsSchema.parse(value)),
       fetch('/api/vendors', { signal }).then(checked).then(response => response.json()).then(value => vendorsSchema.parse(value)),
+      // Optional: without a model list, runs keep each agent's own model.
+      fetch('/api/models', { signal }).then(checked).then(response => response.json()).then(value => modelsSchema.parse(value))
+        .catch(error => { if (signal.aborted) throw error; return null }),
     ])
-    return { agents: agents.agents, defaultAgent: agents.default, vendors: vendors.vendors }
+    return { agents: agents.agents, defaultAgent: agents.default, vendors: vendors.vendors,
+      models: models?.models ?? [], defaultModel: models?.default ?? null }
   },
   async stream(request, onEvent, signal) {
     const response = await post('/chat/stream', request, signal)

@@ -17,6 +17,7 @@ namespace AgenticLab.Web.Components.Pages;
 public partial class Flow : IDisposable
 {
     private const string VendorStorageKey = "agenticlab-vendor";
+    private const string ModelStorageKey = "agenticlab-model";
     private const string PanelStorageKey = "agenticlab-panels";
     private const string WorkspaceBasesStorageKey = "agenticlab-workspace-bases";
     private const string RecentWorkspacesStorageKey = "agenticlab-workspace-recent";
@@ -118,6 +119,10 @@ public partial class Flow : IDisposable
     private string HostSummary => _view.Roster.CurrentVendorInfo is { } info
         ? $"{info.DisplayName}: {info.ModelLabel}; {info.Modes.Count} mode{(info.Modes.Count == 1 ? "" : "s")}" : _view.Roster.VendorName;
 
+    private string ModelTitle => _view.Agent.ScriptedModel
+        ? "This agent replays a scripted model, so the model selection does not apply."
+        : "The model for your next message. Earlier answers keep the model that produced them.";
+
     // Per-protocol sets: an MCP tool name must never read as an available A2A agent, or vice versa.
     private DiscoveryScope DiscoveryScope => new(
         _view.Agent.SupportsMcp ? _view.Agent.ToolNames : [],
@@ -160,6 +165,15 @@ public partial class Flow : IDisposable
             try
             {
                 _view.ChatLimits.Set(await Ai.GetChatLimitsAsync());
+            }
+            catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or NotSupportedException)
+            {
+            }
+
+            // Optional as well: without GET /models nothing is selectable and runs keep each agent's model.
+            try
+            {
+                _view.Models.Set(await Ai.GetModelsAsync());
             }
             catch (Exception ex) when (ex is HttpRequestException or System.Text.Json.JsonException or TaskCanceledException or NotSupportedException)
             {
@@ -216,6 +230,12 @@ public partial class Flow : IDisposable
 
         try
         {
+            // Applied now or, if the model list is still loading, as soon as it arrives.
+            if (_view.Models.Restore(await JS.InvokeAsync<string?>("localStorage.getItem", ModelStorageKey)))
+            {
+                StateHasChanged();
+            }
+
             // A deep link already chose the host for this load; only a plain /flow visit restores the saved one.
             var stored = _linkApplied ? null : await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
             var restored = _view.Roster.RestoreHost(stored);
@@ -306,6 +326,20 @@ public partial class Flow : IDisposable
 
         await _run.Catalogs.RefreshWorkspaceContextAsync();
         await _run.Catalogs.RefreshKnownA2AAsync();
+    }
+
+    private async Task OnModelChangedAsync(ChangeEventArgs args)
+    {
+        if (_run.Running || args.Value?.ToString() is not { } model) return;
+        _view.Models.Selected = model;
+        try
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", ModelStorageKey, _view.Models.Selected);
+        }
+        catch
+        {
+            // Persisting the model is best-effort.
+        }
     }
 
     private void ToggleLeftPanel()

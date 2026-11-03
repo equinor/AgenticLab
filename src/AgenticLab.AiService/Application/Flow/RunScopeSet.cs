@@ -5,8 +5,8 @@ namespace AgenticLab.AiService.Application.Flow;
 
 /// <summary>
 /// The per-run ambient scopes both chat endpoints open for an agent run — the workspace, the disabled
-/// tools, the disabled skills, the enabled custom instructions and (for a streaming run) the user-input
-/// channel — bundled so they are begun, re-activated and disposed together. Every scope is an
+/// tools, the disabled skills, the enabled custom instructions, the selected model and (for a streaming
+/// run) the user-input channel — bundled so they are begun, re-activated and disposed together. Every scope is an
 /// <see cref="AsyncLocal{T}"/> that is reset whenever an async iterator resumes after a <c>yield</c>, so
 /// a streaming caller must call <see cref="Activate"/> before each agent advance.
 /// </summary>
@@ -18,7 +18,7 @@ public sealed class RunScopeSet : IDisposable
     private readonly InstructionFilterScope _instructions;
     private readonly AgentRunScope? _identity;
 
-    private RunScopeSet(WorkspaceScope? workspace, ToolFilterScope? tools, SkillFilterScope? skills, InstructionFilterScope instructions, UserInputScope? userInput, AgentRunScope? identity)
+    private RunScopeSet(WorkspaceScope? workspace, ToolFilterScope? tools, SkillFilterScope? skills, InstructionFilterScope instructions, UserInputScope? userInput, AgentRunScope? identity, ModelSelectionScope model)
     {
         _workspace = workspace;
         _tools = tools;
@@ -26,10 +26,14 @@ public sealed class RunScopeSet : IDisposable
         _instructions = instructions;
         UserInput = userInput;
         _identity = identity;
+        Model = model;
     }
 
     /// <summary>The scope an <c>AskQuestion</c> tool blocks on; null for a non-interactive run.</summary>
     public UserInputScope? UserInput { get; }
+
+    /// <summary>The run's selected model and the usage its model calls accumulate.</summary>
+    public ModelSelectionScope Model { get; }
 
     /// <summary>
     /// Begins the run's scopes on the current async context. The workspace scope (if any) is expected to be
@@ -42,6 +46,7 @@ public sealed class RunScopeSet : IDisposable
     /// <param name="interactive">Whether to open a <see cref="UserInputScope"/> so a tool can ask the user a question.</param>
     /// <param name="conversationId">Host-supplied conversation identity for example tools; omitted by callers without an agent run.</param>
     /// <param name="agentName">The resolved agent identity, paired with the conversation ID.</param>
+    /// <param name="model">An allow-listed model selected for the run, or null to keep each agent's own.</param>
     public static RunScopeSet Begin(
         WorkspaceScope? workspace,
         IReadOnlyList<string>? disabledTools,
@@ -49,14 +54,15 @@ public sealed class RunScopeSet : IDisposable
         IReadOnlyList<string>? enabledInstructions,
         bool interactive,
         string? conversationId = null,
-        string? agentName = null)
+        string? agentName = null,
+        string? model = null)
     {
         var tools = disabledTools is { Count: > 0 } ? ToolFilterScope.Begin(disabledTools) : null;
         var skills = disabledSkills is { Count: > 0 } ? SkillFilterScope.Begin(disabledSkills) : null;
         var instructions = InstructionFilterScope.Begin(enabledInstructions ?? Array.Empty<string>());
         var userInput = interactive ? UserInputScope.Begin() : null;
         var identity = conversationId is not null && agentName is not null ? new AgentRunScope(conversationId, agentName) : null;
-        return new RunScopeSet(workspace, tools, skills, instructions, userInput, identity);
+        return new RunScopeSet(workspace, tools, skills, instructions, userInput, identity, ModelSelectionScope.Begin(model));
     }
 
     /// <summary>Re-asserts every scope on the current async context.</summary>
@@ -68,6 +74,7 @@ public sealed class RunScopeSet : IDisposable
         _instructions.Activate();
         UserInput?.Activate();
         _identity?.Activate();
+        Model.Activate();
     }
 
     /// <summary>
@@ -87,6 +94,7 @@ public sealed class RunScopeSet : IDisposable
 
     public void Dispose()
     {
+        Model.Dispose();
         _identity?.Dispose();
         UserInput?.Dispose();
         _instructions.Dispose();

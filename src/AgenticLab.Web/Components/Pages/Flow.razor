@@ -45,6 +45,29 @@
                             }
                         </select>
                     </LabField>
+                    @if (_view.Models.Choices.Count > 0)
+                    {
+                        <span class="select-divider" aria-hidden="true"></span>
+                        <LabField For="model" Label="Model" Inline="true">
+                            <select id="model" value="@_view.Agent.Model" title="@ModelTitle" @onchange="OnModelChangedAsync"
+                                    disabled="@(_run.Running || !_catalogsLoaded || !_view.Models.CanChoose || _view.Agent.ScriptedModel)">
+                                @if (_view.Agent.ScriptedModel)
+                                {
+                                    <option value="@_view.Agent.Model">@_view.Agent.Model (scripted)</option>
+                                }
+                                else
+                                {
+                                    @foreach (var choice in _view.Models.Choices)
+                                    {
+                                        <option value="@choice.Id">@choice.Name</option>
+                                    }
+                                }
+                            </select>
+                        </LabField>
+                        <FlowContent RunVersion="_runRenderVersion">
+                            <ConceptInfoButton Id="model-choice" Title="Learn why models differ in tool calling" />
+                        </FlowContent>
+                    }
                     @if (_view.Roster.CurrentHostPresentation?.ProductConceptId is { } conceptId)
                     {
                         <FlowContent RunVersion="_runRenderVersion">

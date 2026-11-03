@@ -28,7 +28,7 @@
                         <p>@turn.Message</p>
                     </article>
                     <article class="entry agent @(string.IsNullOrWhiteSpace(turn.Error) ? "" : "failed")">
-                        <header class="entry-head"><span class="role">@(turn.Agent ?? "Agent")</span></header>
+                        <header class="entry-head"><span class="role">@(turn.Agent ?? "Agent")</span>@ModelTag(turn)</header>
                         @if (!string.IsNullOrWhiteSpace(turn.Error))
                         {
                             <p class="error">@turn.Error</p>
@@ -53,6 +53,7 @@
                     <article class="entry agent @(Run.Status.Activity == AgentActivity.Failed ? "failed" : "")">
                         <header class="entry-head">
                             <span class="role">@(View.SelectedAgent ?? "Agent")</span>
+                            @ModelTag(Run.LiveTurn)
                             @if (Run.Status.AgentStatusLabel is { } status)
                             {
                                 <LabStatus Label="@status" Tone="@StatusTone" Busy="@StatusBusy" />
@@ -141,6 +142,17 @@
     };
 
     private bool StatusBusy => Run.Running && StatusTone == "success";
+
+    // The model that answered (or was requested while running) and, once finished, the run's figures.
+    private RenderFragment ModelTag(ConversationTurn turn) => __builder =>
+    {
+        if (turn.AnsweredBy is not { } model) return;
+        <span class="model-tag" title="@model">@View.Models.NameFor(model)</span>
+        if (turn.Run is { } run)
+        {
+            <span class="run-meta" title="@RunSummaryText.Detail(run)">@RunSummaryText.Describe(run)</span>
+        }
+    };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

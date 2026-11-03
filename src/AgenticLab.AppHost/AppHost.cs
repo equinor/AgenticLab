@@ -38,6 +38,13 @@ foreach (var key in modelSettings.Prepend("Models:ForceDefaultModel"))
     aiService.WithEnvironment(name, value);
     a2aServer.WithEnvironment(name, value);
 }
+// Both inference hosts validate a run's selected model, so they must share one allow-list.
+foreach (var setting in builder.Configuration.GetSection("Models:Choices").AsEnumerable().Where(setting => setting.Value is not null))
+{
+    var name = setting.Key.Replace(":", "__", StringComparison.Ordinal);
+    aiService.WithEnvironment(name, setting.Value);
+    a2aServer.WithEnvironment(name, setting.Value);
+}
 string[] agentModelSettings = modelProvider == "AzureOpenAI" ? ["Model", "Deployment"] : ["Model"];
 foreach (var agent in builder.Configuration.GetSection("Agents").GetChildren())
 {

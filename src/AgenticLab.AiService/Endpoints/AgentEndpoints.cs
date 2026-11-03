@@ -1,8 +1,9 @@
 using AgenticLab.Extensibility.Examples;
+using AgenticLab.ModelProviders;
 
 namespace AgenticLab.AiService.Endpoints;
 
-/// <summary>Read-only endpoints describing the agents, vendors and the effective harness prompt.</summary>
+/// <summary>Read-only endpoints describing the agents, vendors, selectable models and the effective harness prompt.</summary>
 internal static class AgentEndpoints
 {
     public static IEndpointRouteBuilder MapAgentEndpoints(this IEndpointRouteBuilder app)
@@ -14,6 +15,11 @@ internal static class AgentEndpoints
                 ExampleId = examples.ForAgent(agent.Name)?.Id,
                 RequiresExampleUi = examples.ForAgent(agent.Name)?.RequiresUi ?? false,
             }).ToArray(), catalog.DefaultName)));
+
+        // Lists the models a run may select (ids and display names only, never endpoints or keys) and the
+        // provider default. /chat and /chat/stream reject any other model.
+        app.MapGet("/models", (ModelChoices models) =>
+            Results.Ok(new ModelsResponse(models.All, models.Default.Id)));
 
         // Lists the user-authored agents declared in a given workspace's agents/ folder so a client can offer
         // them alongside the built-in agents. Returns an empty list when the path is missing/invalid or the
@@ -56,6 +62,7 @@ internal static class AgentEndpoints
 }
 
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
+internal sealed record ModelsResponse(IReadOnlyList<ModelChoice> Models, string Default);
 internal sealed record WorkspaceAgentsRequest(string? Workspace);
 internal sealed record HarnessRequest(string? Agent, string? Vendor);
 internal sealed record HarnessResponse(string Prompt);

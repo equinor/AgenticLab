@@ -112,6 +112,23 @@
     color: var(--accent);
 }
 
+/* Which model answered, so answers from different models can be compared in one conversation. */
+.entry .model-tag {
+    padding: 0 6px;
+    border: 1px solid var(--lab-border);
+    border-radius: var(--lab-radius-sm);
+    font: var(--lab-text-xs) var(--lab-font-mono);
+    color: var(--text-dim);
+    white-space: nowrap;
+}
+
+.entry .run-meta {
+    font: var(--lab-text-xs) var(--lab-font-mono);
+    color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
 .entry p {
     margin: 0;
     font-size: var(--lab-text-md);
