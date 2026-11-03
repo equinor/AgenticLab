@@ -141,6 +141,9 @@ dotnet user-secrets set "AzureOpenAI:Endpoint" "<your-azure-openai-endpoint>" --
 dotnet user-secrets set "AzureOpenAI:ApiKey" "<your-api-key>" --project src/AgenticLab.AppHost
 ```
 
+The endpoint may be the resource root (`https://<resource>.openai.azure.com/`) or the portal's
+`.../openai/v1` form; the suffix is removed because the SDK adds its own path.
+
 The default deployment (`gpt-5.6-luna`) and the selectable models are committed in
 [models.json](src/AgenticLab.ModelProviders/models.json), since they are not secrets. If your resource
 uses other **deployment names**, override them as described in [Choose Selectable Models](#choose-selectable-models).
