@@ -26,7 +26,9 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - Models__Provider=${Models__Provider:-AzureOpenAI}
       - AzureOpenAI__Endpoint=${AzureOpenAI__Endpoint:-}
-      - AzureOpenAI__Deployment=${AzureOpenAI__Deployment:-}
+      # Unset unless exported, so the committed models.json defaults apply.
+      - AzureOpenAI__Deployment
+      - AzureOpenAI__Choices
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}
@@ -48,7 +50,9 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - Models__Provider=${Models__Provider:-AzureOpenAI}
       - AzureOpenAI__Endpoint=${AzureOpenAI__Endpoint:-}
-      - AzureOpenAI__Deployment=${AzureOpenAI__Deployment:-}
+      # Unset unless exported, so the committed models.json defaults apply.
+      - AzureOpenAI__Deployment
+      - AzureOpenAI__Choices
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}

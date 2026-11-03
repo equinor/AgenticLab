@@ -29,21 +29,14 @@ var modelProvider = builder.Configuration["Models:Provider"]?.Trim().ToUpperInva
 aiService.WithEnvironment("Models__Provider", modelProvider);
 a2aServer.WithEnvironment("Models__Provider", modelProvider);
 string[] modelSettings = modelProvider == "AzureOpenAI"
-    ? ["AzureOpenAI:Endpoint", "AzureOpenAI:Deployment", "AzureOpenAI:ApiKey", "AzureOpenAI:ForceDefaultModel"]
-    : [$"{modelProvider}:Model", $"{modelProvider}:ApiKey"];
+    ? ["AzureOpenAI:Endpoint", "AzureOpenAI:Deployment", "AzureOpenAI:ApiKey", "AzureOpenAI:ForceDefaultModel", "AzureOpenAI:Choices"]
+    : [$"{modelProvider}:Model", $"{modelProvider}:ApiKey", $"{modelProvider}:Choices"];
 foreach (var key in modelSettings.Prepend("Models:ForceDefaultModel"))
 {
     if (builder.Configuration[key] is not { } value) continue;
     var name = key.Replace(":", "__", StringComparison.Ordinal);
     aiService.WithEnvironment(name, value);
     a2aServer.WithEnvironment(name, value);
-}
-// Both inference hosts validate a run's selected model, so they must share one allow-list.
-foreach (var setting in builder.Configuration.GetSection("Models:Choices").AsEnumerable().Where(setting => setting.Value is not null))
-{
-    var name = setting.Key.Replace(":", "__", StringComparison.Ordinal);
-    aiService.WithEnvironment(name, setting.Value);
-    a2aServer.WithEnvironment(name, setting.Value);
 }
 string[] agentModelSettings = modelProvider == "AzureOpenAI" ? ["Model", "Deployment"] : ["Model"];
 foreach (var agent in builder.Configuration.GetSection("Agents").GetChildren())

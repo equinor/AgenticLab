@@ -22,7 +22,7 @@ Service hosts, reusable .NET libraries and optional example modules plus a React
 | [src/AgenticLab.React](src/AgenticLab.React/README.md) | Optional React/TypeScript CSR example: conversation, live flow and real execution controls. Presentation is separate from its API client and run-state hook. |
 | [src/AgenticLab.Bff](src/AgenticLab.Bff/Program.cs) | Optional ASP.NET Core BFF for React. Allowlisted YARP `/api` forwarding with service discovery; serves built frontend assets without SSR or model credentials. |
 | [src/AgenticLab.ServiceDefaults](src/AgenticLab.ServiceDefaults/Extensions.cs) | Shared OpenTelemetry, health checks, resilience, service discovery and application-version middleware. Referenced by every service. |
-| [src/AgenticLab.ModelProviders](src/AgenticLab.ModelProviders/ModelClientFactory.cs) | Shared model configuration, the `Models:Choices` allow-list (`ModelChoices`), per-request `ModelRoutingChatClient` and raw Azure/OpenAI/Gemini clients for AiService and A2AServer. No Flow state or frontend dependencies. |
+| [src/AgenticLab.ModelProviders](src/AgenticLab.ModelProviders/ModelClientFactory.cs) | Shared model configuration, the committed Azure model defaults ([models.json](src/AgenticLab.ModelProviders/models.json) via `AddModelDefaults`), the `{Provider}:Choices` allow-list (`ModelChoices`), per-request `ModelRoutingChatClient` and raw Azure/OpenAI/Gemini clients for AiService and A2AServer. No Flow state or frontend dependencies. |
 | [src/AgenticLab.Extensibility](src/AgenticLab.Extensibility/Examples/ExampleModule.cs) | Shared agent/harness contracts, explicit role-based example registration, runtime/panel contracts and reusable stateless controls. No domain workflow state. |
 | [src/AgenticLab.Examples.ChatGpt](src/AgenticLab.Examples.ChatGpt/README.md) | Optional ChatGPT host, dedicated agent consuming shared Wikipedia/calculator tools, branding and tests. |
 | [src/AgenticLab.Examples.Copilot](src/AgenticLab.Examples.Copilot/README.md) | Optional GitHub Copilot host prompt and branding over shared Ask/Plan/Coder agents. |
@@ -210,8 +210,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   `web` is public, behind OAuth2, and `aiservice` sets `Workspace__Mode=ReadOnlySample`. `aiservice` and
   `a2aserver` expose Prometheus `/metrics` to Radix monitoring (`Metrics__PrometheusEndpoint`, off by default; internal
   components only). Metric tags must stay bounded and free of user or conversation data. `aiservice` and `web` both
-  enable the `copilot365` and `security` examples. `aiservice` and `a2aserver` share one `Models__Choices__*`
-  allow-list (default `gpt-5.6-luna`). Radix has no Dockerfile target selection, so each component uses
+  enable the `copilot365` and `security` examples. The default and selectable models come from the committed
+  [models.json](src/AgenticLab.ModelProviders/models.json), not Radix variables; only endpoint and key are secrets. Radix has no Dockerfile target selection, so each component uses
   a single-service file under [docker/](docker) that must mirror its root Dockerfile stage.
   See [README.md](README.md#deploy-to-radix).
 - AppHost pins Aspire 13.5.4 with `AspireUseCliBundle=true`: use the matching Aspire CLI on `PATH`; the SDK-paired CLI package through `dnx` is the fallback.
@@ -282,8 +282,11 @@ when absent, only Azure inherits `AzureOpenAI:ForceDefaultModel`. AppHost forwar
 overrides to AiService; A2A specialists use the global default. See
 [docs/agents.md](docs/agents.md#per-agent-models).
 
-`Models:Choices` (ordered `Id`/`Name` entries) is the server-side allow-list a run may select with
-`model` on `/chat` and `/chat/stream`; it must include the provider default and defaults to just that.
+`{Provider}:Choices` (comma-separated ids, optional `=Name`; names otherwise derived from ids) is the
+server-side allow-list a run may select with `model` on `/chat` and `/chat/stream`. The provider default is
+always included. Azure's default deployment and list are committed in
+[models.json](src/AgenticLab.ModelProviders/models.json), embedded and loaded by `AddModelDefaults()` as the
+lowest-precedence source in AiService and A2AServer; do not move model names into secrets or Radix variables.
 `GET /models` exposes ids and names only. A selected model wins over `ForceDefaultModel`, per-agent
 overrides and `ModelId`; only `IScriptedModelAgent` ignores it. AppHost forwards the list to AiService
 and A2AServer, which validate it independently; unlisted models are rejected with 400. Blazor and React

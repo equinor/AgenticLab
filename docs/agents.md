@@ -257,29 +257,30 @@ separate from consumer subscriptions, and live calls transmit context to the sel
 ## Selectable models
 
 Users can choose the model behind a conversation to compare answer quality, speed and tool calling.
-The server keeps the allow-list in `Models:Choices`, an ordered list of `Id` (the Azure deployment or
-provider model id) and optional display `Name`. The provider default (`AzureOpenAI:Deployment` or
-`{Provider}:Model`) is the default choice and must be listed; without `Models:Choices` only the default
-is selectable. Missing ids, duplicates or an unlisted default fail at startup. Azure ids match
-case-insensitively; OpenAI and Gemini ids are case-sensitive.
+The allow-list is the selected provider's `{Provider}:Choices`: a comma-separated list of model or
+deployment ids, each optionally followed by `=Display name`. Names are otherwise derived from the id
+(`gpt-5.6-luna` becomes "GPT-5.6 Luna"). The provider default (`AzureOpenAI:Deployment` or
+`{Provider}:Model`) is always selectable and preselected; it is added first when not listed. Empty ids
+or duplicates fail at startup. Azure ids match case-insensitively; OpenAI and Gemini ids are
+case-sensitive.
+
+Model names are not secrets, so the Azure defaults are committed once in
+[models.json](../src/AgenticLab.ModelProviders/models.json), embedded in `AgenticLab.ModelProviders` and
+loaded by both AiService and A2AServer through `AddModelDefaults()`:
 
 ```json
 {
-  "AzureOpenAI": { "Deployment": "gpt-5.6-luna" },
-  "Models": {
-    "Choices": [
-      { "Id": "gpt-5.6-luna", "Name": "GPT-5.6 Luna" },
-      { "Id": "gpt-5.6-terra", "Name": "GPT-5.6 Terra" },
-      { "Id": "gpt-5.6-sol", "Name": "GPT-5.6 Sol" },
-      { "Id": "gpt-4o", "Name": "GPT-4o (baseline)" }
-    ]
+  "AzureOpenAI": {
+    "Deployment": "gpt-5.6-luna",
+    "Choices": "gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-4o=GPT-4o (baseline)"
   }
 }
 ```
 
-Set it with [user-secrets](../README.md#choose-selectable-models) locally or `Models__Choices__0__Id`
-style variables elsewhere ([radixconfig.yaml](../radixconfig.yaml) lists the deployed set). AppHost
-forwards the list to AiService and A2AServer, which must hold the same list: both validate it.
+It is the lowest-precedence source: appsettings, [user-secrets](../README.md#choose-selectable-models),
+environment variables (`AzureOpenAI__Choices`) and the command line override it. AppHost forwards an
+override to both hosts, which must hold the same list because both validate it. OpenAI and Gemini ship
+no list, so they offer only their configured `Model` unless `OpenAI:Choices` or `Gemini:Choices` is set.
 
 `POST /chat` and `POST /chat/stream` reject a `model` outside the list with `400 Bad Request` before
 anything runs. A valid selection is held in a per-run
@@ -351,12 +352,11 @@ absent, Azure honors `AzureOpenAI:ForceDefaultModel` as before; OpenAI/Gemini de
 ignore the Azure flag. An explicit neutral `false` also overrides a legacy Azure `true`.
 
 The shipped AiService Azure settings enable the legacy flag. This existing example still displays
-Coder's `gpt-5.3-codex` but runs it on `gpt-5.3-chat`:
+Coder's `gpt-5.3-codex` but, when no model is selected, runs it on the default `gpt-5.6-luna`:
 
 ```json
 {
   "AzureOpenAI": {
-    "Deployment": "gpt-5.3-chat",
     "ForceDefaultModel": true
   },
   "Agents": {

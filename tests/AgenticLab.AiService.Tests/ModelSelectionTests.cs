@@ -23,11 +23,11 @@ public sealed class ModelSelectionTests
     [Fact]
     public void ChoicesKeepConfiguredOrderAndNamesWithTheProviderDefault()
     {
-        var configuration = Configuration("AzureOpenAI", "gpt-5.6-luna", ("gpt-5.6-luna", "Luna"), ("gpt-4o", null));
+        var configuration = Configuration("AzureOpenAI", "gpt-5.6-luna", " gpt-5.6-luna = Luna ,gpt-4o, ");
 
         var choices = new ModelChoices(configuration, new ModelConnectionOptions(configuration));
 
-        Assert.Equal([new ModelChoice("gpt-5.6-luna", "Luna"), new ModelChoice("gpt-4o", "gpt-4o")], choices.All);
+        Assert.Equal([new ModelChoice("gpt-5.6-luna", "Luna"), new ModelChoice("gpt-4o", "GPT-4o")], choices.All);
         Assert.Equal("gpt-5.6-luna", choices.Default.Id);
     }
 
@@ -38,27 +38,68 @@ public sealed class ModelSelectionTests
 
         var choices = new ModelChoices(configuration, new ModelConnectionOptions(configuration));
 
-        Assert.Equal("test-model", Assert.Single(choices.All).Id);
+        Assert.Equal(new ModelChoice("test-model", "Test Model"), Assert.Single(choices.All));
         Assert.False(choices.TryResolve("other", out _));
     }
 
-    [Theory]
-    [InlineData("missing-default")]
-    [InlineData("duplicate")]
-    [InlineData("missing-id")]
-    public void InvalidChoicesFailAtStartup(string problem)
+    [Fact]
+    public void AnUnlistedDefaultIsAddedFirst()
     {
-        var configuration = problem switch
-        {
-            "missing-default" => Configuration("AzureOpenAI", "gpt-5.6-luna", ("gpt-4o", null)),
-            "duplicate" => Configuration("AzureOpenAI", "gpt-4o", ("gpt-4o", null), ("GPT-4O", null)),
-            _ => Configuration("AzureOpenAI", "gpt-4o", ("gpt-4o", null), (" ", "Blank")),
-        };
+        var configuration = Configuration("AzureOpenAI", "my-deployment", "gpt-4o");
+
+        var choices = new ModelChoices(configuration, new ModelConnectionOptions(configuration));
+
+        Assert.Equal(["my-deployment", "gpt-4o"], choices.All.Select(choice => choice.Id));
+        Assert.Equal("my-deployment", choices.Default.Id);
+    }
+
+    [Theory]
+    [InlineData("gpt-4o, GPT-4O")]
+    [InlineData("gpt-4o, =Blank")]
+    public void InvalidChoicesFailAtStartup(string list)
+    {
+        var configuration = Configuration("AzureOpenAI", "gpt-4o", list);
 
         var error = Assert.Throws<InvalidOperationException>(() => new ModelChoices(configuration, new ModelConnectionOptions(configuration)));
 
-        Assert.Contains(ModelChoices.SectionName, error.Message);
+        Assert.Contains("AzureOpenAI:Choices", error.Message);
         Assert.DoesNotContain("test-key", error.Message);
+    }
+
+    [Theory]
+    [InlineData("gpt-5.6-luna", "GPT-5.6 Luna")]
+    [InlineData("gpt-4o", "GPT-4o")]
+    [InlineData("gemini-2.5-flash", "Gemini 2.5 Flash")]
+    [InlineData("o3", "O3")]
+    public void DisplayNamesAreDerivedFromIds(string id, string expected) =>
+        Assert.Equal(expected, ModelChoices.DisplayName(id));
+
+    [Fact]
+    public void ShippedDefaultsAreOverridableAndApplyOnlyToAzure()
+    {
+        var credentials = new Dictionary<string, string?>
+        {
+            ["AzureOpenAI:Endpoint"] = "https://example.openai.azure.com/",
+            ["AzureOpenAI:ApiKey"] = "test-key",
+        };
+        var shipped = new ConfigurationBuilder().AddInMemoryCollection(credentials).AddModelDefaults().Build();
+        var choices = new ModelChoices(shipped, new ModelConnectionOptions(shipped));
+
+        Assert.Equal(["GPT-5.6 Luna", "GPT-5.6 Terra", "GPT-5.6 Sol", "GPT-4o (baseline)"], choices.All.Select(choice => choice.Name));
+        Assert.Equal("gpt-5.6-luna", choices.Default.Id);
+
+        credentials["AzureOpenAI:Choices"] = "gpt-4o";
+        credentials["AzureOpenAI:Deployment"] = "gpt-4o";
+        var overridden = new ConfigurationBuilder().AddInMemoryCollection(credentials).AddModelDefaults().Build();
+        Assert.Equal("gpt-4o", Assert.Single(new ModelChoices(overridden, new ModelConnectionOptions(overridden)).All).Id);
+
+        var openAi = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Models:Provider"] = "OpenAI",
+            ["OpenAI:ApiKey"] = "test-key",
+            ["OpenAI:Model"] = "native-model",
+        }).AddModelDefaults().Build();
+        Assert.Equal("native-model", Assert.Single(new ModelChoices(openAi, new ModelConnectionOptions(openAi)).All).Id);
     }
 
     [Theory]
@@ -70,7 +111,7 @@ public sealed class ModelSelectionTests
     [InlineData("AzureOpenAI", "gpt-unknown", false, null)]
     public void RequestsResolveOnlyToAllowListedModels(string provider, string? requested, bool valid, string? expected)
     {
-        var configuration = Configuration(provider, "gpt-5.6-luna", ("gpt-5.6-luna", null), ("gpt-4o", null));
+        var configuration = Configuration(provider, "gpt-5.6-luna", "gpt-5.6-luna, gpt-4o");
         var choices = new ModelChoices(configuration, new ModelConnectionOptions(configuration));
 
         Assert.Equal(valid, choices.TryResolve(requested, out var model));
@@ -80,7 +121,7 @@ public sealed class ModelSelectionTests
     [Fact]
     public void SelectedModelWinsOverDeclaredAndForcedModelsButNotScriptedOnes()
     {
-        var configuration = Configuration("AzureOpenAI", "gpt-5.6-luna", ("gpt-5.6-luna", null), ("gpt-4o", null));
+        var configuration = Configuration("AzureOpenAI", "gpt-5.6-luna", "gpt-5.6-luna, gpt-4o");
         configuration["Models:ForceDefaultModel"] = "true";
         var clients = new ChatClientProvider(configuration);
         var agent = clients.Get(clients.ExecutionDeployment("declared-model"));
@@ -122,7 +163,7 @@ public sealed class ModelSelectionTests
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
         builder.WebHost.UseUrls("http://127.0.0.1:0");
         builder.Logging.ClearProviders();
-        builder.Configuration.AddConfiguration(Configuration("AzureOpenAI", "gpt-5.6-luna", ("gpt-5.6-luna", "Luna"), ("gpt-4o", "GPT-4o")));
+        builder.Configuration.AddConfiguration(Configuration("AzureOpenAI", "gpt-5.6-luna", "gpt-5.6-luna=Luna, gpt-4o"));
         builder.Services.AddHarnessTools().AddWorkspaceFeatures(builder.Configuration).AddVendorHarnesses()
             .AddDemoAgents(builder.Configuration).AddConversationMemory(builder.Configuration)
             .AddChatInputLimits(builder.Configuration).AddFlowTracing().AddDiscovery();
@@ -148,22 +189,15 @@ public sealed class ModelSelectionTests
 
     private static string? ModelOf(IChatClient client) => client.GetService<ChatClientMetadata>()?.DefaultModelId;
 
-    private static IConfigurationRoot Configuration(string provider, string defaultModel, params (string Id, string? Name)[] choices)
-    {
-        var values = new Dictionary<string, string?>
+    private static IConfigurationRoot Configuration(string provider, string defaultModel, string? choices = null) =>
+        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Models:Provider"] = provider,
             [$"{provider}:ApiKey"] = "test-key",
             [$"{provider}:{(provider == "AzureOpenAI" ? "Deployment" : "Model")}"] = defaultModel,
             [$"{provider}:Endpoint"] = "https://example.openai.azure.com/",
-        };
-        for (var i = 0; i < choices.Length; i++)
-        {
-            values[$"Models:Choices:{i}:Id"] = choices[i].Id;
-            values[$"Models:Choices:{i}:Name"] = choices[i].Name;
-        }
-        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
-    }
+            [$"{provider}:Choices"] = choices,
+        }).Build();
 
     // Requests two tool calls, then answers, reporting usage the way the OpenAI adapter does when streaming.
     private sealed class ScriptedModel : IChatClient

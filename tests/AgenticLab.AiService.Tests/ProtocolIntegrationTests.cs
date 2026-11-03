@@ -146,8 +146,7 @@ public sealed class ProtocolIntegrationTests
             ["Models:Provider"] = "OpenAI",
             ["OpenAI:ApiKey"] = "test-key",
             ["OpenAI:Model"] = "gpt-5.6-luna",
-            ["Models:Choices:0:Id"] = "gpt-5.6-luna",
-            ["Models:Choices:1:Id"] = "gpt-4o",
+            ["OpenAI:Choices"] = "gpt-5.6-luna, gpt-4o",
         }).Build();
         var choices = new ModelChoices(modelConfiguration, new ModelConnectionOptions(modelConfiguration));
         var builder = CreateBuilder();

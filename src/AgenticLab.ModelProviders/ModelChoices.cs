@@ -8,45 +8,59 @@ namespace AgenticLab.ModelProviders;
 public sealed record ModelChoice(string Id, string Name);
 
 /// <summary>
-/// The server-side allow-list of models a caller may select per request, read from
-/// <c>Models:Choices:{i}:Id</c> and optional <c>Models:Choices:{i}:Name</c>. The provider's default model
-/// (<c>AzureOpenAI:Deployment</c> or <c>{Provider}:Model</c>) is the default choice and must be listed;
-/// without configured choices the allow-list holds only that default. Requests naming any other model are rejected.
+/// The server-side allow-list of models a caller may select per request, read from the selected provider's
+/// <c>{Provider}:Choices</c>: a comma-separated list such as <c>gpt-5.6-luna, gpt-4o=GPT-4o (baseline)</c>,
+/// where an optional <c>=Name</c> overrides the name derived from the id. Azure's list ships in
+/// <see cref="ModelDefaults"/>. The provider's default model (<c>AzureOpenAI:Deployment</c> or
+/// <c>{Provider}:Model</c>) is always selectable and preselected; it is added first when not listed.
+/// Requests naming any other model are rejected.
 /// </summary>
 public sealed class ModelChoices
 {
-    /// <summary>The configuration section holding the ordered choices.</summary>
-    public const string SectionName = "Models:Choices";
-
     private readonly StringComparer _comparer;
 
     /// <summary>Reads and validates the choices for the selected provider.</summary>
-    /// <exception cref="InvalidOperationException">A choice has no id, an id is repeated, or the default model is not listed.</exception>
+    /// <exception cref="InvalidOperationException">An entry has no id or an id is repeated.</exception>
     public ModelChoices(IConfiguration configuration, ModelConnectionOptions connection)
     {
         // Azure deployment names are case-insensitive; native model identifiers are not.
         _comparer = connection.Provider == ModelProvider.AzureOpenAI ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal;
+        var key = KeyFor(connection.Provider);
         var choices = new List<ModelChoice>();
-        foreach (var entry in configuration.GetSection(SectionName).GetChildren())
+        foreach (var entry in (configuration[key] ?? string.Empty).Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
         {
-            var id = entry["Id"]?.Trim();
-            if (string.IsNullOrEmpty(id))
-                throw new InvalidOperationException($"Missing configuration '{SectionName}:{entry.Key}:Id'.");
+            var separator = entry.IndexOf('=');
+            var id = (separator < 0 ? entry : entry[..separator]).Trim();
+            var name = separator < 0 ? string.Empty : entry[(separator + 1)..].Trim();
+            if (id.Length == 0)
+                throw new InvalidOperationException($"Invalid configuration '{key}': every entry needs a model id.");
             if (choices.Any(choice => _comparer.Equals(choice.Id, id)))
-                throw new InvalidOperationException($"Duplicate model '{id}' in configuration '{SectionName}'.");
-            var name = entry["Name"]?.Trim();
-            choices.Add(new ModelChoice(id, string.IsNullOrEmpty(name) ? id : name));
-        }
-
-        if (choices.Count == 0)
-        {
-            choices.Add(new ModelChoice(connection.DefaultModel, connection.DefaultModel));
+                throw new InvalidOperationException($"Duplicate model '{id}' in configuration '{key}'.");
+            choices.Add(new ModelChoice(id, name.Length == 0 ? DisplayName(id) : name));
         }
 
         Default = choices.FirstOrDefault(choice => _comparer.Equals(choice.Id, connection.DefaultModel))
-            ?? throw new InvalidOperationException(
-                $"Configuration '{SectionName}' must include the provider's default model '{connection.DefaultModel}'.");
+            ?? new ModelChoice(connection.DefaultModel, DisplayName(connection.DefaultModel));
+        if (!choices.Contains(Default)) choices.Insert(0, Default);
         All = choices;
+    }
+
+    /// <summary>The configuration key holding the selected provider's choices.</summary>
+    public static string KeyFor(ModelProvider provider) => $"{provider}:Choices";
+
+    /// <summary>
+    /// A readable name derived from a model id: <c>gpt-5.6-luna</c> becomes <c>GPT-5.6 Luna</c> and
+    /// <c>gemini-2.5-flash</c> becomes <c>Gemini 2.5 Flash</c>.
+    /// </summary>
+    public static string DisplayName(string id)
+    {
+        var parts = id.Split('-', StringSplitOptions.RemoveEmptyEntries).ToList();
+        if (parts.Count > 1 && parts[0].Equals("gpt", StringComparison.OrdinalIgnoreCase))
+        {
+            parts[1] = $"GPT-{parts[1]}";
+            parts.RemoveAt(0);
+        }
+        return string.Join(' ', parts.Select(part => char.ToUpperInvariant(part[0]) + part[1..]));
     }
 
     /// <summary>The selectable models in configured order.</summary>

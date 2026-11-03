@@ -33,7 +33,7 @@ accepts the same settings.
 A run's [selected model](agents.md#selectable-models) travels with each delegation in the
 `X-AgenticLab-Model` header, added by `A2AAgentProvider`'s HTTP handler from the run's
 `ModelSelectionScope`. [SelectableModels](../src/AgenticLab.A2AServer/SelectableModels.cs) validates
-it against A2AServer's own `Models:Choices` (unlisted models get `400` before any agent runs, so the
+it against A2AServer's own `{Provider}:Choices` (unlisted models get `400` before any agent runs, so the
 delegation tool returns a failure) and routes the specialists' shared chat client to that model.
 Without the header they use the default. Keep both hosts' allow-lists identical.
 

@@ -10,4 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.10.0" />
     <InternalsVisibleTo Include="AgenticLab.AiService.Tests" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="models.json" LogicalName="AgenticLab.ModelProviders.models.json" />
+  </ItemGroup>
 </Project>

@@ -138,11 +138,12 @@ continues to work. To select it explicitly, including when switching back from a
 ```sh
 dotnet user-secrets set "Models:Provider" "AzureOpenAI" --project src/AgenticLab.AppHost
 dotnet user-secrets set "AzureOpenAI:Endpoint" "<your-azure-openai-endpoint>" --project src/AgenticLab.AppHost
-dotnet user-secrets set "AzureOpenAI:Deployment" "<your-deployment-name>" --project src/AgenticLab.AppHost
 dotnet user-secrets set "AzureOpenAI:ApiKey" "<your-api-key>" --project src/AgenticLab.AppHost
 ```
 
-Use the **deployment name** you created in Azure, not just the model's name.
+The default deployment (`gpt-5.6-luna`) and the selectable models are committed in
+[models.json](src/AgenticLab.ModelProviders/models.json), since they are not secrets. If your resource
+uses other **deployment names**, override them as described in [Choose Selectable Models](#choose-selectable-models).
 
 #### OpenAI API
 
@@ -180,26 +181,23 @@ See [model configuration](docs/agents.md#model-providers) for model overrides an
 #### Choose Selectable Models
 
 Users can pick the model behind a conversation in the **Model** selector to compare answers, speed and
-tool calls. List each selectable deployment (or OpenAI/Gemini model id) with a display name. The
-provider's default (`AzureOpenAI:Deployment` above) is the preselected choice and must be in the list:
+tool calls. For Azure OpenAI the list ships in [models.json](src/AgenticLab.ModelProviders/models.json):
+`gpt-5.6-luna` (default), `gpt-5.6-terra`, `gpt-5.6-sol` and `gpt-4o`. No setup is needed when your
+resource has those deployments.
+
+To use other deployments, override the default and the comma-separated list. Display names are derived
+from ids (`gpt-5.6-luna` shows as "GPT-5.6 Luna"); add `=Name` to choose your own:
 
 ```sh
-dotnet user-secrets set "AzureOpenAI:Deployment" "gpt-5.6-luna" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:0:Id" "gpt-5.6-luna" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:0:Name" "GPT-5.6 Luna" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:1:Id" "gpt-5.6-terra" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:1:Name" "GPT-5.6 Terra" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:2:Id" "gpt-5.6-sol" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:2:Name" "GPT-5.6 Sol" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:3:Id" "gpt-4o" --project src/AgenticLab.AppHost
-dotnet user-secrets set "Models:Choices:3:Name" "GPT-4o (baseline)" --project src/AgenticLab.AppHost
+dotnet user-secrets set "AzureOpenAI:Deployment" "my-gpt-4o" --project src/AgenticLab.AppHost
+dotnet user-secrets set "AzureOpenAI:Choices" "my-gpt-4o=GPT-4o, my-gpt-4o-mini" --project src/AgenticLab.AppHost
 ```
 
-Every id must already be deployed for your provider. Without this list only the default is offered.
-The service rejects any other model. [docker-compose.yml](docker-compose.yml) passes no list, so Docker
-offers only the default unless you add `Models__Choices__0__Id`-style entries to both `aiservice` and
-`a2aserver`. See [selectable models](docs/agents.md#selectable-models) for how the selection interacts
-with per-agent models and telemetry.
+The default is always selectable, even when not listed. OpenAI and Gemini ship no list, so only their
+`Model` is offered unless you set `OpenAI:Choices` or `Gemini:Choices`. The service rejects any other
+model. In Docker or Radix use `AzureOpenAI__Choices` and `AzureOpenAI__Deployment` on both `aiservice`
+and `a2aserver`. See [selectable models](docs/agents.md#selectable-models) for how the selection
+interacts with per-agent models and telemetry.
 
 ### Build and Start
 
@@ -244,7 +242,6 @@ user-secrets are not loaded into containers. For example, in PowerShell:
 ```powershell
 $env:Models__Provider = "AzureOpenAI"
 $env:AzureOpenAI__Endpoint = "https://<resource>.openai.azure.com/"
-$env:AzureOpenAI__Deployment = "<deployment>"
 $env:AzureOpenAI__ApiKey = Read-Host "Azure OpenAI API key" -MaskInput
 docker compose up --build -d
 ```

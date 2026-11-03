@@ -6,6 +6,7 @@ using AgenticLab.Extensibility.Examples;
 using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddModelDefaults();
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
