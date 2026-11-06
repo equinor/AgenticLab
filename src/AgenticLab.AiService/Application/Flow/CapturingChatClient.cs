@@ -40,6 +40,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
             await execution.WaitAsync("before-model", null, cancellationToken);
         }
 
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
         await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
         {
             if (turn is not null)
@@ -59,13 +60,18 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
                 }
             }
 
+            // Pacing and breakpoints can hold the consumer between updates; keep that wait out of the model's time.
+            stopwatch.Stop();
             yield return update;
+            stopwatch.Start();
         }
 
         if (turn is not null)
         {
-            turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
+            turn.ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             turn.ResponseSummary = SummarizeResponse(text.ToString(), toolCallNames);
+            // Published last: FlowTracer treats ResponseData as the turn's completion signal.
+            turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
         }
 
         if (execution is not null)
@@ -74,10 +80,13 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         }
     }
 
-    private static string RenderRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
+    // The model is read from the next client's metadata: below this capture, ModelRoutingChatClient reports
+    // the run's selected model, so each captured request names the model it is sent to.
+    private string RenderRequest(IEnumerable<ChatMessage> messages, ChatOptions? options)
     {
         var payload = new
         {
+            model = options?.ModelId ?? InnerClient.GetService<ChatClientMetadata>()?.DefaultModelId,
             instructions = string.IsNullOrWhiteSpace(options?.Instructions) ? null : options!.Instructions,
             messages = messages.Select(m => new
             {

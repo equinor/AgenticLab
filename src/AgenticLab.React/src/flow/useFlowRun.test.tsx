@@ -27,14 +27,16 @@ it('submits once under StrictMode, steps before data, and keeps conversation ide
   const requests = vi.mocked(transport.stream).mock.calls.map(call => call[0])
   expect(requests[0].conversationId).toBe(requests[1].conversationId)
   expect(requests[0].sessionId).not.toBe(requests[1].sessionId)
+  expect(requests[0].model).toBeNull()
   act(() => result.current.stop())
   await act(async () => { expect(await result.current.reset()).toBe(true) })
   expect(transport.reset).toHaveBeenCalledWith(requests[0].conversationId, expect.any(AbortSignal))
   expect(result.current.state.messages).toEqual([])
   expect(result.current.state.trace).toEqual([])
   expect(result.current.state.manual).toBe(true)
-  act(() => { result.current.send('fresh', { ...identity, vendor: 'chatgpt' }) })
+  act(() => { result.current.send('fresh', { ...identity, vendor: 'chatgpt', modelId: 'gpt-4o' }) })
   expect(vi.mocked(transport.stream).mock.calls[2][0].conversationId).not.toBe(requests[0].conversationId)
+  expect(vi.mocked(transport.stream).mock.calls[2][0].model).toBe('gpt-4o')
 })
 
 it('cancels on unmount and retains messages when a reset fails', async () => {

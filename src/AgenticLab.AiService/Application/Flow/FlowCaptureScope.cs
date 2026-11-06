@@ -25,6 +25,9 @@ public sealed class LlmTurn(int turnNumber, string requestData, string requestSu
 
     /// <summary>A short, single-line summary of what the model returned this turn (its answer, or the tool calls it requested); null until completed.</summary>
     public string? ResponseSummary { get; internal set; }
+
+    /// <summary>Model response time in milliseconds, excluding consumer pacing and breakpoint waits; null until completed.</summary>
+    public long? ElapsedMilliseconds { get; internal set; }
 }
 
 /// <summary>

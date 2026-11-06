@@ -70,7 +70,14 @@ internal static class HostDetailsBuilder
                 if (view.Agent.ToolNames.Count == 0) Add("Tools", "No tools configured.");
                 break;
             case HostDetailSection.Settings:
-                Add("Settings", $"Declared model: {(string.IsNullOrWhiteSpace(view.Agent.Info?.ModelId) ? "Service default" : view.Agent.Info.ModelId)}", "Set per agent");
+                Add("Settings", $"Model: {(string.IsNullOrWhiteSpace(view.Agent.Model) ? "Service default" : view.Agent.Model)}",
+                    view.Agent.ScriptedModel ? "Scripted by the agent" : "Selected per conversation");
+                // The agent's own configuration, so a selection overriding it stays visible.
+                if (!view.Agent.ScriptedModel)
+                    Add("Declared model", string.IsNullOrWhiteSpace(view.Agent.Info?.ModelId) ? "Service default" : view.Agent.Info.ModelId, "Set per agent");
+                // What the displayed exchange actually sent, independent of later selector changes.
+                if (CapturedField(request?.Data, "model") is { } capturedModel)
+                    Add("Captured model", capturedModel, provenance);
                 break;
             case HostDetailSection.Instructions:
                 foreach (var instruction in run.Catalogs.KnownInstructions)

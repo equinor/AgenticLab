@@ -24,6 +24,9 @@ The model runs through the configured **Azure OpenAI**, **OpenAI** or **Gemini**
 Local functions, MCP tools and A2A delegation
 are capabilities reached through the harness, not actions the model executes itself.
 
+Use the **Model** selector to run the same agent on a different model and compare how many
+round-trips, tool calls, tokens and seconds each needs; see **Choosing a model** in the topic index.
+
 ## Want the intuition?
 
 3Blue1Brown's series visually explains how neural networks and transformers actually work

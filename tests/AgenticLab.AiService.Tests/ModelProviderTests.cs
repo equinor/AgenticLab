@@ -232,6 +232,21 @@ public sealed class ModelProviderTests
     }
 
     [Theory]
+    [InlineData("https://example.openai.azure.com")]
+    [InlineData("https://example.openai.azure.com/")]
+    [InlineData("https://example.openai.azure.com/openai")]
+    [InlineData("https://example.openai.azure.com/openai/v1")]
+    [InlineData("https://example.openai.azure.com/openai/v1/")]
+    [InlineData("https://example.openai.azure.com/OpenAI/V1")]
+    public void AzureEndpointAcceptsThePortalOpenAiV1Form(string value)
+    {
+        var configuration = Configuration("AzureOpenAI");
+        configuration["AzureOpenAI:Endpoint"] = value;
+
+        Assert.Equal(new Uri("https://example.openai.azure.com/"), new ModelConnectionOptions(configuration).Endpoint);
+    }
+
+    [Theory]
     [InlineData("AzureOpenAI:Endpoint", "not-an-endpoint")]
     [InlineData("AzureOpenAI:Endpoint", "file:///private/secret")]
     [InlineData("AzureOpenAI:Endpoint", "https://user:secret@example.com/")]

@@ -3,7 +3,7 @@ import { ArrowDown, ArrowUp, ArrowUpRight, Check, LoaderCircle, MessageSquare, M
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { FlowRun } from '../flow/useFlowRun'
-import { phaseLabels, type RunIdentity } from '../flow/runReducer'
+import { describeRun, phaseLabels, type RunIdentity } from '../flow/runReducer'
 import styles from './Conversation.module.css'
 
 type Props = { run: FlowRun; draft: string; onDraft: (text: string) => void; onSend: () => void; identity: RunIdentity | null; loading: boolean; suggestions?: string[] }
@@ -43,6 +43,8 @@ export function Conversation({ run, draft, onDraft, onSend, identity, loading, s
       </div>}
       {state.messages.map(message => <article className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant}`} key={message.id}>
         <div className={styles.messageHead}><span>{message.label}</span>
+          {message.role === 'assistant' && message.model && <span className={styles.modelTag} title={message.run?.model ?? undefined}>{message.model}</span>}
+          {message.run && <span className={styles.runMeta}>{describeRun(message.run)}</span>}
           {message.status === 'complete' && message.role === 'assistant' && <Check size={13} aria-label="Complete" />}
         </div>
         {message.text

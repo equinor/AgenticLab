@@ -29,8 +29,8 @@ var modelProvider = builder.Configuration["Models:Provider"]?.Trim().ToUpperInva
 aiService.WithEnvironment("Models__Provider", modelProvider);
 a2aServer.WithEnvironment("Models__Provider", modelProvider);
 string[] modelSettings = modelProvider == "AzureOpenAI"
-    ? ["AzureOpenAI:Endpoint", "AzureOpenAI:Deployment", "AzureOpenAI:ApiKey", "AzureOpenAI:ForceDefaultModel"]
-    : [$"{modelProvider}:Model", $"{modelProvider}:ApiKey"];
+    ? ["AzureOpenAI:Endpoint", "AzureOpenAI:Deployment", "AzureOpenAI:ApiKey", "AzureOpenAI:ForceDefaultModel", "AzureOpenAI:Choices"]
+    : [$"{modelProvider}:Model", $"{modelProvider}:ApiKey", $"{modelProvider}:Choices"];
 foreach (var key in modelSettings.Prepend("Models:ForceDefaultModel"))
 {
     if (builder.Configuration[key] is not { } value) continue;

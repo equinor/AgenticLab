@@ -72,7 +72,8 @@ dotnet test tests/AgenticLab.AiService.Tests/AgenticLab.AiService.Tests.csproj
 
 The agent and protocol tests use fake models, injected provider HTTP responses and local protocol
 servers, without API credentials. `ModelProviderTests` covers provider selection, authentication,
-streaming tools, Gemini signature retention, model overrides and cancellation. Live API compatibility
+streaming tools, Gemini signature retention, model overrides and cancellation; `ModelSelectionTests`
+covers the model allow-list, selection precedence and usage accounting. Live API compatibility
 requires separately authorized checks with synthetic input; passing mocks does not establish it.
 Do not start AppHost or supply production secrets to reproduce CI. Ordinary .NET builds do not run npm.
 

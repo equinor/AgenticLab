@@ -122,6 +122,29 @@ test('manual execution, two tools, history and reset work through the BFF', asyn
   expect(errors).toEqual([])
 })
 
+test('model selection is sent with each message, labels each answer and survives a reload', async ({ page }) => {
+  const models: (string | null)[] = []
+  page.on('request', request => {
+    if (request.url().endsWith('/api/chat/stream')) models.push(request.postDataJSON().model)
+  })
+  await open(page)
+  const model = page.getByLabel('Model', { exact: true })
+  await expect(model).toHaveValue('gpt-5.6-luna')
+  await expect(model.locator('option')).toHaveText(['GPT-5.6 Luna', 'GPT-4o'])
+  await send(page, 'Default model')
+  await expect(page.getByRole('status')).toHaveText('Complete')
+  await model.selectOption('gpt-4o')
+  await send(page, 'Baseline model')
+  await expect(page.getByRole('log')).toContainText('This is answer 2.')
+  expect(models).toEqual(['gpt-5.6-luna', 'gpt-4o'])
+  const log = page.getByRole('log')
+  await expect(log.getByText('GPT-5.6 Luna', { exact: true })).toHaveCount(1)
+  await expect(log.getByText('GPT-4o', { exact: true })).toHaveCount(1)
+  await expect(log.getByText('1.2 s · 812 tokens · 2 tool calls', { exact: true })).toHaveCount(2)
+  await page.reload()
+  await expect(page.getByLabel('Model', { exact: true })).toHaveValue('gpt-4o')
+})
+
 test('host changes start fresh conversations while agent changes preserve history', async ({ page }, testInfo) => {
   const conversations: string[] = []
   const resets: string[] = []

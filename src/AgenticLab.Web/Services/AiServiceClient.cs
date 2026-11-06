@@ -22,6 +22,10 @@ internal sealed class AiServiceClient(HttpClient http)
     public async Task<ChatLimitsInfo?> GetChatLimitsAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<ChatLimitsInfo>("/chat/limits", JsonOptions, cancellationToken);
 
+    /// <summary>The models a run may select and the service default; ids and names only.</summary>
+    public async Task<ModelsResponse?> GetModelsAsync(CancellationToken cancellationToken = default) =>
+        await http.GetFromJsonAsync<ModelsResponse>("/models", JsonOptions, cancellationToken);
+
     /// <summary>How the service handles workspaces: caller-chosen paths, a read-only sample, or none.</summary>
     public async Task<WorkspaceInfo?> GetWorkspaceInfoAsync(CancellationToken cancellationToken = default) =>
         await http.GetFromJsonAsync<WorkspaceInfo>("/workspace", JsonOptions, cancellationToken);
@@ -125,6 +129,7 @@ internal sealed class AiServiceClient(HttpClient http)
     /// <param name="vendor">A brand/vendor key whose harness replaces the shared harness for this run; null/blank to keep the agent's own.</param>
     /// <param name="cancellationToken">A token to cancel the stream.</param>
     /// <param name="breakpoints">Execution boundaries that pause even in auto mode.</param>
+    /// <param name="model">An allow-listed model for the run, or null for the agent's own.</param>
     public async IAsyncEnumerable<FlowEvent> StreamFlowAsync(
         string message,
         string? agent,
@@ -138,11 +143,12 @@ internal sealed class AiServiceClient(HttpClient http)
         IReadOnlyList<string>? enabledInstructions,
         string? vendor,
         [EnumeratorCancellation] CancellationToken cancellationToken = default,
-        IReadOnlyList<string>? breakpoints = null)
+        IReadOnlyList<string>? breakpoints = null,
+        string? model = null)
     {
         using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
         {
-            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, disabledSkills, enabledInstructions, vendor, breakpoints)),
+            Content = JsonContent.Create(new FlowChatRequest(message, agent, sessionId, conversationId, manual, stepDelayMs, workspace, disabledTools, disabledSkills, enabledInstructions, vendor, breakpoints, model)),
         };
         request.Headers.Accept.ParseAdd("text/event-stream");
 
@@ -288,10 +294,12 @@ internal sealed class AiServiceClient(HttpClient http)
     }
 }
 
-internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null, IReadOnlyList<string>? SuggestedPrompts = null);
+internal sealed record AgentInfo(string Name, string Description, IReadOnlyList<string> Tools, bool RequiresWorkspace = false, bool SupportsSkills = false, bool SupportsMcp = false, bool SupportsA2A = false, string RiskLevel = "None", IReadOnlyList<string>? Guardrails = null, string ModelId = "", IReadOnlyList<ToolMapping>? ToolMappings = null, string? ExampleId = null, bool RequiresExampleUi = false, IReadOnlyList<string>? RemoteAgentNames = null, IReadOnlyList<string>? SuggestedPrompts = null, bool ScriptedModel = false);
 internal sealed record ToolMapping(string Declared, string? Mapped);
 internal sealed record AgentsResponse(IReadOnlyList<AgentInfo> Agents, string Default);
 internal sealed record ChatLimitsInfo(int MaxMessageLength);
+internal sealed record ModelChoiceInfo(string Id, string Name);
+internal sealed record ModelsResponse(IReadOnlyList<ModelChoiceInfo> Models, string Default);
 internal sealed record WorkspaceInfo(string Mode, string? SampleName = null, bool ReadOnly = false);
 internal sealed record SkillsRequest(string? Workspace);
 internal sealed record SkillsResponse(IReadOnlyList<SkillInfo> Skills);
@@ -313,14 +321,17 @@ internal sealed record HarnessResponse(string Prompt);
 internal sealed record VendorInfo(string Key, string DisplayName, string ModelLabel, IReadOnlyList<VendorModeInfo> Modes, string? ExampleId = null, bool RequiresExampleUi = false);
 internal sealed record VendorModeInfo(string Agent, string Label);
 internal sealed record VendorsResponse(IReadOnlyList<VendorInfo> Vendors);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual, int StepDelayMs, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null, string? Model = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool Paused, bool Manual);
 internal sealed record ConversationResetRequest(string ConversationId);
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null);
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, RunSummary? Run = null);
 
 /// <summary>A captured function name and structured arguments, separate from readable display text.</summary>
 public sealed record FlowToolCall(string Name, System.Text.Json.JsonElement Arguments);
+
+/// <summary>Sent with a <c>final</c> event: the model that answered and the run's cost, for comparing models.</summary>
+public sealed record RunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls, long ModelDurationMs = 0);
 
 /// <summary>A snapshot of every discovery source's status plus whether discovery runs at startup.</summary>
 public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnlyList<DiscoverySourceStatusDto> Sources);

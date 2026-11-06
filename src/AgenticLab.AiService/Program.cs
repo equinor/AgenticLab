@@ -9,8 +9,10 @@ using AgenticLab.Examples.Gemini;
 using AgenticLab.Examples.Copilot365;
 using AgenticLab.Examples.Security;
 using AgenticLab.Examples.Windfarm;
+using AgenticLab.ModelProviders;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddModelDefaults();
 
 // The /chat/stream SSE response can stay idle for a long time while the client pauses or
 // single-steps the flow, so disable Kestrel's minimum response data rate to avoid aborting it.

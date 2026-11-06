@@ -22,7 +22,8 @@ namespace AgenticLab.AiService.Application.Discovery;
 /// </summary>
 public sealed class A2AAgentProvider(IConfiguration configuration, ILogger<A2AAgentProvider> logger, ExampleCatalog? examples = null) : IDisposable, IAgentDelegation
 {
-    private readonly HttpClient _http = new();
+    // Delegations carry the run's selected model so the specialist answers on the same model.
+    private readonly HttpClient _http = new(new ModelSelectionHeaderHandler { InnerHandler = new SocketsHttpHandler() });
     private readonly Dictionary<string, A2AClient> _clients = new(StringComparer.OrdinalIgnoreCase);
     private IList<AITool> _tools = [];
     private IReadOnlyList<A2AAgentInfo> _agentInfos = [];

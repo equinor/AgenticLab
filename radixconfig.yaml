@@ -64,7 +64,7 @@ spec:
       variables:
         Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
+        # Default and selectable models come from src/AgenticLab.ModelProviders/models.json.
         # Every user works on the bundled sample workspace with read-only tools only: nobody can choose
         # a server folder, write files, run commands or fetch web pages (see SECURITY.md).
         Workspace__Mode: ReadOnlySample
@@ -100,7 +100,6 @@ spec:
       variables:
         Metrics__PrometheusEndpoint: "true"
         Models__Provider: AzureOpenAI
-        AzureOpenAI__Deployment: gpt-5.6-sol
       secrets:
         - AzureOpenAI__Endpoint
         - AzureOpenAI__ApiKey

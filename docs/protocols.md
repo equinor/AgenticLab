@@ -26,8 +26,16 @@ Registration uses `AddMcpServer().WithHttpTransport().WithTools<TimeTools>()` an
 paths default to `/a2a/{name}`. Microsoft Agent Framework registers each with `AddAIAgent`,
 `AddA2AServer` and `MapA2AJsonRpc`. AppHost supplies the same selected
 [model provider](agents.md#model-providers) settings to this `a2aserver` resource as to AiService.
-Both use `ModelClientFactory`; specialists share the provider's global default model. Native OpenAI
-or Gemini configuration needs no Azure credentials. A standalone A2AServer accepts the same settings.
+Both use `ModelClientFactory`; specialists share the provider's global default model unless the run
+selected one. Native OpenAI or Gemini configuration needs no Azure credentials. A standalone A2AServer
+accepts the same settings.
+
+A run's [selected model](agents.md#selectable-models) travels with each delegation in the
+`X-AgenticLab-Model` header, added by `A2AAgentProvider`'s HTTP handler from the run's
+`ModelSelectionScope`. [SelectableModels](../src/AgenticLab.A2AServer/SelectableModels.cs) validates
+it against A2AServer's own `{Provider}:Choices` (unlisted models get `400` before any agent runs, so the
+delegation tool returns a failure) and routes the specialists' shared chat client to that model.
+Without the header they use the default. Keep both hosts' allow-lists identical.
 
 The server's `GET /agents` returns `{ Agents: [{ Name, Path, Description }] }`.
 [A2AAgentProvider](../src/AgenticLab.AiService/Application/Discovery/A2AAgentProvider.cs) resolves
@@ -69,6 +77,7 @@ roster grouped by owner.
 uses ephemeral loopback Kestrel servers, real `TimeTools`, a fake-model A2A agent and factory-backed
 Azure/OpenAI/Gemini clients with injected HTTP responses. It exercises discovery providers, model
 adapters, rediscovery and invocation after reconnecting without real credentials or provider calls.
+It also checks that a selected model reaches the A2A specialist and that an unlisted one is refused.
 Neighboring `FlowExecutionTests` checks streamed tool execution, disabled-tool enforcement and
 second-turn history. Use the [upgrade check](#dependency-upgrade-checks) below to run both.
 

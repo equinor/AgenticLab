@@ -12,6 +12,7 @@ public static class FrontendEndpoints
     [
         ("/agents", "GET", "List registered agents and their capabilities."),
         ("/vendors", "GET", "List vendor harnesses and supported agent modes."),
+        ("/models", "GET", "List selectable model ids, display names and the default; never endpoints or keys."),
         ("/chat/stream", "POST", "Stream a run using the existing FlowChatRequest and flow SSE events."),
         ("/chat/control", "POST", "Step, pause, resume, stop or answer the identified run."),
         ("/chat/reset", "POST", "Reset the identified conversation without submitting a new message.")

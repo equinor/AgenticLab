@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { initialState, runReducer, type RunIdentity } from './runReducer'
+import { describeRun, initialState, runReducer, type RunIdentity } from './runReducer'
 import type { FlowEvent } from '../api/contracts'
 
 const identity: RunIdentity = { agent: 'Test', label: 'Test', vendor: 'default', model: 'model', tools: ['Search'] }
@@ -56,5 +56,16 @@ describe('run state', () => {
     state = runReducer(state, { type: 'event', sessionId: 'run', event: event(2, 'breakpoint', '{"Id":"pause","Paused":true,"Manual":false}') })
     expect(state.phase).toBe('paused')
     expect(state.breakpoint?.id).toBe('pause')
+  })
+
+  it('records the requested model and the final run figures on the answer', () => {
+    let state = runReducer(initialState, { type: 'start', sessionId: 'run', message: 'hello', identity: { ...identity, model: 'GPT-4o', modelId: 'gpt-4o' } })
+    expect(state.messages[1].model).toBe('GPT-4o')
+    const run = { model: 'gpt-4o', durationMs: 1234, inputTokens: 1000, outputTokens: 234, modelCalls: 2, toolCalls: 1 }
+    state = runReducer(state, { type: 'event', sessionId: 'run', event: { ...event(1, 'final', 'answer'), run } })
+    expect(state.messages[1].run).toEqual(run)
+    expect(describeRun(run)).toBe('1.2 s · 1,234 tokens · 1 tool call')
+    expect(describeRun({ ...run, inputTokens: 0, outputTokens: 0, toolCalls: 0 })).toBe('1.2 s · 0 tool calls')
+    expect(describeRun({ ...run, modelDurationMs: 900 })).toBe('1.2 s · model 0.9 s · 1,234 tokens · 1 tool call')
   })
 })

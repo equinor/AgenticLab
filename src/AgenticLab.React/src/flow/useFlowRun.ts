@@ -35,7 +35,7 @@ export function useFlowRun(transport: FlowApi = api) {
     const sessionId = crypto.randomUUID()
     update({ type: 'start', message: message.trim(), identity, sessionId })
     void transport.stream({ message: message.trim(), agent: identity.agent, vendor: identity.vendor,
-      sessionId, conversationId: conversation.current, manual: current.current.manual, stepDelayMs: 600 },
+      sessionId, conversationId: conversation.current, manual: current.current.manual, stepDelayMs: 600, model: identity.modelId ?? null },
     event => { if (version === generation.current) update({ type: 'event', sessionId, event }) }, controller.signal)
       .then(() => { if (version === generation.current) update({ type: 'end', sessionId }) })
       .catch(error => {
