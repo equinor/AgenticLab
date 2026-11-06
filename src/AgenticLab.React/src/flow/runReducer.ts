@@ -117,9 +117,14 @@ export const phaseLabels: Record<Phase, string> = {
   interrupted: 'Interrupted', failed: 'Failed',
 }
 
-/** A compact line such as `1.2 s · 812 tokens · 2 tool calls`; tokens are omitted when the provider reported none. */
+/**
+ * A compact line such as `1.2 s · model 0.9 s · 812 tokens · 2 tool calls`. Model time excludes tools and
+ * stepping pauses; it and tokens are omitted when not reported.
+ */
 export function describeRun(run: RunSummary): string {
   const tokens = run.inputTokens + run.outputTokens
-  return [`${(run.durationMs / 1000).toFixed(1)} s`, ...(tokens > 0 ? [`${tokens.toLocaleString('en-US')} tokens`] : []),
+  return [`${(run.durationMs / 1000).toFixed(1)} s`,
+    ...(run.modelDurationMs ? [`model ${(run.modelDurationMs / 1000).toFixed(1)} s`] : []),
+    ...(tokens > 0 ? [`${tokens.toLocaleString('en-US')} tokens`] : []),
     `${run.toolCalls} tool call${run.toolCalls === 1 ? '' : 's'}`].join(' · ')
 }

@@ -53,10 +53,14 @@ reports it but keeps the new local conversation ID.
 **Model** lists the [selectable models](agents.md#selectable-models) from `GET /models`, preselecting
 the service default or the choice saved under `agenticlab-model`. The choice is sent with every
 following message until changed. Changing it keeps the conversation, so different models can answer
-in turn. Each answer is labelled with the model that produced it, plus its duration, tokens (when the
-provider reports them) and tool calls from the `final` event; hover for the full breakdown. Scripted
-agents (the Security Lab) show their own model and lock the selector. The Model node, the anatomy
-Model line and Details > Settings show the model the next run uses. Without `GET /models` (an older
+in turn. Each answer is labelled with the model that produced it, plus its duration, model time
+(excluding tools and stepping pauses, so it stays comparable in Manual mode), tokens (when the
+provider reports them) and tool calls from the `final` event; hover for the full breakdown. Each
+LLM response step also shows that round-trip's model time. Scripted agents (the Security Lab) show
+their own model and lock the selector. The Model node, the anatomy Model line and Details > Settings
+show the model the next run uses; Settings also lists the agent's **Declared model** and, for the
+displayed exchange, the **Captured model** its request was sent to, which later selector changes
+do not alter. Without `GET /models` (an older
 service) the selector is hidden and runs keep each agent's model.
 
 **Settings** contains tool toggles, breakpoints, workspace paths, skills and custom instructions.

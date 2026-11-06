@@ -15,7 +15,7 @@ export const vendorSchema = z.object({
 export const vendorsSchema = z.object({ vendors: z.array(vendorSchema) })
 const runSummarySchema = z.object({
   model: z.string().nullish(), durationMs: z.number(), inputTokens: z.number(), outputTokens: z.number(),
-  modelCalls: z.number(), toolCalls: z.number(),
+  modelCalls: z.number(), toolCalls: z.number(), modelDurationMs: z.number().optional(),
 })
 export const flowEventSchema = z.object({
   sequence: z.number().int().nonnegative(), kind: z.string(), label: z.string(),

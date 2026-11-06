@@ -26,7 +26,8 @@ rather than the global `GET /a2a` roster.
 Enabled [examples](examples.md) can add agents; discover the roster rather than hardcoding it.
 `POST /agents/workspace` lists workspace-defined agents separately. `GET /examples` returns public
 module manifests, not component types or remote prompts. Each agent's `scriptedModel` is `true` when it
-replays a scripted model, so a [selected model](#selectable-models) does not apply to it.
+replays a scripted model, so a [selected model](#selectable-models) does not apply to it; requests
+that send one for it are rejected.
 
 ### `GET /models`
 
@@ -180,7 +181,7 @@ Enable `Examples:security:Enabled=true` (already enabled in AppHost Development)
 `PoisonedTools`, `ReceiptReader`, `BuildHelper` and the hardened `DefendedAssistant`. Each implements `IScriptedModelAgent`, so
 `AgentCatalog` wraps its deterministic `ScenarioModel` (declared `ModelId` `scripted-scenario`) in
 the normal host pipeline instead of the configured provider; the scripted model ignores
-`Models:ForceDefaultModel`, per-agent model overrides and a run's selected model, and costs nothing. Capture, breakpoints,
+`Models:ForceDefaultModel` and per-agent model overrides, rejects an explicit `model` with `400`, and costs nothing. Capture, breakpoints,
 per-run tool toggles and conversation history behave exactly as for live-model agents. Every page,
 document, mail, image transcription, repository file, shell and third-party tool is simulated in-process: no network, mail or process runs.
 
@@ -294,6 +295,8 @@ answers on the same model.
 **Which model wins**, from highest to lowest:
 
 1. A scripted agent (`IScriptedModelAgent`, such as the Security Lab) always uses its own scripted model.
+   A request that names a `model` for it returns `400 Bad Request`, so no caller mistakes a scripted
+   answer for the chosen model's.
 2. The run's selected `model`. It overrides `Models:ForceDefaultModel`, per-agent overrides and an
    agent's `ModelId`. The allow-list is the operator's control over which models can run.
 3. Without a selection, `Models:ForceDefaultModel` runs the provider default.
@@ -306,14 +309,17 @@ each answer with the model that produced it. Changing model keeps the conversati
 sees the earlier answers in its history.
 
 **Telemetry:** every completed run records, by `agent`, `host` and `model`, the
-`agenticlab.chat.duration` histogram (seconds), `agenticlab.chat.tokens` (with `token.type` `input` or
+`agenticlab.chat.duration` and `agenticlab.chat.model_duration` histograms (seconds), `agenticlab.chat.tokens` (with `token.type` `input` or
 `output`), and the `agenticlab.chat.model_calls` and `agenticlab.chat.tool_calls` histograms on the
 `AgenticLab.AiService.Chat` meter. The request span is tagged with `gen_ai.request.model`,
 `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens`, `agenticlab.model_calls`,
-`agenticlab.tool_calls` and `agenticlab.duration_ms`. Each model call is also traced per model by the
+`agenticlab.tool_calls`, `agenticlab.duration_ms` and `agenticlab.model_duration_ms`. Each model call is also traced per model by the
 Microsoft.Extensions.AI OpenTelemetry client. Model tags come only from configured ids or `scripted-*`
 labels. Token counts cover the local agent; A2A specialists report their own calls from A2AServer.
-Durations include tool execution and any stepping pauses, so compare runs made in Auto mode.
+Durations include tool execution and any stepping pauses. Model duration (`modelDurationMs` in the run
+summary) counts only the time spent waiting for the local model, excluding tools, breakpoints and
+manual stepping, so it stays comparable in any mode. Each captured `llm-request` records the `model`
+it was routed to, and each `llm-response` detail ends with that round-trip's model time.
 
 ## Per-agent models
 

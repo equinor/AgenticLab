@@ -22,6 +22,9 @@ public static class ChatMetrics
     private static readonly Histogram<double> Duration = Meter.CreateHistogram<double>(
         "agenticlab.chat.duration", unit: "s", description: "Completed agent run time, including tools and stepping pauses.");
 
+    private static readonly Histogram<double> ModelDuration = Meter.CreateHistogram<double>(
+        "agenticlab.chat.model_duration", unit: "s", description: "Time a completed run spent waiting for its model, excluding tools and stepping pauses.");
+
     private static readonly Counter<long> Tokens = Meter.CreateCounter<long>(
         "agenticlab.chat.tokens", unit: "{token}", description: "Tokens used by completed agent runs.");
 
@@ -38,7 +41,7 @@ public static class ChatMetrics
         Messages.Add(1, new KeyValuePair<string, object?>("agent", agent), new KeyValuePair<string, object?>("host", host));
 
     /// <summary>
-    /// Records a completed run's duration, tokens, model calls and tool calls by agent, host and model, and
+    /// Records a completed run's duration, model time, tokens, model calls and tool calls by agent, host and model, and
     /// tags <paramref name="activity"/> (the request span) with the same figures.
     /// </summary>
     /// <param name="activity">The request's activity, captured before any streaming yield; may be null.</param>
@@ -50,6 +53,7 @@ public static class ChatMetrics
         var model = run.Model ?? "none";
         var tags = new TagList { { "agent", agent }, { "host", host }, { "model", model } };
         Duration.Record(run.DurationMs / 1000d, tags);
+        ModelDuration.Record(run.ModelDurationMs / 1000d, tags);
         ModelCalls.Record(run.ModelCalls, tags);
         ToolCalls.Record(run.ToolCalls, tags);
         Tokens.Add(run.InputTokens, new TagList { { "agent", agent }, { "host", host }, { "model", model }, { "token.type", "input" } });
@@ -61,6 +65,7 @@ public static class ChatMetrics
             .SetTag("gen_ai.usage.output_tokens", run.OutputTokens)
             .SetTag("agenticlab.model_calls", run.ModelCalls)
             .SetTag("agenticlab.tool_calls", run.ToolCalls)
-            .SetTag("agenticlab.duration_ms", run.DurationMs);
+            .SetTag("agenticlab.duration_ms", run.DurationMs)
+            .SetTag("agenticlab.model_duration_ms", run.ModelDurationMs);
     }
 }

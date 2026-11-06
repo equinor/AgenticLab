@@ -186,4 +186,13 @@ public sealed class AgentCatalog
     /// <returns><c>true</c> when the agent participates in workspace skills; otherwise <c>false</c>.</returns>
     public bool SupportsSkills(string name) =>
         _supportsSkills.TryGetValue(name, out var supports) && supports;
+
+    /// <summary>
+    /// Whether the named agent (or the default for null/blank) runs on a provider model a request may select.
+    /// <c>false</c> only for an <see cref="IScriptedModelAgent"/>; unknown names may be workspace agents and return <c>true</c>.
+    /// </summary>
+    /// <param name="name">The requested agent name.</param>
+    public bool SupportsModelSelection(string? name) =>
+        !_builds.TryGetValue(string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim(), out var build)
+        || build.Definition is not IScriptedModelAgent;
 }

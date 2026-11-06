@@ -19,7 +19,7 @@ internal static class ChatEndpoints
 
         // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
         // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, ModelChoices models, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
+        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, ModelChoices models, AgentCatalog catalog, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
         {
             if (!limits.Value.Allows(request.Message))
             {
@@ -29,6 +29,11 @@ internal static class ChatEndpoints
             if (!models.TryResolve(request.Model, out var model))
             {
                 return UnknownModel(request.Model);
+            }
+
+            if (model is not null && !catalog.SupportsModelSelection(request.Agent))
+            {
+                return ScriptedModel(request.Agent);
             }
 
             if (request.Breakpoints?.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)) == true)
@@ -77,6 +82,11 @@ internal static class ChatEndpoints
         if (!models.TryResolve(request.Model, out var model))
         {
             return UnknownModel(request.Model);
+        }
+
+        if (model is not null && !catalog.SupportsModelSelection(request.Agent))
+        {
+            return ScriptedModel(request.Agent);
         }
 
         // When a brand/vendor is selected, its harness replaces the shared harness for this run.
@@ -128,6 +138,10 @@ internal static class ChatEndpoints
 
     private static IResult UnknownModel(string? requested) =>
         Results.BadRequest($"Unknown model '{requested}'. Call GET /models for the selectable models.");
+
+    // Rejected rather than ignored, so a caller never believes a scripted answer came from the chosen model.
+    private static IResult ScriptedModel(string? agent) =>
+        Results.BadRequest($"Agent '{agent}' replays a scripted model and does not accept a model selection. Omit 'model'.");
 
     // Runs one turn, continuing the supplied conversation, injecting the enabled custom instructions and
     // (when the agent uses skills) the skill catalogue, and hiding any tools the caller disabled. Any

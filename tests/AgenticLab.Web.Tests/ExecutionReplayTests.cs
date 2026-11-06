@@ -504,10 +504,12 @@ public sealed class ExecutionReplayTests
         using var handler = new ReplayHandler();
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
         using var run = new FlowRunController(new AiServiceClient(http), view, new());
-        var settings = Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run));
-        Assert.Equal($"Model: {model ?? "Service default"}", settings.Text);
+        var settings = HostDetailsBuilder.Build(HostDetailSection.Settings, view, run);
+        Assert.Equal([$"Model: {model ?? "Service default"}", model ?? "Service default"], settings.Select(block => block.Text));
         view.Models.Set(new ModelsResponse([new("gpt-4o", "GPT-4o")], "gpt-4o"));
-        Assert.Equal("Model: gpt-4o", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Settings, view, run)).Text);
+        settings = HostDetailsBuilder.Build(HostDetailSection.Settings, view, run);
+        Assert.Equal(["Model: gpt-4o", model ?? "Service default"], settings.Select(block => block.Text));
+        Assert.Equal(["Settings", "Declared model"], settings.Select(block => block.Title));
         Assert.Equal("Exact host prompt", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.SystemPrompt, view, run)).Text);
         Assert.Equal("Selected persona description", Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Persona, view, run)).Text);
         Assert.Single(HostDetailsBuilder.Build(HostDetailSection.Skills, view, run));
@@ -578,6 +580,11 @@ public sealed class ExecutionReplayTests
         Assert.Equal("gpt-4o", Assert.Single(run.Turns).AnsweredBy);
         Assert.Equal("gpt-5.6-luna", run.LiveTurn.AnsweredBy);
         Assert.Equal("1.2 s · 812 tokens · 1 tool call", RunSummaryText.Describe(run.LiveTurn.Run!));
+        // The captured request keeps the model it used after the selector moves on.
+        view.Models.Selected = "gpt-4o";
+        var settings = HostDetailsBuilder.Build(HostDetailSection.Settings, view, run);
+        Assert.Equal("Model: gpt-4o", settings[0].Text);
+        Assert.Equal("gpt-5.6-luna", Assert.Single(settings, block => block.Title == "Captured model").Text);
         var storage = new DelayedPanelStorage();
         storage.Complete();
         await using var services = new ServiceCollection().AddLogging().AddSingleton<IJSRuntime>(storage).BuildServiceProvider();
@@ -641,6 +648,7 @@ public sealed class ExecutionReplayTests
         Assert.False(view.Models.CanChoose);
         Assert.Equal("unknown", view.Models.NameFor("unknown"));
         Assert.Equal("0.4 s · 0 tool calls", RunSummaryText.Describe(new RunSummary("only", 400, 0, 0, 1, 0)));
+        Assert.Equal("1.5 s · model 0.9 s · 0 tool calls", RunSummaryText.Describe(new RunSummary("only", 1500, 0, 0, 1, 0, 900)));
     }
 
     [Theory]
@@ -1214,7 +1222,11 @@ public sealed class ExecutionReplayTests
             FlowEvent[] events =
             [
                 Event(1, "llm-request", 1) with
-                { Data = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""" },
+                {
+                    Data = model is null
+                        ? """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}"""
+                        : $$"""{"model":"{{model}}","instructions":"rules","messages":[{"role":"user","contents":[{"text":"hello"}]}]}""",
+                },
                 Event(2, "final", 1) with
                 { Detail = Reply, Data = Reply, Run = model is null ? null : new RunSummary(model, 1200, 600, 212, 2, 1) },
             ];

@@ -34,6 +34,8 @@ internal sealed class FlowRunController : IDisposable
     private string? _runVendor;
     private string? _runWorkspace;
     private string? _runModel;
+    // The selection sent with the run, copied at send time; null for scripted agents.
+    private string? _runModelRequest;
     private IReadOnlyList<A2AChip> _runA2A = [];
     // Identifies the exchange in the live panels; kept when it is archived so a selection survives.
     private string _runExchangeId = string.Empty;
@@ -190,6 +192,7 @@ internal sealed class FlowRunController : IDisposable
         _runVendor = _view.VendorKey;
         _runWorkspace = _view.Workspace;
         _runModel = _view.Agent.Model;
+        _runModelRequest = _view.Agent.ScriptedModel ? null : _view.Models.Selected;
         _runA2A = _view.Agent.SupportsA2A ? Catalogs.KnownA2A.ToArray() : [];
         _runExchangeId = Guid.NewGuid().ToString("n");
         // A new message always takes the explorer back to the run that is happening now.
@@ -234,6 +237,7 @@ internal sealed class FlowRunController : IDisposable
         _runVendor = null;
         _runWorkspace = null;
         _runModel = null;
+        _runModelRequest = null;
         _runA2A = [];
         _runExchangeId = string.Empty;
         _view.Cursor.FollowLive();
@@ -272,7 +276,7 @@ internal sealed class FlowRunController : IDisposable
                 _runMessage, _view.SelectedAgent, _sessionId, _conversationId,
                 options.Mode == FlowMode.Manual, options.StepDelayMs, _view.Workspace,
                 options.DisabledToolsOrNull, options.DisabledSkillsOrNull, options.EnabledInstructionsOrNull, _view.VendorKey, token, options.Breakpoints,
-                _view.Agent.ScriptedModel ? null : _view.Models.Selected))
+                _runModelRequest))
             {
                 if (flowEvent.Kind == "breakpoint")
                 {

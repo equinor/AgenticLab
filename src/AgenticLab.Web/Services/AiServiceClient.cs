@@ -331,7 +331,7 @@ public sealed record FlowEvent(int Sequence, string Kind, string Label, string? 
 public sealed record FlowToolCall(string Name, System.Text.Json.JsonElement Arguments);
 
 /// <summary>Sent with a <c>final</c> event: the model that answered and the run's cost, for comparing models.</summary>
-public sealed record RunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls);
+public sealed record RunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls, long ModelDurationMs = 0);
 
 /// <summary>A snapshot of every discovery source's status plus whether discovery runs at startup.</summary>
 public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnlyList<DiscoverySourceStatusDto> Sources);

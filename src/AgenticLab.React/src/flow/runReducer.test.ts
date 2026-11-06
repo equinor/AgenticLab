@@ -66,5 +66,6 @@ describe('run state', () => {
     expect(state.messages[1].run).toEqual(run)
     expect(describeRun(run)).toBe('1.2 s · 1,234 tokens · 1 tool call')
     expect(describeRun({ ...run, inputTokens: 0, outputTokens: 0, toolCalls: 0 })).toBe('1.2 s · 0 tool calls')
+    expect(describeRun({ ...run, modelDurationMs: 900 })).toBe('1.2 s · model 0.9 s · 1,234 tokens · 1 tool call')
   })
 })

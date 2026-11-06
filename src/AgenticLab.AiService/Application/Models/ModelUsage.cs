@@ -12,18 +12,21 @@ public sealed class ModelUsage
     private long _outputTokens;
     private int _modelCalls;
     private int _toolCalls;
+    private long _modelTicks;
     private string? _model;
 
     /// <summary>Adds one completed model round-trip.</summary>
     /// <param name="model">The model or deployment that answered.</param>
     /// <param name="usage">The provider-reported token usage, when available.</param>
     /// <param name="toolCalls">The function calls the model requested in this round-trip.</param>
-    public void Record(string model, UsageDetails? usage, int toolCalls)
+    /// <param name="elapsed">Time spent waiting for the model, excluding stepping and breakpoint pauses.</param>
+    public void Record(string model, UsageDetails? usage, int toolCalls, TimeSpan elapsed = default)
     {
         Interlocked.Add(ref _inputTokens, usage?.InputTokenCount ?? 0);
         Interlocked.Add(ref _outputTokens, usage?.OutputTokenCount ?? 0);
         Interlocked.Increment(ref _modelCalls);
         Interlocked.Add(ref _toolCalls, toolCalls);
+        Interlocked.Add(ref _modelTicks, elapsed.Ticks);
         Volatile.Write(ref _model, model);
     }
 
@@ -34,7 +37,8 @@ public sealed class ModelUsage
         Interlocked.Read(ref _inputTokens),
         Interlocked.Read(ref _outputTokens),
         Volatile.Read(ref _modelCalls),
-        Volatile.Read(ref _toolCalls));
+        Volatile.Read(ref _toolCalls),
+        (long)TimeSpan.FromTicks(Interlocked.Read(ref _modelTicks)).TotalMilliseconds);
 }
 
 /// <summary>
@@ -47,4 +51,5 @@ public sealed class ModelUsage
 /// <param name="OutputTokens">Completion tokens across all round-trips.</param>
 /// <param name="ModelCalls">LLM round-trips.</param>
 /// <param name="ToolCalls">Tool calls the model requested.</param>
-public sealed record ModelRunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls);
+/// <param name="ModelDurationMs">Time spent waiting for the local model across round-trips, excluding tools, stepping and breakpoint pauses.</param>
+public sealed record ModelRunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls, long ModelDurationMs = 0);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
@@ -151,7 +152,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                         var completed = turns[emittedResponses++];
                         currentTurn = completed.TurnNumber;
                         await session.WaitForStepAsync(token);
-                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), completed.ResponseSummary, response);
+                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), WithElapsed(completed.ResponseSummary, completed.ElapsedMilliseconds), response);
                         continue;
                     }
 
@@ -276,6 +277,12 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
     private static string DescribeResponse(int turnNumber) =>
         turnNumber <= 1 ? "LLM → Harness" : $"LLM → Harness (turn {turnNumber})";
+
+    // Appends the model response time, so runs on different models can be compared for speed.
+    private static string? WithElapsed(string? summary, long? elapsedMilliseconds) =>
+        elapsedMilliseconds is { } ms
+            ? $"{summary} · {(ms < 1000 ? $"{ms} ms" : $"{(ms / 1000.0).ToString("0.0", CultureInfo.InvariantCulture)} s")}"
+            : summary;
 
     // Extracts the question text from an AskQuestion tool call's arguments.
     private static string QuestionText(IDictionary<string, object?>? arguments)

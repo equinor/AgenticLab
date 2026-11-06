@@ -7,12 +7,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using AgenticLab.AiService.Application.Agents;
 using AgenticLab.AiService.Application.Flow;
 using AgenticLab.AiService.Application.Models;
 using AgenticLab.AiService.Endpoints;
 using AgenticLab.AiService.Startup;
+using AgenticLab.Examples.Security.Agents;
+using AgenticLab.Examples.Security.Tools;
 using AgenticLab.ModelProviders;
 using Xunit;
 
@@ -153,7 +156,28 @@ public sealed class ModelSelectionTests
         }
 
         var run = scopes.Model.Usage.Summarize(TimeSpan.FromMilliseconds(1500));
-        Assert.Equal(new ModelRunSummary("scripted-scenario", 1500, 30, 7, 2, 2), run);
+        Assert.Equal(new ModelRunSummary("scripted-scenario", 1500, 30, 7, 2, 2), run with { ModelDurationMs = 0 });
+        Assert.InRange(run.ModelDurationMs, 0, 1500);
+    }
+
+    [Fact]
+    public async Task CapturedRequestsNameTheRoutedModelAndTimeOnlyTheModel()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        var client = new CapturingChatClient(new ModelRoutingChatClient("default-model",
+            () => ModelSelectionScope.Current?.Model, id => new NamedModel(id)));
+        using var capture = FlowCaptureScope.Begin();
+        using var usage = ModelSelectionScope.Begin("gpt-4o");
+
+        await foreach (var _ in client.GetStreamingResponseAsync([new(ChatRole.User, "Hi")], cancellationToken: timeout.Token))
+        {
+            // A paused consumer (manual stepping, breakpoints) must not count as model time.
+            await Task.Delay(300, timeout.Token);
+        }
+
+        var turn = Assert.Single(capture.Turns);
+        Assert.Contains("\"model\": \"gpt-4o\"", turn.RequestData);
+        Assert.InRange(turn.ElapsedMilliseconds ?? -1, 0, 250);
     }
 
     [Fact]
@@ -167,6 +191,7 @@ public sealed class ModelSelectionTests
         builder.Services.AddHarnessTools().AddWorkspaceFeatures(builder.Configuration).AddVendorHarnesses()
             .AddDemoAgents(builder.Configuration).AddConversationMemory(builder.Configuration)
             .AddChatInputLimits(builder.Configuration).AddFlowTracing().AddDiscovery();
+        builder.Services.AddSingleton<IAgentDefinition>(new InjectedBrowserAgent(new SimulatedWebTool()));
         await using var app = builder.Build();
         app.MapAgentEndpoints();
         app.MapChatEndpoints();
@@ -185,6 +210,15 @@ public sealed class ModelSelectionTests
         using var stream = await client.PostAsJsonAsync("/chat/stream",
             new { message = "Hi", sessionId = "s", conversationId = "c", model = "gpt-5" }, timeout.Token);
         Assert.Equal(HttpStatusCode.BadRequest, stream.StatusCode);
+
+        // A scripted agent never runs on a provider model, so an explicit choice is rejected rather than ignored.
+        using var scriptedChat = await client.PostAsJsonAsync("/chat",
+            new { message = "Hi", agent = InjectedBrowserAgent.AgentName, model = "gpt-4o" }, timeout.Token);
+        Assert.Equal(HttpStatusCode.BadRequest, scriptedChat.StatusCode);
+        Assert.Contains("scripted model", await scriptedChat.Content.ReadAsStringAsync(timeout.Token));
+        using var scriptedStream = await client.PostAsJsonAsync("/chat/stream",
+            new { message = "Hi", agent = InjectedBrowserAgent.AgentName, sessionId = "s2", conversationId = "c2", model = "gpt-4o" }, timeout.Token);
+        Assert.Equal(HttpStatusCode.BadRequest, scriptedStream.StatusCode);
     }
 
     private static string? ModelOf(IChatClient client) => client.GetService<ChatClientMetadata>()?.DefaultModelId;
@@ -198,6 +232,27 @@ public sealed class ModelSelectionTests
             [$"{provider}:Endpoint"] = "https://example.openai.azure.com/",
             [$"{provider}:Choices"] = choices,
         }).Build();
+
+    // Answers in two updates and reports the model id it was created for, like a provider client.
+    private sealed class NamedModel(string id) : IChatClient
+    {
+        public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Yield();
+            yield return new ChatResponseUpdate(ChatRole.Assistant, "Do");
+            yield return new ChatResponseUpdate(ChatRole.Assistant, "ne") { FinishReason = ChatFinishReason.Stop };
+        }
+
+        public Task<Microsoft.Extensions.AI.ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            CancellationToken cancellationToken = default) => throw new NotSupportedException();
+
+        public object? GetService(Type serviceType, object? serviceKey = null) =>
+            serviceType == typeof(ChatClientMetadata) ? new ChatClientMetadata(defaultModelId: id) : null;
+
+        public void Dispose() { }
+    }
 
     // Requests two tool calls, then answers, reporting usage the way the OpenAI adapter does when streaming.
     private sealed class ScriptedModel : IChatClient

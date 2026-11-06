@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using AgenticLab.ModelProviders;
 using Microsoft.Extensions.AI;
@@ -15,9 +16,10 @@ public sealed class ModelUsageChatClient(IChatClient inner, string model) : Dele
     /// <inheritdoc />
     public override async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
     {
+        var stopwatch = Stopwatch.StartNew();
         var response = await base.GetResponseAsync(messages, options, cancellationToken);
         ModelSelectionScope.Current?.Usage.Record(model, response.Usage,
-            response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Count());
+            response.Messages.SelectMany(message => message.Contents).OfType<FunctionCallContent>().Count(), stopwatch.Elapsed);
         return response;
     }
 
@@ -28,6 +30,7 @@ public sealed class ModelUsageChatClient(IChatClient inner, string model) : Dele
         var usage = ModelSelectionScope.Current?.Usage;
         UsageDetails? details = null;
         var toolCalls = 0;
+        var stopwatch = Stopwatch.StartNew();
         await foreach (var update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
         {
             foreach (var content in update.Contents)
@@ -43,10 +46,13 @@ public sealed class ModelUsageChatClient(IChatClient inner, string model) : Dele
                 }
             }
 
+            // Stepping and breakpoints suspend the consumer at this yield; that wait is not model time.
+            stopwatch.Stop();
             yield return update;
+            stopwatch.Start();
         }
 
-        usage?.Record(model, details, toolCalls);
+        usage?.Record(model, details, toolCalls, stopwatch.Elapsed);
     }
 }
 

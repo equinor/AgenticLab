@@ -288,10 +288,11 @@ always included. Azure's default deployment and list are committed in
 [models.json](src/AgenticLab.ModelProviders/models.json), embedded and loaded by `AddModelDefaults()` as the
 lowest-precedence source in AiService and A2AServer; do not move model names into secrets or Radix variables.
 `GET /models` exposes ids and names only. A selected model wins over `ForceDefaultModel`, per-agent
-overrides and `ModelId`; only `IScriptedModelAgent` ignores it. AppHost forwards the list to AiService
+overrides and `ModelId`; `IScriptedModelAgent` agents reject an explicit `model` with 400. AppHost forwards the list to AiService
 and A2AServer, which validate it independently; unlisted models are rejected with 400. Blazor and React
 save the choice as `agenticlab-model`. Completed runs report `ModelRunSummary` on the `final` event and
-record duration, tokens, model calls and tool calls tagged by agent, host and model. See
+record duration, model time (excluding tools and stepping pauses), tokens, model calls and tool calls
+tagged by agent, host and model. Captured requests record the routed `model`. See
 [docs/agents.md](docs/agents.md#selectable-models).
 
 ## Conventions
