@@ -118,7 +118,7 @@ needs just the .NET SDK and the source code, without model credentials or Aspire
 ### Get the Source
 
 ```sh
-git clone https://github.com/o-viken/agenticlab.git
+git clone https://github.com/equinor/agenticlab.git
 cd agenticlab
 ```
 
@@ -276,15 +276,31 @@ root Dockerfile's stages.
 - `aiservice` and `web` set `Examples__copilot365__Enabled=true`, adding the Copilot 365 app next to
   Default. Its Microsoft 365 data and tools are simulated. See the
   [Copilot 365 example](src/AgenticLab.Examples.Copilot365/README.md).
-- Both environments use OAuth2 workload identity. Before switching an environment, add its Entra
-  trust using the current issuer(s) from `rx get cluster-config --context platform`, audience
-  `api://AzureADTokenExchange` and verified OAuth2 subject
-  `system:serviceaccount:agenticlab-<environment>:web-aux-oauth-sa`. Create one credential per issuer;
-  keep the Web redirect URIs above. Missing trust prevents sign-in.
-- After deployment, run `rx validate workload-identity --application agenticlab --context platform
-  --exclude-obsolete` and inspect missing credentials, then test a fresh sign-in. Remove old client
-  secrets only after confirming no other consumers use them. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
-- Backend Azure OpenAI secrets and Radix's cookie secret are unchanged.
+- `aiservice` and `web` also set `Examples__security__Enabled=true`, adding the Security Lab host. Its
+  agents replay scripted attack scenarios over an offline model and in-memory fakes, so they use no
+  Azure OpenAI tokens and never send mail, read files, run commands or open connections. See the
+  [Security Lab](src/AgenticLab.Examples.Security/README.md).
+- Both environments configure the OAuth2 proxy with `credentials: azureWorkloadIdentity`, not a
+  client secret. Each environment needs its own Entra trust on the registration listed above.
+  Before promoting this change to prod, pre-create that trust only if its exact values are verified.
+  Radix may expose the OAuth2 identity details only after deployment; otherwise plan a sign-in gap
+  until the trust is added. Merging to `main` deploys dev, not prod.
+- In Radix Console, open the environment's `web` component and the **Azure** link beside
+  **OAuth2 identity enabled for Azure**. In the corresponding Entra registration, open
+  **Certificates & secrets / Federated credentials / Add credential**, choose **Other issuer**,
+  and copy the exact issuer, subject and audience from Radix's OAuth2 identity details. These are
+  not the regular component identity details or the Microsoft login issuer in the configuration.
+  Create one credential per current cluster issuer; `rx get cluster-config --context platform`
+  lists those issuers. Do not infer the production subject from dev. Missing trust prevents fresh
+  sign-in; the Web redirect URIs above are still required.
+- After deployment, run
+  `rx validate workload-identity --application agenticlab --context platform --exclude-obsolete --output json`
+  and inspect `missingFederatedCredentials`, not just the exit code. The validator only discovers
+  deployed identities: a passing dev result does not verify prod before its switch. Test a fresh
+  sign-in through each supported address before removing any obsolete client secret, and first
+  confirm that no other consumers use it. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
+- Both environments still require the `AzureOpenAI__Endpoint` and `AzureOpenAI__ApiKey`
+  secrets of `aiservice` and `a2aserver`; OAuth2 federation does not replace these or Radix's cookie secret.
 - `aiservice` and `a2aserver` set `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix
   Prometheus scrapes their `/metrics` endpoints and the metrics appear in Radix Grafana next to CPU
   and memory. `aiservice` exports all of the following; `a2aserver` exports token usage and requests:
@@ -315,13 +331,15 @@ Optional examples are registered as independent projects, keeping their domain c
 tests and documentation together. See the [example catalogue and contributor guide](docs/examples.md)
 and the [Windfarm project](src/AgenticLab.Examples.Windfarm/README.md) for an end-to-end process demo,
 or [Copilot 365](src/AgenticLab.Examples.Copilot365/README.md) for workplace chat, research and analysis
-over synthetic Microsoft 365 data.
+over synthetic Microsoft 365 data. The [Security Lab](src/AgenticLab.Examples.Security/README.md) replays
+scripted, fully simulated attacks (indirect prompt injection, data exfiltration via a tool, tool poisoning)
+offline, without a model provider.
 Every non-default host is an opt-in example, including **ChatGPT**, **Gemini**, **GitHub Copilot**,
-**Claude Code**, **Claude**, **Copilot 365** and **Windfarm**. Each owns its host-specific prompts,
+**Claude Code**, **Claude**, **Copilot 365**, **Security Lab** and **Windfarm**. Each owns its host-specific prompts,
 branding and tests. The shared learning guide remains available independently of enabled examples.
 Use `Examples:<id>:Enabled=true` with IDs `chatgpt`, `gemini`, `copilot`, `claude-code`, `claude`,
-`copilot365` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
-`copilot` and `copilot365`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
+`copilot365`, `security` or `windfarm`; flags can be combined. AppHost's Development settings enable `chatgpt`,
+`copilot`, `copilot365` and `security`; use `--Examples:<id>:Enabled=false` to disable one. Other environments
 start with only Default unless examples are explicitly enabled.
 
 For example, enable the workplace Copilot host and its three agents:

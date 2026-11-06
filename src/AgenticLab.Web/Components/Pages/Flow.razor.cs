@@ -33,10 +33,43 @@ public partial class Flow : IDisposable
     [Inject]
     private IJSRuntime JS { get; set; } = default!;
 
+    /// <summary>Deep-link host key; applies for this load only and is never saved as the preferred host.</summary>
+    [SupplyParameterFromQuery(Name = "host")]
+    public string? LinkHost { get; set; }
+
+    /// <summary>Deep-link agent name within the selected host's roster.</summary>
+    [SupplyParameterFromQuery(Name = "agent")]
+    public string? LinkAgent { get; set; }
+
+    /// <summary>Deep-link composer text; pre-filled, never sent automatically.</summary>
+    [SupplyParameterFromQuery(Name = "prompt")]
+    public string? LinkPrompt { get; set; }
+
+    /// <summary>Deep-link diagram preset: <c>basic</c> or <c>technical</c>.</summary>
+    [SupplyParameterFromQuery(Name = "view")]
+    public string? LinkView { get; set; }
+
+    /// <summary>Deep-link harness anatomy toggle; <c>1</c> expands it.</summary>
+    [SupplyParameterFromQuery(Name = "harness")]
+    public string? LinkHarness { get; set; }
+
+    /// <summary>Deep-link stepping mode: <c>auto</c> or <c>manual</c>.</summary>
+    [SupplyParameterFromQuery(Name = "mode")]
+    public string? LinkMode { get; set; }
+
+    /// <summary>Deep-link comma-separated breakpoint kinds to enable.</summary>
+    [SupplyParameterFromQuery(Name = "breakpoints")]
+    public string? LinkBreakpoints { get; set; }
+
+    /// <summary>Deep-link comma-separated tool names; a leading <c>-</c> disables the tool for the run.</summary>
+    [SupplyParameterFromQuery(Name = "tools")]
+    public string? LinkTools { get; set; }
+
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
     private bool _catalogsLoaded;
     private bool _savePanelsAfterRender;
+    private bool _linkApplied;
     private long _runRenderVersion;
     private ExamplePanelHost? _examplePanel;
 
@@ -140,6 +173,16 @@ public partial class Flow : IDisposable
                 _catalogsLoaded = true;
             }
 
+            // A deep link describes the whole starting state for this load, so it also replaces the stored
+            // host preference (without overwriting it). Applied after both catalogues are known so unknown
+            // hosts, agents, breakpoints and tools can be ignored.
+            var link = FlowDeepLink.Parse(LinkHost, LinkAgent, LinkPrompt, LinkView, LinkHarness, LinkMode, LinkBreakpoints, LinkTools);
+            if (!link.IsEmpty)
+            {
+                FlowDeepLink.Apply(link, _view);
+                _linkApplied = true;
+            }
+
             // The server's sample workspace needs no path, so load its skills, instructions and agents now
             // instead of waiting for the user to enter one.
             if (_view.ServerWorkspace.IsSample)
@@ -173,9 +216,10 @@ public partial class Flow : IDisposable
 
         try
         {
-            var stored = await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
+            // A deep link already chose the host for this load; only a plain /flow visit restores the saved one.
+            var stored = _linkApplied ? null : await JS.InvokeAsync<string?>("localStorage.getItem", VendorStorageKey);
             var restored = _view.Roster.RestoreHost(stored);
-            if (restored != _view.HostKey)
+            if (!_linkApplied && restored != _view.HostKey)
             {
                 _view.HostKey = restored;
                 _view.SelectedAgent = _view.Roster.VendorDefaultAgent ?? _view.SelectedAgent;

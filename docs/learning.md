@@ -40,9 +40,9 @@ Discovery entry.
 
 ## Agent guide
 
-The guide opens at **Intro** and follows four root topics, with seven subtopics grouped under
+The guide opens at **Intro** and follows five root topics, with seven subtopics grouped under
 **Agent**, **One foundation, many systems** and **Where agents run**.
-The guide has eleven lessons; existing lesson IDs remain unchanged. Bookmark any stage with
+The guide has twelve lessons; existing lesson IDs remain unchanged. Bookmark any stage with
 `/learn?stage=<id>`; reload and browser Back/Forward preserve navigation. Hidden or unknown IDs
 fall back to the first stage. The product-specific `map-to-foundry` definition is hidden.
 
@@ -59,6 +59,7 @@ fall back to the first stage. The product-specific `map-to-foundry` definition i
 | 3.2 | Connecting tools and agents | `wider-ecosystem` | MCP tool calls versus A2A delegation. |
 | 4 | Where agents run | `where-to-run` | Personal runtime, existing product, own service or managed agent platform. |
 | 4.1 | Run and improve | `run-and-improve` | Run, observe, evaluate and improve across versions, not within one turn. |
+| 5 | Security/AppSec | `what-can-go-wrong` | Injected content, data exfiltration through a tool, poisoned tool descriptions, hidden text in an image and dangerous command execution; the prompt is not a security boundary. **Show in live flow** deep-links to the Security Lab's exfiltration scenario with a before-tool breakpoint (requires the optional `security` example). |
 
 Shared foundations do not imply identical capabilities, tools or permissions. Hosting is a separate
 choice: a local harness can use a remote model, and observation and evaluation matter wherever it runs.
@@ -111,8 +112,8 @@ guide. Stage changes focus the lesson heading; hiding a focused reveal restores 
 The navigation nests **Context management**, **Model response**, **The agent loop** and **Anatomy of an agent** beneath
 **Agent**, with matching `2.1`-`2.4` lesson labels. **Different purposes, same pattern** and
 **Connecting tools and agents** sit beneath **One foundation, many systems** as `3.1`-`3.2`;
-**Run and improve** sits beneath **Where agents run** as `4.1`. Page-level **Previous/Next** still
-visits every lesson in order, including the subtopics; the progress counter counts all eleven lessons.
+**Run and improve** sits beneath **Where agents run** as `4.1`; **Security/AppSec** is the final root topic `5`. Page-level **Previous/Next** still
+visits every lesson in order, including the subtopics; the progress counter counts all twelve lessons.
 
 **Agent** is a single view of **Agent = Harness + Model**. Two parts describe their responsibilities:
 the harness supplies context, calls the model and executes permitted tool requests; the model
@@ -140,8 +141,11 @@ not a task walkthrough or a claim that every tool runs in the harness process. P
 and Left/Right keyboard navigation switch the two steps; backward entry starts at Tool call.
 A tool request is not execution or permission.
 
-**Open live flow** links to `/flow` for the interactive experience. It does not configure or start
-a run. Preconfigured cases, scenario-specific links and prepared calls are deferred. The previous
+**Show in live flow** opens a [deep link](web-flow-page.md#deep-links) to `/flow` with the
+Wikipedia agent selected, the technical view applied, both Wikipedia tools switched off for the run
+and a general-knowledge question pre-filled in the composer, so the model answers directly rather
+than requesting a tool. It does not start a run: the user still presses Send. Other lessons' **Open
+live flow** links remain plain `/flow`. All of these open in a new tab so the guide stays in place. The previous
 Wikipedia walkthrough is no longer displayed; its fixture remains available to existing tests.
 
 **The agent loop** connects Context management and Model response from the preceding lessons.

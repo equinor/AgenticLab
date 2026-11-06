@@ -5,7 +5,7 @@ body:
     attributes:
       value: |
         Describe the problem and the educational or development use case before proposing a solution.
-        Do not include private data. For suspected vulnerabilities, use [private vulnerability reporting](https://github.com/o-viken/agenticlab/security/advisories/new), not this form.
+        Do not include private data. For suspected vulnerabilities, use [private vulnerability reporting](https://github.com/equinor/agenticlab/security/advisories/new), not this form.
   - type: textarea
     id: problem
     attributes:

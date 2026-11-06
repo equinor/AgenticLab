@@ -6,10 +6,12 @@ import type { FlowRun } from '../flow/useFlowRun'
 import { phaseLabels, type RunIdentity } from '../flow/runReducer'
 import styles from './Conversation.module.css'
 
-type Props = { run: FlowRun; draft: string; onDraft: (text: string) => void; onSend: () => void; identity: RunIdentity | null; loading: boolean }
-const prompts = ['What is an AI agent?', 'How does an agent decide to use a tool?', 'Compare reasoning with taking an action.']
+type Props = { run: FlowRun; draft: string; onDraft: (text: string) => void; onSend: () => void; identity: RunIdentity | null; loading: boolean; suggestions?: string[] }
+/** Shown when the selected agent advertises no prompts of its own. */
+export const genericPrompts = ['What is an AI agent?', 'How does an agent decide to use a tool?', 'Compare reasoning with taking an action.']
 
-export function Conversation({ run, draft, onDraft, onSend, identity, loading }: Props) {
+export function Conversation({ run, draft, onDraft, onSend, identity, loading, suggestions }: Props) {
+  const prompts = suggestions?.length ? suggestions : genericPrompts
   const log = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
   const [offBottom, setOffBottom] = useState(false)

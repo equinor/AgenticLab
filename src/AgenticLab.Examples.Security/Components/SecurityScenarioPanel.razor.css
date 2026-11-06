@@ -1,0 +1,20 @@
+.security-panel { flex: 0 1 auto; min-height: 120px; max-height: min(48dvh, 520px); overflow-y: auto; padding: 12px 20px; border-bottom: 1px solid var(--lab-border); color: var(--lab-ink); font: var(--lab-text-sm)/1.5 var(--lab-font-sans); letter-spacing: 0; }
+.lab-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.lab-heading > div { flex: 1; min-width: 0; }
+h2 { margin: 0 0 2px; font-size: 15px; line-height: 1.3; font-weight: 600; overflow-wrap: anywhere; }
+h3 { margin: 8px 0 4px; font-size: 14px; line-height: 1.4; font-weight: 600; overflow-wrap: anywhere; }
+p { margin: 6px 0; overflow-wrap: anywhere; }
+.scenario-section { margin-top: 8px; border-top: 1px solid var(--lab-border); padding-top: 6px; }
+summary { cursor: pointer; color: var(--lab-ink); font-weight: 500; }
+summary:focus-visible { outline: var(--lab-focus-ring); outline-offset: 2px; }
+ul, ol { margin: 6px 0; padding-left: 20px; }
+li { margin-block: 4px; overflow-wrap: anywhere; }
+.scenario-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.scenario-image { margin: 10px 0 0; border: 1px solid var(--lab-border); border-radius: var(--lab-radius-md, 6px); padding: 8px; background: var(--lab-surface-2, var(--lab-surface)); }
+.scenario-image img { display: block; width: min(100%, 240px); height: auto; margin: 0 auto; border: 1px solid var(--lab-border); background: #e9e6df; transition: filter 160ms ease; }
+.scenario-image.revealed img { filter: grayscale(1) brightness(0.5) contrast(4000%) brightness(2); }
+.scenario-image figcaption { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--lab-muted); font: var(--lab-text-xs)/1.5 var(--lab-font-sans); }
+.scenario-image figcaption span { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .scenario-image img { transition: none; } }
+.scenario-id { margin-left: auto; color: var(--lab-muted); font: var(--lab-text-xs)/1.5 var(--lab-font-mono); overflow-wrap: anywhere; }
+@container conversation (max-width: 360px) { .security-panel { padding-inline: 12px; } }

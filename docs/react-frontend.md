@@ -110,12 +110,15 @@ The conversation/live-flow split supports:
 - Auto/Manual, Next, Pause/Resume, Stop and live mode changes.
 - SSE-driven User, Harness, Model and Tools activity, pairing calls/results by call ID.
 - Loading, empty, failed, interrupted and stopped states; keyboard/IME input and reduced motion.
+- An empty conversation offers the selected agent's `suggestedPrompts` from `GET /agents` (falling
+  back to three generic questions). Clicking one fills the draft; nothing is sent. There are no
+  React URL parameters; [deep links](web-flow-page.md#deep-links) are a Blazor `/flow` feature.
 
 Learn, Details/anatomy, replay, discovery, workspace tools and model simulations stay in Blazor.
 The model label uses declared deployment metadata; [ForceDefaultModel](agents.md#per-agent-models)
 can make the execution deployment differ. Responses render Markdown without raw HTML. Events are
 execution records, not token deltas or hidden reasoning; only `final` delivers the answer.
-The header's repository link opens [Agentic Lab on GitHub](https://github.com/o-viken/agenticlab)
+The header's repository link opens [Agentic Lab on GitHub](https://github.com/equinor/agenticlab)
 in a new tab.
 
 ## Transport and state

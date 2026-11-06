@@ -7,6 +7,7 @@ using AgenticLab.Examples.ClaudeCode;
 using AgenticLab.Examples.Copilot;
 using AgenticLab.Examples.Gemini;
 using AgenticLab.Examples.Copilot365;
+using AgenticLab.Examples.Security;
 using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,6 +35,7 @@ builder.Services.AddExample<ClaudeCodeExample>(builder.Configuration, ExampleHos
 builder.Services.AddExample<CopilotExample>(builder.Configuration, ExampleHost.AiService);
 builder.Services.AddExample<GeminiExample>(builder.Configuration, ExampleHost.AiService);
 builder.Services.AddExample<Copilot365Example>(builder.Configuration, ExampleHost.AiService);
+builder.Services.AddExample<SecurityExample>(builder.Configuration, ExampleHost.AiService);
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.AiService);
 
 var app = builder.Build();

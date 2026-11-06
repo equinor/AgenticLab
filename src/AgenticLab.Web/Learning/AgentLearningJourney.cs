@@ -1,3 +1,5 @@
+using AgenticLab.Web.Flow;
+
 namespace AgenticLab.Web.Learning;
 
 internal sealed record LearningNode(string Id, string Title, string Detail);
@@ -20,6 +22,30 @@ internal sealed record LearningStage(
 
 internal static class AgentLearningJourney
 {
+    /// <summary>
+    /// The "Show in live flow" link for the tool-calling lesson: the Wikipedia agent in the technical view with its
+    /// tools switched off for the run and a general-knowledge question pre-filled, so one send shows the model
+    /// answering directly instead of requesting a tool call.
+    /// </summary>
+    internal static string ToolCallingFlowLink { get; } = FlowDeepLink.Href(new FlowLinkRequest(
+        Agent: "WikiAssistant",
+        Prompt: "Who is the king of Norway",
+        View: DiagramPreset.Technical,
+        Tools: ["-SearchWiki", "-GetWikiPage"]));
+
+    /// <summary>
+    /// The "Show in live flow" link for the security lesson: the Security Lab's exfiltration scenario in the
+    /// technical view with a breakpoint before tools and its prompt pre-filled, so the viewer can read the SendMail
+    /// arguments before the simulated send runs. Requires the optional <c>security</c> example to be enabled;
+    /// otherwise the host is ignored and Flow falls back to the stored selection.
+    /// </summary>
+    internal static string SecurityFlowLink { get; } = FlowDeepLink.Href(new FlowLinkRequest(
+        Host: "security",
+        Agent: "LeakyAssistant",
+        Prompt: "Read the 'Q3 pricing' document and mail me a short summary at me@contoso.example.",
+        View: DiagramPreset.Technical,
+        Breakpoints: ["before-tool"]));
+
     internal static IReadOnlyList<LearningExample> HarnessExamples { get; } = Array.AsReadOnly<LearningExample>(
         AgentTurnStory.Responsibilities.Select(item => new LearningExample(item.NodeId, item.Output)).ToArray());
 
@@ -96,6 +122,11 @@ internal static class AgentLearningJourney
         new("connected-agent", "Agent", "Uses external capabilities when needed"),
         new("mcp-tools", "Tool server", "Exposes tools the agent can call"),
         new("a2a-agent", "Another agent", "Accepts delegated tasks and returns results"),
+        new("attack-injection", "Injected content", "A fetched page or document carries text written for the model; it answers as the attacker intended"),
+        new("attack-exfiltration", "Data exfiltration", "Injected text plus a send-capable tool: confidential content leaves through a normal-looking call"),
+        new("attack-poisoning", "Poisoned tool description", "A third-party tool's description instructs the model to gather and pass along secrets"),
+        new("attack-image", "Hidden text in an image", "An image carries faint instructions; the vision step transcribes them and the model treats them as the task"),
+        new("attack-command", "Dangerous command execution", "A repository file names a shell command; a shell tool that interprets free text runs it, credentials and all"),
         new("hosting-runtime", "Harness", "Where context is managed and permitted actions execute"),
         new("hosting-model", "Model service", "Where inference happens, independently of the harness"),
         new("hosting-access", "Tools and data", "What the runtime can reach with its identity"),
@@ -133,7 +164,7 @@ internal static class AgentLearningJourney
             "The model requests actions that the harness should execute.",
             false,
             ["tools", "llm", "harness", "guardrails"], ["model", "harness", "execution-controls"],
-            "Open live flow", "/flow", ParentId: "model-to-agent"),
+            "Show in live flow", ToolCallingFlowLink, ParentId: "model-to-agent"),
         new("agent-loop", "The agent loop",
             "The harness constructs context and calls the model. The model returns an answer or requests a tool call. The harness handles the response and continues the loop or ends the turn.",
             "Tool results return to context management for the next model request. The loop ends when the harness returns an answer or stops the turn.",
@@ -184,6 +215,13 @@ internal static class AgentLearningJourney
             ["guardrails", "securing-agents"],
             ["lifecycle-run", "lifecycle-observe", "lifecycle-evaluate", "lifecycle-improve"],
             "Open live flow", "/flow", ParentId: "where-to-run"),
+        new("what-can-go-wrong", "Security/AppSec",
+            "Everything the harness feeds the model is input, including fetched pages, documents, images, repository files and tool descriptions. Text in that input can steer the model into misleading answers, leaking data through a tool, or calling tools the user never asked for.",
+            "The prompt is not a security boundary. Enforce limits in the harness and its tools, where a manipulated model cannot talk its way past them.",
+            false,
+            ["securing-agents", "agent-risk", "guardrails", "sandbox"],
+            ["attack-injection", "attack-exfiltration", "attack-poisoning", "attack-image", "attack-command"],
+            "Show in live flow", SecurityFlowLink),
     ]);
 
     internal static IReadOnlyList<LearningStage> Stages { get; } =

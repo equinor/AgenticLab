@@ -66,7 +66,7 @@ export default function App() {
         </div>
         <div className={styles.headerActions}>
           <span className={styles.edition}>Flow workspace <span>React</span></span>
-          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/o-viken/agenticlab"
+          <a className={`icon-button ${styles.repositoryLink}`} href="https://github.com/equinor/agenticlab"
             target="_blank" rel="noopener noreferrer" title="View Agentic Lab on GitHub (opens in a new tab)"
             aria-label="View Agentic Lab on GitHub (opens in a new tab)">
             <span className={styles.repositoryIcon} aria-hidden="true" />
@@ -98,7 +98,7 @@ export default function App() {
         {catalogError && <button type="button" onClick={() => { setCatalogError(null); setReload(value => value + 1) }}><RotateCcw size={14} />Retry</button>}
       </div>}
       <main className={styles.workspace}>
-        <Conversation run={run} draft={draft} onDraft={setDraft} onSend={send} identity={identity} loading={!catalogs && !catalogError} />
+        <Conversation run={run} draft={draft} onDraft={setDraft} onSend={send} identity={identity} loading={!catalogs && !catalogError} suggestions={agent?.suggestedPrompts} />
         <aside className={styles.observation} aria-label="Live execution">
           <div className={styles.flowHead}>
             <div><span className={styles.sectionNumber}>02</span><h2>Live flow</h2></div>

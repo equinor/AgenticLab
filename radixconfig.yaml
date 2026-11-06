@@ -48,6 +48,8 @@ spec:
         services__aiservice__http__0: http://aiservice:8080
         # Loads the Copilot 365 example's metadata (logo, resources, tool risks); must match aiservice.
         Examples__copilot365__Enabled: "true"
+        # Loads the Security Lab's briefing panel, resources and tool risks; must match aiservice.
+        Examples__security__Enabled: "true"
 
     - name: aiservice
       src: .
@@ -71,6 +73,9 @@ spec:
         # Adds the Copilot 365 app and its agents. Its Microsoft 365 data and tools are simulated
         # (SendMail sends nothing); web must enable it too.
         Examples__copilot365__Enabled: "true"
+        # Adds the Security Lab host and its scripted agents. They replay attack scenarios over an
+        # offline model and in-memory fakes: no provider call, network, mail, file or process.
+        Examples__security__Enabled: "true"
         services__mcpserver__http__0: http://mcpserver:8080
         services__a2aserver__http__0: http://a2aserver:8080
       secrets:

@@ -15,6 +15,11 @@ are implemented in [AgentEndpoints](../src/AgenticLab.AiService/Endpoints/AgentE
 
 Returns `agents` and a `default` name (`ChatAgent`). Each entry describes tools, workspace/skills
 support, model, risk and guardrails, plus optional `exampleId`/`requiresExampleUi` metadata.
+Each entry may also carry `suggestedPrompts`: short example messages the agent advertises. Clients offer
+them as composer pre-fills (Blazor's empty conversation shows a **Try asking** list; React replaces its
+generic suggestions with them) and never send them automatically or as instructions. Code-defined agents
+override `SuggestedPrompts` on `AgentDefinitionBase` (default empty); workspace agents declare a
+`prompts:` list (see [workspace-defined agents](workspace.md#workspace-defined-agents-the-agents-folder)).
 A2A-capable agents also list `remoteAgentNames`, the remote specialists the service bounds them to
 (see [protocols](protocols.md#a2a-server-the-orchestrator-agent)); clients should render that list
 rather than the global `GET /a2a` roster.
@@ -146,6 +151,17 @@ The [module guide](../src/AgenticLab.Examples.Copilot365/README.md) lists their 
 a workspace or supports skills. Workplace data and `SendMail` are simulated: no Graph calls or mail
 delivery. The Medium risk label illustrates sending; confirmation is a persona instruction, not an
 enforced approval gate. The researcher's Wikipedia tools still make real public requests.
+
+### Optional Security Lab example
+
+Enable `Examples:security:Enabled=true` (already enabled in AppHost Development) for the
+[Security Lab](../src/AgenticLab.Examples.Security/README.md): `InjectedBrowser`, `LeakyAssistant`,
+`PoisonedTools`, `ReceiptReader`, `BuildHelper` and the hardened `DefendedAssistant`. Each implements `IScriptedModelAgent`, so
+`AgentCatalog` wraps its deterministic `ScenarioModel` (declared `ModelId` `scripted-scenario`) in
+the normal host pipeline instead of the configured provider; the scripted model ignores
+`Models:ForceDefaultModel` and per-agent model overrides and costs nothing. Capture, breakpoints,
+per-run tool toggles and conversation history behave exactly as for live-model agents. Every page,
+document, mail, image transcription, repository file, shell and third-party tool is simulated in-process: no network, mail or process runs.
 
 ### ChatGPT lookup and calculation demo
 
