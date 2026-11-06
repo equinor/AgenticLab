@@ -23,7 +23,7 @@ spec:
       component: web
   components:
     # Only public component. Sign-in is enforced by the Radix OAuth2 proxy, limited to the
-    # Equinor Entra ID tenant. Dev uses federation; prod requires a client secret in the web console.
+    # Equinor Entra ID tenant. Each environment requires its own Entra federated credential.
     - name: web
       src: .
       dockerfileName: docker/web.Dockerfile
@@ -34,6 +34,7 @@ spec:
       authentication:
         oauth2:
           clientId: 742062d5-ef31-475a-84b1-282b21343b7f
+          credentials: azureWorkloadIdentity
           scope: openid profile email offline_access
           sessionStoreType: systemManaged
           oidc:
@@ -43,7 +44,6 @@ spec:
           authentication:
             oauth2:
               clientId: 75b9ff42-b090-4385-af70-82dcbfafac0b
-              credentials: azureWorkloadIdentity
       variables:
         services__aiservice__http__0: http://aiservice:8080
         # Loads the Copilot 365 example's metadata (logo, resources, tool risks); must match aiservice.

@@ -280,17 +280,26 @@ root Dockerfile's stages.
   agents replay scripted attack scenarios over an offline model and in-memory fakes, so they use no
   Azure OpenAI tokens and never send mail, read files, run commands or open connections. See the
   [Security Lab](src/AgenticLab.Examples.Security/README.md).
-- Dev's OAuth2 proxy uses `credentials: azureWorkloadIdentity`, not a client secret. After deploying
-  this configuration, open Radix Console's `dev` / `web` component and the **Azure** link beside
-  **OAuth2 identity enabled for Azure**. In Entra's `agenticlab-web-dev` registration, open
+- Both environments configure the OAuth2 proxy with `credentials: azureWorkloadIdentity`, not a
+  client secret. Each environment needs its own Entra trust on the registration listed above.
+  Before promoting this change to prod, pre-create that trust only if its exact values are verified.
+  Radix may expose the OAuth2 identity details only after deployment; otherwise plan a sign-in gap
+  until the trust is added. Merging to `main` deploys dev, not prod.
+- In Radix Console, open the environment's `web` component and the **Azure** link beside
+  **OAuth2 identity enabled for Azure**. In the corresponding Entra registration, open
   **Certificates & secrets / Federated credentials / Add credential**, choose **Other issuer**,
   and copy the exact issuer, subject and audience from Radix's OAuth2 identity details. These are
   not the regular component identity details or the Microsoft login issuer in the configuration.
-  Dev sign-in will fail until this trust exists; the Web redirect URIs above are still required.
-  Verify a fresh dev sign-in before removing any obsolete client secret, and first confirm that
-  no other consumers use it. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
-- Prod still requires `web`'s OAuth2 client secret from its Entra registration in the Radix web
-  console. Both environments still require the `AzureOpenAI__Endpoint` and `AzureOpenAI__ApiKey`
+  Create one credential per current cluster issuer; `rx get cluster-config --context platform`
+  lists those issuers. Do not infer the production subject from dev. Missing trust prevents fresh
+  sign-in; the Web redirect URIs above are still required.
+- After deployment, run
+  `rx validate workload-identity --application agenticlab --context platform --exclude-obsolete --output json`
+  and inspect `missingFederatedCredentials`, not just the exit code. The validator only discovers
+  deployed identities: a passing dev result does not verify prod before its switch. Test a fresh
+  sign-in through each supported address before removing any obsolete client secret, and first
+  confirm that no other consumers use it. See [Radix OAuth2 workload identity](https://www.radix.equinor.com/guides/authentication/#authentication-with-azure-workload-identity).
+- Both environments still require the `AzureOpenAI__Endpoint` and `AzureOpenAI__ApiKey`
   secrets of `aiservice` and `a2aserver`; OAuth2 federation does not replace these or Radix's cookie secret.
 - `aiservice` and `a2aserver` set `monitoring: true` and `Metrics__PrometheusEndpoint=true`, so Radix
   Prometheus scrapes their `/metrics` endpoints and the metrics appear in Radix Grafana next to CPU
