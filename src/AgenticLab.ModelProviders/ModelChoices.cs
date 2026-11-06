@@ -9,7 +9,7 @@ public sealed record ModelChoice(string Id, string Name);
 
 /// <summary>
 /// The server-side allow-list of models a caller may select per request, read from the selected provider's
-/// <c>{Provider}:Choices</c>: a comma-separated list such as <c>gpt-5.6-luna, gpt-4o=GPT-4o (baseline)</c>,
+/// <c>{Provider}:Choices</c>: a comma-separated list such as <c>gpt-5.6-luna=Luna, gpt-4o</c>,
 /// where an optional <c>=Name</c> overrides the name derived from the id. Azure's list ships in
 /// <see cref="ModelDefaults"/>. The provider's default model (<c>AzureOpenAI:Deployment</c> or
 /// <c>{Provider}:Model</c>) is always selectable and preselected; it is added first when not listed.

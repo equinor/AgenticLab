@@ -88,7 +88,7 @@ public sealed class ModelSelectionTests
         var shipped = new ConfigurationBuilder().AddInMemoryCollection(credentials).AddModelDefaults().Build();
         var choices = new ModelChoices(shipped, new ModelConnectionOptions(shipped));
 
-        Assert.Equal(["GPT-5.6 Luna", "GPT-5.6 Terra", "GPT-5.6 Sol", "GPT-4o (baseline)"], choices.All.Select(choice => choice.Name));
+        Assert.Equal(["GPT-5.6 Luna", "GPT-5.6 Terra", "GPT-5.6 Sol", "GPT-4o"], choices.All.Select(choice => choice.Name));
         Assert.Equal("gpt-5.6-luna", choices.Default.Id);
 
         credentials["AzureOpenAI:Choices"] = "gpt-4o";

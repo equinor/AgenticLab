@@ -37,7 +37,7 @@ Returns the [selectable models](#selectable-models) and the default:
 {
   "models": [
     { "id": "gpt-5.6-luna", "name": "GPT-5.6 Luna" },
-    { "id": "gpt-4o", "name": "GPT-4o (baseline)" }
+    { "id": "gpt-4o", "name": "GPT-4o" }
   ],
   "default": "gpt-5.6-luna"
 }
@@ -273,7 +273,7 @@ loaded by both AiService and A2AServer through `AddModelDefaults()`:
 {
   "AzureOpenAI": {
     "Deployment": "gpt-5.6-luna",
-    "Choices": "gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-4o=GPT-4o (baseline)"
+    "Choices": "gpt-5.6-luna, gpt-5.6-terra, gpt-5.6-sol, gpt-4o"
   }
 }
 ```
