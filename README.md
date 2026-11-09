@@ -198,8 +198,9 @@ dotnet user-secrets set "AzureOpenAI:Choices" "my-gpt-4o=GPT-4o, my-gpt-4o-mini"
 
 The default is always selectable, even when not listed. OpenAI and Gemini ship no list, so only their
 `Model` is offered unless you set `OpenAI:Choices` or `Gemini:Choices`. The service rejects any other
-model. In Docker or Radix use `AzureOpenAI__Choices` and `AzureOpenAI__Deployment` on both `aiservice`
-and `a2aserver`. See [selectable models](docs/agents.md#selectable-models) for how the selection
+model. In Docker or Radix use `AzureOpenAI__Choices` and `AzureOpenAI__Deployment` (or `OpenAI__Choices` /
+`Gemini__Choices`) on both `aiservice` and `a2aserver`; Compose passes them through when exported. See
+[selectable models](docs/agents.md#selectable-models) for how the selection
 interacts with per-agent models and telemetry.
 
 ### Build and Start

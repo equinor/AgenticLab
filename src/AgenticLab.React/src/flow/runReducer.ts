@@ -3,8 +3,8 @@ import { readBreakpoint, type Breakpoint, type ControlRequest, type FlowEvent, t
 /** `model` is the display label; `modelId` is sent with the run (null keeps the agent's own model). */
 export type RunIdentity = { agent: string; label: string; vendor: string | null; model: string; modelId?: string | null; tools: string[] }
 export type Phase = 'idle' | 'starting' | 'running' | 'awaiting-step' | 'paused' | 'awaiting-answer' | 'completed' | 'stopped' | 'interrupted' | 'failed'
-/** An assistant message records the model it was sent to and, once final, the run's figures. */
-export type Message = { id: string; role: 'user' | 'assistant'; text: string; label: string; status: 'complete' | 'pending' | 'stopped' | 'error'; model?: string; run?: RunSummary | null }
+/** An assistant message records the model it was sent to and, once final, the run's figures and the model that answered. */
+export type Message = { id: string; role: 'user' | 'assistant'; text: string; label: string; status: 'complete' | 'pending' | 'stopped' | 'error'; model?: string; modelId?: string | null; run?: RunSummary | null }
 export type TraceEntry = Pick<FlowEvent, 'sequence' | 'kind' | 'label' | 'turn'>
 export type FlowNode = 'user' | 'host' | 'model' | 'tools'
 export type RunState = {
@@ -44,8 +44,14 @@ function finish(state: RunState, phase: Phase, text?: string, error?: string, ru
   return { ...state, running: false, phase, controlPending: false, stepPending: false, paused: false,
     question: null, breakpoint: null, error: error ?? null,
     messages: state.messages.map(message => message.id === state.sessionId
-      ? { ...message, text: text ?? message.text, run: run ?? message.run, status: phase === 'completed' ? 'complete' : phase === 'stopped' ? 'stopped' : 'error' }
+      ? { ...message, text: text ?? message.text, run: run ?? message.run, model: answeredBy(message, run),
+        status: phase === 'completed' ? 'complete' : phase === 'stopped' ? 'stopped' : 'error' }
       : message) }
+}
+
+// The requested label is kept only when the service ran that model; otherwise the reported model id is shown.
+function answeredBy(message: Message, run?: RunSummary | null): string | undefined {
+  return run?.model && run.model !== message.modelId ? run.model : message.model
 }
 
 export function runReducer(state: RunState, action: RunAction): RunState {
@@ -54,7 +60,7 @@ export function runReducer(state: RunState, action: RunAction): RunState {
       return progress({ ...initialState, manual: state.manual, running: true, sessionId: action.sessionId,
         identity: action.identity, messages: [...state.messages.slice(-38),
           { id: `${action.sessionId}-user`, role: 'user', text: action.message, label: 'You', status: 'complete' },
-          { id: action.sessionId, role: 'assistant', text: '', label: action.identity.label, status: 'pending', model: action.identity.model }] })
+          { id: action.sessionId, role: 'assistant', text: '', label: action.identity.label, status: 'pending', model: action.identity.model, modelId: action.identity.modelId ?? null }] })
     case 'mode': return progress({ ...state, manual: action.manual })
     case 'stop': return state.running ? finish(state, 'stopped') : state
     case 'end':

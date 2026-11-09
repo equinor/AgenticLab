@@ -6,11 +6,11 @@ import type { FlowRun } from '../flow/useFlowRun'
 import { describeRun, phaseLabels, type RunIdentity } from '../flow/runReducer'
 import styles from './Conversation.module.css'
 
-type Props = { run: FlowRun; draft: string; onDraft: (text: string) => void; onSend: () => void; identity: RunIdentity | null; loading: boolean; suggestions?: string[] }
+type Props = { run: FlowRun; draft: string; onDraft: (text: string) => void; onSend: () => void; identity: RunIdentity | null; loading: boolean; suggestions?: string[]; modelName?: (id: string) => string }
 /** Shown when the selected agent advertises no prompts of its own. */
 export const genericPrompts = ['What is an AI agent?', 'How does an agent decide to use a tool?', 'Compare reasoning with taking an action.']
 
-export function Conversation({ run, draft, onDraft, onSend, identity, loading, suggestions }: Props) {
+export function Conversation({ run, draft, onDraft, onSend, identity, loading, suggestions, modelName = id => id }: Props) {
   const prompts = suggestions?.length ? suggestions : genericPrompts
   const log = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
@@ -43,7 +43,7 @@ export function Conversation({ run, draft, onDraft, onSend, identity, loading, s
       </div>}
       {state.messages.map(message => <article className={`${styles.message} ${message.role === 'user' ? styles.user : styles.assistant}`} key={message.id}>
         <div className={styles.messageHead}><span>{message.label}</span>
-          {message.role === 'assistant' && message.model && <span className={styles.modelTag} title={message.run?.model ?? undefined}>{message.model}</span>}
+          {message.role === 'assistant' && message.model && <span className={styles.modelTag} title={message.run?.model ?? undefined}>{modelName(message.model)}</span>}
           {message.run && <span className={styles.runMeta}>{describeRun(message.run)}</span>}
           {message.status === 'complete' && message.role === 'assistant' && <Check size={13} aria-label="Complete" />}
         </div>

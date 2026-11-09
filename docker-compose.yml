@@ -32,8 +32,10 @@ services:
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}
+      - OpenAI__Choices
       - Gemini__ApiKey=${Gemini__ApiKey:-}
       - Gemini__Model=${Gemini__Model:-}
+      - Gemini__Choices
     networks:
       - agenticlab
 
@@ -56,8 +58,10 @@ services:
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}
+      - OpenAI__Choices
       - Gemini__ApiKey=${Gemini__ApiKey:-}
       - Gemini__Model=${Gemini__Model:-}
+      - Gemini__Choices
       - services__mcpserver__http__0=http://mcpserver:8080
       - services__a2aserver__http__0=http://a2aserver:8080
     networks:

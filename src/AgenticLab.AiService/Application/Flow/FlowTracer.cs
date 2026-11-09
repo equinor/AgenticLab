@@ -261,9 +261,10 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
             }
 
             var answer = finalText.ToString();
+            await session.WaitForStepAsync(token);
+            // After the last pacing wait, so the duration covers it and a stop here records no completed run.
             var summary = scopes.Model.Usage.Summarize(stopwatch.Elapsed);
             ChatMetrics.RecordRun(activity, resolvedName, host, summary);
-            await session.WaitForStepAsync(token);
             yield return Step("final", "Harness → Client", answer, answer) with { Run = summary };
         }
         finally

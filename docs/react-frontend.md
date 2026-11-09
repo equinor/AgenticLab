@@ -116,7 +116,8 @@ The conversation/live-flow split supports:
   React URL parameters; [deep links](web-flow-page.md#deep-links) are a Blazor `/flow` feature.
 - A **Model** selector lists [selectable models](agents.md#selectable-models) from `GET /api/models`,
   preselects the default or the choice saved under `agenticlab-model`, and sends it as `model` with
-  each message. Each answer shows the model it was sent to and the run's duration, model time, tokens
+  each message. Each answer shows the model it was sent to, replaced by the model the `final` event
+  reports when they differ, and the run's duration, model time, tokens
   and tool calls from the `final` event. A scripted agent shows its own model and sends none. Without the
   route (an older service) the selector is hidden and runs keep each agent's model.
 

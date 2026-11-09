@@ -68,4 +68,11 @@ describe('run state', () => {
     expect(describeRun({ ...run, inputTokens: 0, outputTokens: 0, toolCalls: 0 })).toBe('1.2 s · 0 tool calls')
     expect(describeRun({ ...run, modelDurationMs: 900 })).toBe('1.2 s · model 0.9 s · 1,234 tokens · 1 tool call')
   })
+
+  it('labels the answer with the model that ran when it differs from the request', () => {
+    let state = runReducer(initialState, { type: 'start', sessionId: 'run', message: 'hello', identity: { ...identity, model: 'gpt-5.3-codex', modelId: null } })
+    const run = { model: 'gpt-5.6-luna', durationMs: 1000, inputTokens: 10, outputTokens: 5, modelCalls: 1, toolCalls: 0 }
+    state = runReducer(state, { type: 'event', sessionId: 'run', event: { ...event(1, 'final', 'answer'), run } })
+    expect(state.messages[1].model).toBe('gpt-5.6-luna')
+  })
 })
