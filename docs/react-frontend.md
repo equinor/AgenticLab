@@ -32,6 +32,7 @@ The BFF uses YARP direct forwarding and an explicit path/method allowlist:
 |---|---|
 | `GET /api/agents` | `GET /agents` |
 | `GET /api/vendors` | `GET /vendors` |
+| `GET /api/models` | `GET /models` |
 | `POST /api/chat/stream` | `POST /chat/stream` |
 | `POST /api/chat/control` | `POST /chat/control` |
 | `POST /api/chat/reset` | `POST /chat/reset` |
@@ -113,10 +114,15 @@ The conversation/live-flow split supports:
 - An empty conversation offers the selected agent's `suggestedPrompts` from `GET /agents` (falling
   back to three generic questions). Clicking one fills the draft; nothing is sent. There are no
   React URL parameters; [deep links](web-flow-page.md#deep-links) are a Blazor `/flow` feature.
+- A **Model** selector lists [selectable models](agents.md#selectable-models) from `GET /api/models`,
+  preselects the default or the choice saved under `agenticlab-model`, and sends it as `model` with
+  each message. Each answer shows the model it was sent to, replaced by the model the `final` event
+  reports when they differ, and the run's duration, model time, tokens
+  and tool calls from the `final` event. A scripted agent shows its own model and sends none. Without the
+  route (an older service) the selector is hidden and runs keep each agent's model.
 
 Learn, Details/anatomy, replay, discovery, workspace tools and model simulations stay in Blazor.
-The model label uses declared deployment metadata; [ForceDefaultModel](agents.md#per-agent-models)
-can make the execution deployment differ. Responses render Markdown without raw HTML. Events are
+The Model node shows the selected model's name. Responses render Markdown without raw HTML. Events are
 execution records, not token deltas or hidden reasoning; only `final` delivers the answer.
 The header's repository link opens [Agentic Lab on GitHub](https://github.com/equinor/agenticlab)
 in a new tab.

@@ -77,6 +77,9 @@ Keep Azure OpenAI, OpenAI or Gemini credentials in the AppHost's local user-secr
 server-side environment variables as described in [Run Locally](README.md#run-locally). Aspire
 explicitly forwards only the selected provider's settings to AiService and A2AServer, not to Web,
 BFF or MCP. Provider selection is local startup configuration, not a browser credential field.
+Users can choose only among the server's model allow-list (`{Provider}:Choices`); AiService and A2AServer reject
+any other model, and `GET /models` returns ids and names, never endpoints or keys. Larger models can
+cost more per run, so list only models you are prepared to pay for.
 Never put credentials in source, frontend assets, images, sample configuration, or reports.
 The user-secrets store is a development convenience, not a production secret-management system.
 

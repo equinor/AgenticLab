@@ -93,6 +93,7 @@ public sealed class FrontendProxyTests
             return next(context);
         });
         upstream.MapGet("/agents", () => TypedResults.Json(new { agents = Array.Empty<object>(), @default = "" }));
+        upstream.MapGet("/models", () => TypedResults.Json(new { models = new[] { new { id = "gpt-4o", name = "GPT-4o" } }, @default = "gpt-4o" }));
         upstream.MapPost("/chat/reset", () => TypedResults.BadRequest("invalid conversation"));
         await upstream.StartAsync();
         await using var bff = CreateProxy(upstream);
@@ -104,6 +105,9 @@ public sealed class FrontendProxyTests
         Assert.Equal(HttpStatusCode.OK, agents.StatusCode);
         Assert.Contains("\"agents\":[]", await agents.Content.ReadAsStringAsync());
         Assert.Equal(upstreamVersion, Assert.Single(agents.Headers.GetValues(VersionHeader)));
+        Assert.Contains("\"default\":\"gpt-4o\"", await client.GetStringAsync("/api/models"));
+        using var postModels = await client.PostAsJsonAsync("/api/models", new { });
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, postModels.StatusCode);
         using var unknown = await client.GetAsync("/api/unknown");
         Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
         Assert.DoesNotContain("frontend index", await unknown.Content.ReadAsStringAsync());
@@ -122,7 +126,7 @@ public sealed class FrontendProxyTests
         Assert.Equal("frontend index", await frontend.Content.ReadAsStringAsync());
         Assert.Equal(localVersion, Assert.Single(frontend.Headers.GetValues(VersionHeader)));
         using var specification = JsonDocument.Parse(await client.GetStringAsync("/openapi/v1.json"));
-        Assert.Equal(5, specification.RootElement.GetProperty("paths").EnumerateObject().Count());
+        Assert.Equal(6, specification.RootElement.GetProperty("paths").EnumerateObject().Count());
         Assert.True(specification.RootElement.GetProperty("paths").TryGetProperty("/api/chat/stream", out _));
     }
 

@@ -71,6 +71,23 @@ public sealed class ModelConnectionOptions
         {
             throw new InvalidOperationException("Invalid configuration 'AzureOpenAI:Endpoint'. Use an absolute HTTP(S) service URL without credentials, query or fragment.");
         }
+        return ResourceRoot(endpoint);
+    }
+
+    /// <summary>
+    /// The Azure SDK appends its own <c>/openai/deployments/...</c> path, so the portal's
+    /// <c>/openai/v1</c> (or <c>/openai</c>) form would otherwise double the path and return 404.
+    /// </summary>
+    private static Uri ResourceRoot(Uri endpoint)
+    {
+        var path = endpoint.AbsolutePath.TrimEnd('/');
+        foreach (var suffix in (string[])["/openai/v1", "/openai"])
+        {
+            if (path.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            {
+                return new UriBuilder(endpoint) { Path = path[..^suffix.Length] + "/" }.Uri;
+            }
+        }
         return endpoint;
     }
 

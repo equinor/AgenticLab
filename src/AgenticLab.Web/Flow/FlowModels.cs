@@ -60,8 +60,8 @@ public enum PanelSide
 /// One exchange in the conversation: the user's message, the responding agent, its final reply (or
 /// error) and the full ordered flow history for that turn. <paramref name="Id"/> is assigned when the
 /// message is sent and survives archiving, so a selection in the Execution explorer stays put. The
-/// vendor/workspace are recorded as they were at send time, so history never reports whatever the
-/// controls happen to be set to now.
+/// vendor/workspace/model are recorded as they were at send time, so history never reports whatever the
+/// controls happen to be set to now; the model that actually answered comes from <see cref="Run"/>.
 /// </summary>
 internal sealed record ConversationTurn(
     string Id,
@@ -72,7 +72,15 @@ internal sealed record ConversationTurn(
     IReadOnlyList<FlowEvent> Events,
     string? Vendor = null,
     string? Workspace = null,
-    IReadOnlyList<A2AChip>? A2AAgents = null);
+    IReadOnlyList<A2AChip>? A2AAgents = null,
+    string? Model = null)
+{
+    /// <summary>The answering model and run figures from the final event; null until the run completes.</summary>
+    public RunSummary? Run => Events.LastOrDefault(e => e.Kind == "final")?.Run;
+
+    /// <summary>The model that answered, or the requested one while the run is in progress.</summary>
+    public string? AnsweredBy => Run?.Model ?? Model;
+}
 
 /// <summary>A skill discovered in the workspace and offered to the agent: its name and one-line description.</summary>
 internal sealed record SkillChip(string Name, string Description);

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using AgenticLab.ModelProviders;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.Options;
 
@@ -17,11 +19,21 @@ internal static class ChatEndpoints
 
         // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
         // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
+        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, ModelChoices models, AgentCatalog catalog, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
         {
             if (!limits.Value.Allows(request.Message))
             {
                 return Results.BadRequest(limits.Value.TooLongMessage);
+            }
+
+            if (!models.TryResolve(request.Model, out var model))
+            {
+                return UnknownModel(request.Model);
+            }
+
+            if (model is not null && !catalog.SupportsModelSelection(request.Agent))
+            {
+                return ScriptedModel(request.Agent);
             }
 
             if (request.Breakpoints?.Any(kind => !FlowSession.BreakpointKinds.Contains(kind)) == true)
@@ -32,7 +44,7 @@ internal static class ChatEndpoints
             var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
             session.SetBreakpoints(request.Breakpoints ?? []);
             return TypedResults.ServerSentEvents(
-                tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, request.Vendor, session, cancellationToken),
+                tracer.StreamAsync(request.Message, request.Agent, request.ConversationId, request.Workspace, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, request.Vendor, session, cancellationToken, model),
                 eventType: "flow");
         });
 
@@ -55,7 +67,7 @@ internal static class ChatEndpoints
     }
 
     // One non-interactive turn against a built-in or workspace-defined agent.
-    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
+    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, ModelChoices models, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
@@ -65,6 +77,16 @@ internal static class ChatEndpoints
         if (!limits.Value.Allows(request.Message))
         {
             return Results.BadRequest(limits.Value.TooLongMessage);
+        }
+
+        if (!models.TryResolve(request.Model, out var model))
+        {
+            return UnknownModel(request.Model);
+        }
+
+        if (model is not null && !catalog.SupportsModelSelection(request.Agent))
+        {
+            return ScriptedModel(request.Agent);
         }
 
         // When a brand/vendor is selected, its harness replaces the shared harness for this run.
@@ -86,7 +108,7 @@ internal static class ChatEndpoints
                     : "The workspace is not available on this server.");
             }
 
-            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
+            return await RunChatAsync(agent, resolvedName, catalog.SupportsSkills(resolvedName), vendors.HostKey(request.Vendor), model, request, conversations, skills, instructions, cancellationToken);
         }
 
         // Otherwise it may be a user-authored agent declared in the workspace's agents/ folder, which can
@@ -111,13 +133,20 @@ internal static class ChatEndpoints
         }
 
         // Workspace-defined agents always support workspace skills (see WorkspaceDefinedAgent).
-        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, vendors.HostKey(request.Vendor), request, conversations, skills, instructions, cancellationToken);
+        return await RunChatAsync(workspaceAgent, definition.Name, supportsSkills: true, vendors.HostKey(request.Vendor), model, request, conversations, skills, instructions, cancellationToken);
     }
+
+    private static IResult UnknownModel(string? requested) =>
+        Results.BadRequest($"Unknown model '{requested}'. Call GET /models for the selectable models.");
+
+    // Rejected rather than ignored, so a caller never believes a scripted answer came from the chosen model.
+    private static IResult ScriptedModel(string? agent) =>
+        Results.BadRequest($"Agent '{agent}' replays a scripted model and does not accept a model selection. Omit 'model'.");
 
     // Runs one turn, continuing the supplied conversation, injecting the enabled custom instructions and
     // (when the agent uses skills) the skill catalogue, and hiding any tools the caller disabled. Any
     // required workspace scope must already be active on the calling context.
-    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, string host, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
+    private static async Task<IResult> RunChatAsync(AIAgent agent, string resolvedName, bool supportsSkills, string host, string? model, ChatRequest request, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, CancellationToken cancellationToken)
     {
         // Continue the existing conversation when an id is supplied; otherwise mint a new one and return
         // it so the client can keep the conversation going.
@@ -128,12 +157,15 @@ internal static class ChatEndpoints
 
         // Non-interactive: an AskQuestion tool falls back to stated assumptions instead of blocking.
         using var scopes = RunScopeSet.Begin(null, request.DisabledTools, request.DisabledSkills, request.EnabledInstructions, interactive: false,
-            conversationId: conversationId, agentName: resolvedName);
+            conversationId: conversationId, agentName: resolvedName, model: model);
         var runOptions = RunScopeSet.BuildRunOptions(supportsSkills, skills, instructions);
 
         ChatMetrics.RecordMessage(resolvedName, host);
+        var stopwatch = Stopwatch.StartNew();
         var response = await agent.RunAsync(request.Message, session, runOptions, cancellationToken);
-        return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId));
+        var summary = scopes.Model.Usage.Summarize(stopwatch.Elapsed);
+        ChatMetrics.RecordRun(Activity.Current, resolvedName, host, summary);
+        return Results.Ok(new ChatResponse(response.Text, resolvedName, conversationId, summary));
     }
 
     // Drives an in-flight /chat/stream run: single-step (next), pause, resume, switch mode, change the
@@ -204,9 +236,9 @@ internal static class ChatEndpoints
     }
 }
 
-internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null);
-internal sealed record ChatResponse(string Reply, string Agent, string ConversationId);
+internal sealed record ChatRequest(string Message, string? Agent = null, string? ConversationId = null, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, string? Model = null);
+internal sealed record ChatResponse(string Reply, string Agent, string ConversationId, ModelRunSummary Run);
 internal sealed record ChatLimitsResponse(int MaxMessageLength);
-internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null);
+internal sealed record FlowChatRequest(string Message, string? Agent, string SessionId, string ConversationId, bool Manual = false, int StepDelayMs = 0, string? Workspace = null, IReadOnlyList<string>? DisabledTools = null, IReadOnlyList<string>? DisabledSkills = null, IReadOnlyList<string>? EnabledInstructions = null, string? Vendor = null, IReadOnlyList<string>? Breakpoints = null, string? Model = null);
 internal sealed record FlowControlRequest(string SessionId, string? Action = null, bool? Manual = null, int? DelayMs = null, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record ConversationResetRequest(string ConversationId);

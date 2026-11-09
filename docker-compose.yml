@@ -26,12 +26,16 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - Models__Provider=${Models__Provider:-AzureOpenAI}
       - AzureOpenAI__Endpoint=${AzureOpenAI__Endpoint:-}
-      - AzureOpenAI__Deployment=${AzureOpenAI__Deployment:-}
+      # Unset unless exported, so the committed models.json defaults apply.
+      - AzureOpenAI__Deployment
+      - AzureOpenAI__Choices
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}
+      - OpenAI__Choices
       - Gemini__ApiKey=${Gemini__ApiKey:-}
       - Gemini__Model=${Gemini__Model:-}
+      - Gemini__Choices
     networks:
       - agenticlab
 
@@ -48,12 +52,16 @@ services:
       - ASPNETCORE_HTTP_PORTS=8080
       - Models__Provider=${Models__Provider:-AzureOpenAI}
       - AzureOpenAI__Endpoint=${AzureOpenAI__Endpoint:-}
-      - AzureOpenAI__Deployment=${AzureOpenAI__Deployment:-}
+      # Unset unless exported, so the committed models.json defaults apply.
+      - AzureOpenAI__Deployment
+      - AzureOpenAI__Choices
       - AzureOpenAI__ApiKey=${AzureOpenAI__ApiKey:-}
       - OpenAI__ApiKey=${OpenAI__ApiKey:-}
       - OpenAI__Model=${OpenAI__Model:-}
+      - OpenAI__Choices
       - Gemini__ApiKey=${Gemini__ApiKey:-}
       - Gemini__Model=${Gemini__Model:-}
+      - Gemini__Choices
       - services__mcpserver__http__0=http://mcpserver:8080
       - services__a2aserver__http__0=http://a2aserver:8080
     networks:

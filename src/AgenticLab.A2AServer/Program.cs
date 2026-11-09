@@ -1,3 +1,4 @@
+using AgenticLab.A2AServer;
 using AgenticLab.ModelProviders;
 using Microsoft.Agents.AI.Hosting;
 using Microsoft.Extensions.AI;
@@ -5,17 +6,15 @@ using AgenticLab.Extensibility.Examples;
 using AgenticLab.Examples.Windfarm;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddModelDefaults();
 
 // OpenTelemetry, health checks, service discovery and resilience.
 builder.AddServiceDefaults();
 builder.Services.AddExample<WindfarmExample>(builder.Configuration, ExampleHost.A2A);
 
 var connection = new ModelConnectionOptions(builder.Configuration);
-IChatClient chatClient = new ModelClientFactory(connection).Create()
-    .AsBuilder()
-    .UseFunctionInvocation()
-    .UseOpenTelemetry()
-    .Build();
+var modelChoices = new ModelChoices(builder.Configuration, connection);
+IChatClient chatClient = SelectableModels.CreateChatClient(connection);
 
 builder.Services.AddSingleton(chatClient);
 
@@ -66,6 +65,9 @@ var app = builder.Build();
 
 app.UseAppVersion();
 app.MapDefaultEndpoints();
+
+// AiService forwards the run's selected model; only models on this host's own allow-list are accepted.
+app.UseModelSelection(modelChoices);
 
 // Expose each agent over the A2A protocol (JSON-RPC binding) so other agents can delegate to it.
 foreach (var agent in hosted)
