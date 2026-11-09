@@ -60,7 +60,7 @@ Each answer is labelled with the model that produced it and a line such as
 - **model**: time spent waiting for the model. Tool time and manual stepping pauses are excluded.
 - **tokens**: input plus output. Input grows each turn because the whole context is sent again.
 - **tool calls**: how many tools the model asked the harness to run.
-- **turns**: LLM round-trips. Hover the line to see them; the loop badge on the **Model** node shows
+- **turns**: LLM round-trips. The loop badge on the **Model** node shows
   them live.
 
 For a fair comparison, start a **New conversation** before each attempt, because switching model
