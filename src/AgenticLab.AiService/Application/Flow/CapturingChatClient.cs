@@ -33,6 +33,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         var text = new System.Text.StringBuilder();
         var toolCalls = new List<object>();
         var toolCallNames = new List<string>();
+        UsageDetails? usage = null;
 
         var execution = FlowExecutionScope.Current;
         if (execution is not null)
@@ -56,6 +57,9 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
                             toolCalls.Add(new { name = call.Name, arguments = call.Arguments });
                             toolCallNames.Add(call.Name);
                             break;
+                        case UsageContent reported:
+                            (usage ??= new()).Add(reported.Details);
+                            break;
                     }
                 }
             }
@@ -70,6 +74,7 @@ public sealed class CapturingChatClient(IChatClient inner) : DelegatingChatClien
         {
             turn.ElapsedMilliseconds = stopwatch.ElapsedMilliseconds;
             turn.ResponseSummary = SummarizeResponse(text.ToString(), toolCallNames);
+            turn.Usage = ModelCallUsage.From(usage);
             // Published last: FlowTracer treats ResponseData as the turn's completion signal.
             turn.ResponseData = RenderResponse(text.ToString(), toolCalls);
         }

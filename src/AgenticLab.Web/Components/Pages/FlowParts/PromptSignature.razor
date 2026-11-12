@@ -3,7 +3,7 @@
    stability "match" score. Mirrors the harness anatomy's contributor framing — it shows what the model
    actually received this round-trip and how much of it was reused from the last one. *@
 
-<div class="prompt-signature @(Run.Replay.Replaying ? "replay" : null)">
+<div class="prompt-signature @(Run.Replay.Replaying ? "replay" : null) @(Sig.HasTokens ? "has-tokens" : null) @(Sig.HasCachedTokens ? "has-cached" : null)">
     <div class="sig-head">
         <span class="sig-title-group">
             <ConceptInfoButton Id="prompt-signature" Title="Learn about the prompt signature" />
@@ -66,9 +66,9 @@
             <span class="sig-sub sig-compare-caption">
                 comparing two conversation exchanges — previous (<span class="sig-conv" title="@PreviousLabel">@Short(PreviousLabel)</span>) vs current (<span class="sig-conv" title="@CurrentLabel">@Short(CurrentLabel)</span>)
             </span>
-            @Bar("Previous", Sig.Previous, Sig.PreviousChars, PreviousLabel)
+            @Bar("Previous", Sig.Previous, Sig.PreviousChars, PreviousLabel, Sig.PreviousRequest?.Tokens)
         }
-        @Bar("Current", Sig.Current, Sig.CurrentChars, CurrentLabel)
+        @Bar("Current", Sig.Current, Sig.CurrentChars, CurrentLabel, Sig.CurrentRequest?.Tokens)
 
         @if (Sig.HasPrevious)
         {
@@ -97,8 +97,8 @@
     private PromptSignatureView Sig => Run.Replay.DisplayPromptSignature;
 
     // The user messages of the two conversation exchanges being compared (current = newest, previous = before).
-    private string CurrentLabel => Sig.Requests.Count > 0 ? Sig.Requests[^1].Label : string.Empty;
-    private string PreviousLabel => Sig.Requests.Count > 1 ? Sig.Requests[^2].Label : string.Empty;
+    private string CurrentLabel => Sig.CurrentRequest?.Label ?? string.Empty;
+    private string PreviousLabel => Sig.PreviousRequest?.Label ?? string.Empty;
 
     private static string Short(string value) =>
         string.IsNullOrWhiteSpace(value) ? "—" : value.Length > 32 ? value[..31] + "…" : value;
@@ -106,7 +106,7 @@
     // Renders one labelled stacked bar: a segment per non-empty category sized by its char share, with
     // the char count shown inside wide-enough segments and the total at the right. The optional conversation
     // message is shown as the row's tooltip so it's clear which exchange the bar represents.
-    private RenderFragment Bar(string label, IReadOnlyList<PromptSignatureCategory> categories, int total, string? conv = null) => @<div class="sig-row" title="@(string.IsNullOrWhiteSpace(conv) ? null : $"{label} exchange: {conv}")">
+    private RenderFragment Bar(string label, IReadOnlyList<PromptSignatureCategory> categories, int total, string? conv = null, PromptSignatureTokens? tokens = null) => @<div class="sig-row" title="@(string.IsNullOrWhiteSpace(conv) ? null : $"{label} exchange: {conv}")">
         <span class="sig-row-label">@label</span>
         <div class="sig-bar">
             @if (total == 0)
@@ -132,8 +132,49 @@
                 }
             }
         </div>
-        <span class="sig-row-total">@total.ToString("N0") chars</span>
+        @Total(total, tokens)
     </div>;
+
+    // A row's token line. The cached count sits inside the input it is part of, and only when reported.
+    private static string TokensText(ModelCallUsage tokens) =>
+        tokens.CachedInputTokens is { } cached
+            ? $"{tokens.InputTokens:N0} in ({cached:N0} cached) · {tokens.OutputTokens:N0} out tokens"
+            : $"{tokens.InputTokens:N0} in · {tokens.OutputTokens:N0} out tokens";
+
+    // What the token line covers when it is not simply the exchange's only model call: the number of calls
+    // summed for a delivered exchange, or the one model turn shown before delivery.
+    private static string? TokensScope(PromptSignatureTokens tokens) =>
+        tokens.Turn is { } turn ? $"turn {turn}" : tokens.ModelCalls > 1 ? $"{tokens.ModelCalls} calls" : null;
+
+    // The exact counts behind a row's token line, what they cover, and why the input count is not a
+    // conversion of the chars.
+    private static string TokensTitle(PromptSignatureTokens tokens)
+    {
+        var usage = tokens.Usage;
+        var covers = tokens.Turn is { } turn
+            ? $"reported by the provider for model turn {turn} of this exchange alone. Input is that whole request, including the " +
+              "tool catalogue and message framing that the character count leaves out. The delivered exchange shows the sum of all its model calls."
+            : tokens.ModelCalls > 1
+                ? $"the provider-reported sum of this exchange's {tokens.ModelCalls} model calls, as on the reply in the conversation. " +
+                  "Every call sends the context so far again, so input counts it once per call, along with the tool catalogue and " +
+                  "message framing that the character count leaves out. Select a model turn in Execution to see that call alone."
+                : "reported by the provider for this exchange's model call. Input is the whole request, including the " +
+                  "tool catalogue and message framing that the character count leaves out.";
+        return $"{usage.InputTokens:N0} input + {usage.OutputTokens:N0} output = {usage.InputTokens + usage.OutputTokens:N0} tokens, " + covers +
+            (usage.CachedInputTokens is { } cached
+                ? $" {cached:N0} of the input tokens were read from the provider's prompt cache; unlike Match, this is measured reuse."
+                : null);
+    }
+
+    // The right-hand total of a row: the character count, with the provider-reported tokens beneath it.
+    // Providers that report no usage leave the chars on their own.
+    private RenderFragment Total(int chars, PromptSignatureTokens? tokens) => @<span class="sig-row-total">
+        @chars.ToString("N0") chars
+        @if (tokens is not null)
+        {
+            <span class="sig-row-tokens" title="@TokensTitle(tokens)">@TokensText(tokens.Usage)@if (TokensScope(tokens) is { } scope){<span class="sig-row-scope"> · @scope</span>}</span>
+        }
+    </span>;
 
     // Renders one delta/waterfall row for a conversation exchange: an outer track scaled to the conversation's
     // largest exchange (so growth is visible), filled with a muted "carried over" segment plus a highlighted
@@ -165,7 +206,7 @@
                     </span>
                 </div>
             </div>
-            <span class="sig-row-total">@request.TotalChars.ToString("N0") chars</span>
+            @Total(request.TotalChars, request.Tokens)
         </div>;
     }
 }

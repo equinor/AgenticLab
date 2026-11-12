@@ -14,6 +14,17 @@
     background: var(--surface);
     border-top: 1px solid var(--panel-border);
     overflow-wrap: anywhere;
+    --sig-total-width: 5.5rem;
+}
+
+/* Rows carry a second line of provider-reported tokens under the char total. */
+.prompt-signature.has-tokens {
+    --sig-total-width: 10.5rem;
+}
+
+/* The token line also names the cached part of the input; wide enough for six-digit counts. */
+.prompt-signature.has-cached {
+    --sig-total-width: 15.5rem;
 }
 
 .sig-head {
@@ -116,7 +127,7 @@
 /* Rows (Previous / Current / Match) */
 .sig-row {
     display: grid;
-    grid-template-columns: 4.5rem minmax(0, 1fr) 5.5rem;
+    grid-template-columns: 4.5rem minmax(0, 1fr) var(--sig-total-width);
     align-items: center;
     gap: .6rem;
 }
@@ -133,6 +144,18 @@
     font-size: .68rem;
     color: var(--text-dim);
     text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Wraps rather than overflowing the column when the counts are longer than it allows for. */
+.sig-row-tokens {
+    display: block;
+    white-space: normal;
+}
+
+/* What the tokens cover (a model turn, or the number of calls summed); stays whole if the line wraps. */
+.sig-row-scope {
     white-space: nowrap;
 }
 
@@ -242,7 +265,7 @@
 }
 
 .sig-delta-row {
-    grid-template-columns: 9rem minmax(0, 1fr) 5.5rem;
+    grid-template-columns: 9rem minmax(0, 1fr) var(--sig-total-width);
 }
 
 /* The track holds the bar at a width scaled to the conversation's largest exchange, so earlier (smaller)

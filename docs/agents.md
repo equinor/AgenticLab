@@ -319,7 +319,13 @@ labels. Token counts cover the local agent; A2A specialists report their own cal
 Durations include tool execution and any stepping pauses. Model duration (`modelDurationMs` in the run
 summary) counts only the time spent waiting for the local model, excluding tools, breakpoints and
 manual stepping, so it stays comparable in any mode. Each captured `llm-request` records the `model`
-it was routed to, and each `llm-response` detail ends with that round-trip's model time.
+it was routed to, and each `llm-response` detail ends with that round-trip's model time. An
+`llm-response` also carries that round-trip's own `usage` (`inputTokens`, `outputTokens`); the run
+summary is the sum over all round-trips. The Prompt signature shows that sum for a delivered exchange
+and a single round-trip's `usage` at a model turn. `usage` is set
+only when the provider reported both counts, so a reported zero is kept and missing or partial usage
+is null rather than zero. `cachedInputTokens` is the part of the input the provider read from its prompt
+cache; it is null when the provider does not report cache usage and is not added to the run summary.
 
 ## Per-agent models
 

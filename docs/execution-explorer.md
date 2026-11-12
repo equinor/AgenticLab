@@ -102,6 +102,7 @@ Returns `text/event-stream` with named `flow` events:
 | `callId` | Pairs a tool result with its call, including repeated calls to one tool. |
 | `toolCall` | Optional structured tool name/arguments; do not parse display text for routing. |
 | `run` | On `final` only: `model`, `durationMs`, `modelDurationMs`, `inputTokens`, `outputTokens`, `modelCalls` and `toolCalls` for the run ([selectable models](agents.md#selectable-models)). |
+| `usage` | On `llm-response` only: `inputTokens` and `outputTokens` of that one model round-trip, as reported by the provider; null unless it reported both counts. `cachedInputTokens` is the part of the input read from the provider's prompt cache, null when not reported. |
 
 Kinds include `received`, `llm-request`, `llm-response`, `tool-call`, `tool-result`, `ask-question`,
 `final`, `error` and `breakpoint`. Every completed model round-trip emits `llm-response`, including

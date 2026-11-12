@@ -292,7 +292,8 @@ overrides and `ModelId`; `IScriptedModelAgent` agents reject an explicit `model`
 and A2AServer, which validate it independently; unlisted models are rejected with 400. Blazor and React
 save the choice as `agenticlab-model`. Completed runs report `ModelRunSummary` on the `final` event and
 record duration, model time (excluding tools and stepping pauses), tokens, model calls and tool calls
-tagged by agent, host and model. Captured requests record the routed `model`. See
+tagged by agent, host and model. Captured requests record the routed `model`; each `llm-response`
+carries that round-trip's provider-reported `usage` (`ModelCallUsage`, with cached input tokens when reported); Prompt signature sums it per delivered exchange and shows one call at a model turn. See
 [docs/agents.md](docs/agents.md#selectable-models).
 
 ## Conventions

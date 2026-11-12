@@ -221,6 +221,46 @@ public sealed class ModelSelectionTests
         Assert.Equal(HttpStatusCode.BadRequest, scriptedStream.StatusCode);
     }
 
+    /// <summary>The stream reports each round-trip's own tokens on its response; together they are the run's totals.</summary>
+    [Fact]
+    public async Task StreamedResponsesCarryTheirOwnUsageWhichSumsToTheRunSummary()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Logging.ClearProviders();
+        builder.Configuration.AddConfiguration(Configuration("OpenAI", "test-model"));
+        builder.Services.AddHarnessTools().AddWorkspaceFeatures(builder.Configuration).AddVendorHarnesses()
+            .AddDemoAgents(builder.Configuration).AddConversationMemory(builder.Configuration)
+            .AddChatInputLimits(builder.Configuration).AddFlowTracing().AddDiscovery();
+        builder.Services.AddSingleton<IAgentDefinition>(new UsageReportingAgent());
+        await using var app = builder.Build();
+        app.MapChatEndpoints();
+        await app.StartAsync(timeout.Token);
+        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+
+        using var response = await client.PostAsJsonAsync("/chat/stream",
+            new { message = "Count twice", agent = UsageReportingAgent.AgentName, sessionId = "usage", conversationId = "usage" }, timeout.Token);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var events = (await response.Content.ReadAsStringAsync(timeout.Token)).Split('\n')
+            .Where(line => line.StartsWith("data: ", StringComparison.Ordinal))
+            .Select(line => JsonDocument.Parse(line["data: ".Length..]).RootElement)
+            .ToArray();
+
+        static bool Is(JsonElement step, string kind) => step.GetProperty("kind").GetString() == kind;
+        static long? Cached(JsonElement usage) =>
+            usage.TryGetProperty("cachedInputTokens", out var cached) && cached.ValueKind == JsonValueKind.Number ? cached.GetInt64() : null;
+        // The first call reports no cache usage; the second reads 16 of its 20 input tokens from the cache.
+        Assert.Equal([(10L, 5L, (long?)null), (20L, 2L, 16L)], events.Where(step => Is(step, "llm-response"))
+            .Select(step => step.GetProperty("usage"))
+            .Select(usage => (usage.GetProperty("inputTokens").GetInt64(), usage.GetProperty("outputTokens").GetInt64(), Cached(usage))));
+        Assert.All(events.Where(step => !Is(step, "llm-response")), step =>
+            Assert.True(!step.TryGetProperty("usage", out var usage) || usage.ValueKind == JsonValueKind.Null));
+        var run = events.Single(step => Is(step, "final")).GetProperty("run");
+        Assert.Equal(30, run.GetProperty("inputTokens").GetInt64());
+        Assert.Equal(7, run.GetProperty("outputTokens").GetInt64());
+    }
+
     private static string? ModelOf(IChatClient client) => client.GetService<ChatClientMetadata>()?.DefaultModelId;
 
     private static IConfigurationRoot Configuration(string provider, string defaultModel, string? choices = null) =>
@@ -254,6 +294,18 @@ public sealed class ModelSelectionTests
         public void Dispose() { }
     }
 
+    // A scripted agent on the usage-reporting model, so a whole stream can be read without a provider.
+    private sealed class UsageReportingAgent : AgentDefinitionBase, IScriptedModelAgent
+    {
+        public const string AgentName = "UsageReporting";
+
+        public override string Name => AgentName;
+        public override string Description => "Counts twice, then answers.";
+        protected override string Persona => "Count twice.";
+        public override IList<AITool> Tools { get; } = [AIFunctionFactory.Create(() => 1, "Count")];
+        public IChatClient CreateModel() => new ScriptedModel();
+    }
+
     // Requests two tool calls, then answers, reporting usage the way the OpenAI adapter does when streaming.
     private sealed class ScriptedModel : IChatClient
     {
@@ -270,7 +322,7 @@ public sealed class ModelSelectionTests
                     { FinishReason = ChatFinishReason.ToolCalls }
                 : new ChatResponseUpdate(ChatRole.Assistant, "Done") { FinishReason = ChatFinishReason.Stop };
             yield return new ChatResponseUpdate(ChatRole.Assistant,
-                [new UsageContent(new UsageDetails { InputTokenCount = first ? 10 : 20, OutputTokenCount = first ? 5 : 2 })]);
+                [new UsageContent(new UsageDetails { InputTokenCount = first ? 10 : 20, OutputTokenCount = first ? 5 : 2, CachedInputTokenCount = first ? null : 16 })]);
         }
 
         public Task<Microsoft.Extensions.AI.ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null,

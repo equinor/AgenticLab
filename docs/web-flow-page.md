@@ -203,6 +203,29 @@ Prompt signature has two views:
 - **Delta** shows reused versus added character counts per exchange. This size-based growth split
   is separate from the prefix-match score.
 
+In both views each exchange's character total has provider-reported tokens beneath it, as
+`<input> in · <output> out tokens`; the tooltip gives the exact counts, their sum and what they cover.
+
+- **Delivered exchange**: the sum over all its model calls, marked `· N calls` when there is more than
+  one. This is the same total as the token count on the reply in the conversation. Every call sends the
+  context so far again, so the input sum counts it once per call. Live shows this once the answer is
+  delivered, as do the Delivery stage in replay and every earlier exchange.
+- **Model turn**: while the run is in progress, or with the replay cursor on a stage of a model turn,
+  the row shows that one call, marked `· turn N`, once the call has responded.
+
+Categories stay in characters: providers report tokens per request, not per message. Input counts
+cover whole requests, so they also include the tool catalogue and message framing that the character
+total leaves out. These are reported counts, never an estimate from the characters. A reported zero is
+shown; when the provider reports no usage, or only one of the two counts, the row keeps its character
+total alone, as with scripted agents. A delivered exchange shows no sum if any of its calls lacks usage.
+
+When the provider also reports cache usage, the input count names its cached part:
+`<input> in (<cached> cached) · <output> out tokens`. This is the measured counterpart to **Match**,
+and the two can disagree. Match compares text against the previous exchange; the cached count is what
+the provider reused from any earlier request, including the previous model call of the same exchange.
+Providers also cache only prompts above a minimum size (1,024 tokens for OpenAI models), so a short
+prompt with a high match still reports `0 cached`. A delivered exchange sums the cached counts too.
+
 Context and Prompt signature follow the replay cursor. Before an exchange's first captured request,
 its size/signature is unavailable; later results do not appear early. **Live** restores the current
 run. See [replay behavior and retention](execution-explorer.md#execution-panel).

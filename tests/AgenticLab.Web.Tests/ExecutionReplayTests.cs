@@ -610,6 +610,147 @@ public sealed class ExecutionReplayTests
         Assert.Contains(">GPT-5.6 Luna</span>", html);
     }
 
+    /// <summary>
+    /// A delivered exchange shows the sum of its model calls, as its reply does; a replayed model turn shows
+    /// that call alone, and only once it has responded. Both views agree. A reported zero is shown, the cached
+    /// part appears only when reported, and missing usage keeps the chars-only layout.
+    /// </summary>
+    [Theory]
+    [InlineData(600L, 212L, 512L)]
+    [InlineData(600L, 212L, null)]
+    [InlineData(0L, 0L, 0L)]
+    [InlineData(null, null, null)]
+    public async Task PromptSignature_ShowsTheExchangeSumWhenDeliveredAndOneCallAtAModelTurn(long? input, long? output, long? cached)
+    {
+        static string Line(long input, long output, long? cached) => cached is null
+            ? $">{input:N0} in · {output:N0} out tokens<"
+            : $">{input:N0} in ({cached:N0} cached) · {output:N0} out tokens<";
+
+        var view = new FlowViewState(new ConceptCatalog(new ReplayEnvironment(), NullLogger<ConceptCatalog>.Instance));
+        using var handler = new ReplayHandler
+        {
+            ModelCalls = 2,
+            Usage = input is { } reportedInput && output is { } reportedOutput ? new ModelCallUsage(reportedInput, reportedOutput, cached) : null,
+        };
+        var reported = handler.Usage is not null;
+        var call = reported ? Line(input!.Value, output!.Value, cached) : null;
+        var sum = reported ? Line(input!.Value * 2, output!.Value * 2, cached * 2) : null;
+        var second = Line(182, 18, null);
+        const string summed = "> · 2 calls</span>";
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://test") };
+        using var run = new FlowRunController(new AiServiceClient(http), view);
+        var finished = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        run.Changed += () =>
+        {
+            if (!run.Running) finished.TrySetResult();
+            return Task.CompletedTask;
+        };
+        var storage = new DelayedPanelStorage();
+        storage.Complete();
+        await using var services = new ServiceCollection().AddLogging().AddSingleton<IJSRuntime>(storage).BuildServiceProvider();
+        await using var renderer = new Microsoft.AspNetCore.Components.Web.HtmlRenderer(services, services.GetRequiredService<ILoggerFactory>());
+
+        async Task<string> RenderAsync() => WebUtility.HtmlDecode(await renderer.Dispatcher.InvokeAsync(async () =>
+        {
+            RenderFragment content = builder =>
+            {
+                builder.OpenComponent<CascadingValue<FlowRunController>>(0);
+                builder.AddAttribute(1, "Value", run);
+                builder.AddAttribute(2, "ChildContent", (RenderFragment)(child =>
+                {
+                    child.OpenComponent<AgenticLab.Web.Components.Pages.FlowParts.PromptSignature>(0);
+                    child.CloseComponent();
+                }));
+                builder.CloseComponent();
+            };
+            var root = await renderer.RenderComponentAsync<CascadingValue<FlowViewState>>(ParameterView.FromDictionary(
+                new Dictionary<string, object?> { ["Value"] = view, ["ChildContent"] = content }));
+            return root.ToHtmlString();
+        }));
+
+        async Task SendAsync()
+        {
+            finished = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            view.Message = "Test usage";
+            await run.SendAsync();
+            await finished.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+
+        void AssertNoTokens(string html)
+        {
+            Assert.DoesNotContain("sig-row-tokens", html);
+            Assert.DoesNotContain("has-tokens", html);
+        }
+
+        // The first exchange as delivered and on its own: both calls summed, labelled as such.
+        void AssertFirstExchangeSum(string html)
+        {
+            Assert.DoesNotContain(second, html);
+            if (!reported)
+            {
+                AssertNoTokens(html);
+                return;
+            }
+
+            Assert.Contains("has-tokens", html);
+            Assert.Contains(sum!, html);
+            Assert.Contains(summed, html);
+            Assert.DoesNotContain("> · turn ", html);
+            Assert.Contains($"{input * 2:N0} input + {output * 2:N0} output = {(input + output) * 2:N0} tokens, the provider-reported sum of this exchange's 2 model calls", html);
+            // The wider layout and the cache sentence belong only to exchanges that report cache usage.
+            Assert.Equal(cached is not null, html.Contains("has-cached"));
+            Assert.Equal(cached is not null, html.Contains($"{cached * 2:N0} of the input tokens were read from the provider's prompt cache"));
+        }
+
+        // The first exchange replayed at one of its model turns: that call alone, never the sum.
+        void AssertFirstExchangeCall(string html, int turn)
+        {
+            if (!reported)
+            {
+                AssertNoTokens(html);
+                return;
+            }
+
+            Assert.Contains(call!, html);
+            Assert.Contains($"> · turn {turn}</span>", html);
+            Assert.DoesNotContain(summed, html);
+            Assert.Contains($"{input:N0} input + {output:N0} output = {input + output:N0} tokens, reported by the provider for model turn {turn} of this exchange alone", html);
+        }
+
+        AssertNoTokens(await RenderAsync());
+        await SendAsync();
+        var firstId = Assert.Single(run.Projections.Exchanges).Id;
+        foreach (var delta in new[] { true, false })
+        {
+            view.Diagram.PromptSignatureDelta = delta;
+            AssertFirstExchangeSum(await RenderAsync());
+        }
+
+        handler.Usage = new ModelCallUsage(91, 9);
+        await SendAsync();
+        var live = await RenderAsync();
+        Assert.Contains(second, live);
+        if (reported) Assert.Contains(sum!, live);
+
+        // Replaying the first exchange: a turn shows nothing until it responds, then its own call; the
+        // delivery stage shows the sum again, and the later exchange's tokens never appear.
+        view.Cursor.SelectStage(firstId, 1);
+        AssertNoTokens(await RenderAsync());
+        view.Cursor.SelectStage(firstId, 2);
+        AssertFirstExchangeCall(await RenderAsync(), 1);
+        view.Cursor.SelectStage(firstId, 3);
+        AssertNoTokens(await RenderAsync());
+        view.Cursor.SelectStage(firstId, 4);
+        AssertFirstExchangeCall(await RenderAsync(), 2);
+        view.Cursor.SelectStage(firstId, 5);
+        AssertFirstExchangeSum(await RenderAsync());
+
+        view.Cursor.FollowLive();
+        Assert.Contains(second, await RenderAsync());
+        await run.NewConversationAsync();
+        AssertNoTokens(await RenderAsync());
+    }
+
     [Fact]
     public async Task ModelSelection_DoesNotApplyToScriptedAgents()
     {
@@ -1197,6 +1338,12 @@ public sealed class ExecutionReplayTests
     private sealed class ReplayHandler : HttpMessageHandler
     {
         internal string Reply { get; init; } = "answer";
+        /// <summary>
+        /// Model round-trips to emit before the final step, each with its own <c>llm-response</c> carrying
+        /// <see cref="Usage"/>, as the service does for completed calls. Zero keeps the bare request + final.
+        /// </summary>
+        internal int ModelCalls { get; init; }
+        internal ModelCallUsage? Usage { get; set; }
         internal int Resets { get; private set; }
         internal HttpStatusCode ResetStatus { get; init; } = HttpStatusCode.NoContent;
         internal List<string> ResetIds { get; } = [];
@@ -1230,6 +1377,19 @@ public sealed class ExecutionReplayTests
                 Event(2, "final", 1) with
                 { Detail = Reply, Data = Reply, Run = model is null ? null : new RunSummary(model, 1200, 600, 212, 2, 1) },
             ];
+            if (ModelCalls > 0)
+            {
+                var (sent, final) = (events[0], events[1]);
+                events =
+                [
+                    .. Enumerable.Range(1, ModelCalls).SelectMany(turn => new[]
+                    {
+                        sent with { Sequence = turn * 2 - 1, Turn = turn },
+                        Event(turn * 2, "llm-response", turn) with { Usage = Usage },
+                    }),
+                    final with { Sequence = ModelCalls * 2 + 1, Turn = ModelCalls },
+                ];
+            }
             return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(string.Concat(events.Select(stage => $"event: flow\ndata: {JsonSerializer.Serialize(stage)}\n\n"))),
@@ -1817,6 +1977,50 @@ public sealed class ExecutionReplayTests
         Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "empty", null));
         Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "first", 999));
         Assert.Same(PromptSignatureView.Empty, ExecutionReplayBuilder.SignatureAt(exchanges, "missing", 1));
+    }
+
+    /// <summary>
+    /// A model turn shows its own call once it has responded; the delivered exchange shows the sum of all its
+    /// calls, as the reply's run summary does, and never a partial sum.
+    /// </summary>
+    [Fact]
+    public void Signature_ReportsOneCallAtAModelTurnAndTheExchangeSumOnceDelivered()
+    {
+        const string request = """{"instructions":"rules","messages":[{"role":"user","contents":[{"text":"question"}]}]}""";
+        FlowEvent[] Exchange(ModelCallUsage? first, ModelCallUsage? second) =>
+        [
+            Event(1, "llm-request", 1) with { Data = request },
+            Event(2, "llm-response", 1) with { Usage = first },
+            Event(3, "llm-request", 2) with { Data = request },
+            Event(4, "llm-response", 2) with { Usage = second },
+            Event(5, "final", 2),
+        ];
+        var exchanges = ExecutionReplayBuilder.Build(
+            [new("silent", "No usage reported", "Agent", "Answer", null, Exchange(null, null)),
+             new("partial", "One call unreported", "Agent", "Answer", null, Exchange(new(50, 5), null)),
+             new("mixed", "Cache reported once", "Agent", "Answer", null, Exchange(new(10, 1, 5), new(20, 2))),
+             new("selected", "Selected question", "Agent", "Answer", null, Exchange(new(100, 10, 0), new(220, 30, 96)))], -1);
+        PromptSignatureTokens? At(string id, int sequence) => ExecutionReplayBuilder.SignatureAt(exchanges, id, sequence).CurrentRequest?.Tokens;
+
+        Assert.Equal(new PromptSignatureTokens(new(100, 10, 0), 1, Turn: 1), At("selected", 2));
+        // The second request is on screen, but its own response is not: the first call's tokens must not stand in.
+        Assert.Null(At("selected", 3));
+        Assert.Equal(new PromptSignatureTokens(new(220, 30, 96), 1, Turn: 2), At("selected", 4));
+        Assert.Equal(new PromptSignatureTokens(new(320, 40, 96), 2), At("selected", 5));
+
+        Assert.Null(At("silent", 5));
+        // A call without usage would make the sum smaller than what was used, so no total is shown.
+        Assert.Equal(new PromptSignatureTokens(new(50, 5), 1, Turn: 1), At("partial", 2));
+        Assert.Null(At("partial", 5));
+        // The same holds for the cached part alone: the input and output sums stay.
+        Assert.Equal(new PromptSignatureTokens(new(30, 3), 2), At("mixed", 5));
+
+        // Earlier exchanges are delivered, so they show their sums whatever stage is selected.
+        var pending = ExecutionReplayBuilder.SignatureAt(exchanges, "selected", 3);
+        Assert.Equal(new PromptSignatureTokens(new(30, 3), 2), pending.PreviousRequest?.Tokens);
+        Assert.True(pending.HasTokens);
+        Assert.False(pending.HasCachedTokens);
+        Assert.False(ExecutionReplayBuilder.SignatureAt(exchanges, "silent", 5).HasTokens);
     }
 
     private static ExecutionExchange Build(params FlowEvent[] events) =>

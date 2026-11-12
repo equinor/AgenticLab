@@ -28,6 +28,9 @@ public sealed class LlmTurn(int turnNumber, string requestData, string requestSu
 
     /// <summary>Model response time in milliseconds, excluding consumer pacing and breakpoint waits; null until completed.</summary>
     public long? ElapsedMilliseconds { get; internal set; }
+
+    /// <summary>The provider-reported tokens of this round-trip; null until completed or when the provider reports no complete usage.</summary>
+    public ModelCallUsage? Usage { get; internal set; }
 }
 
 /// <summary>

@@ -152,7 +152,7 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                         var completed = turns[emittedResponses++];
                         currentTurn = completed.TurnNumber;
                         await session.WaitForStepAsync(token);
-                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), WithElapsed(completed.ResponseSummary, completed.ElapsedMilliseconds), response);
+                        yield return Step("llm-response", DescribeResponse(completed.TurnNumber), WithElapsed(completed.ResponseSummary, completed.ElapsedMilliseconds), response) with { Usage = completed.Usage };
                         continue;
                     }
 
