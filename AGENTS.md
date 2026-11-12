@@ -50,7 +50,8 @@ mark returns to Home. Keep the optional React root route independent. `/flow` al
 query parameters (`host`, `agent`, `prompt`, `view`, `harness`, `mode`, `breakpoints`, `tools`) built, parsed
 and applied by [Flow/FlowDeepLink.cs](src/AgenticLab.Web/Flow/FlowDeepLink.cs) after the catalogues load;
 a deep link replaces the stored host for that load without saving it, pre-fills the composer and never sends.
-Only the guide's tool-calling lesson uses one (**Show in live flow**). See [docs/web-flow-page.md](docs/web-flow-page.md#deep-links).
+Only the guide's tool-calling lesson uses one (**Show in live flow**). Learning-path exercises add a
+`tour` parameter. See [docs/web-flow-page.md](docs/web-flow-page.md#deep-links).
 
 Home owns its teaser text independently of the learning journey. The local
 [home-teaser.js](src/AgenticLab.Web/wwwroot/js/home-teaser.js) custom element cycles three
@@ -58,7 +59,19 @@ server-rendered messages every seven seconds, with manual controls and reduced-m
 It clears timers/listeners on disconnect; without JavaScript all messages remain readable.
 Keep this enhancement browser-only, without shared run state or changes to guide progression.
 
-The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Options`, `WorkspacePrefs`, `Models`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
+Learning paths sit beside the guide at `/learn/paths` ([PathPicker](src/AgenticLab.Web/Components/Pages/PathPicker.razor),
+[PathPlayer](src/AgenticLab.Web/Components/Pages/PathPlayer.razor)) and need no AI service.
+[LearningPaths](src/AgenticLab.Web/Learning/LearningPaths.cs) is the catalogue: outcome-named paths whose
+steps reference existing lesson stage IDs and optional live-flow exercises. It owns no lesson content;
+only `beginner` has steps, and `intermediate`/`advanced` are outlines. Progress
+([LearningProgress](src/AgenticLab.Web/Learning/LearningProgress.cs)) is browser-local under
+`agenticlab-learning-progress`, versioned and limited to identifiers; visiting or skipping a step is
+not completing it. `/flow?tour=<path>:<step>` opens an exercise: Flow takes the setup from the
+catalogue, applies it only when `GuidedTask.Check` finds the agent and its tools, and shows the task in
+the Learn dock through `FlowViewState.Guide`. Flow never sends, resets a conversation or records
+progress for a path. Keep path and step IDs stable. See [docs/learning.md](docs/learning.md#learning-paths).
+
+The Blazor Web app mirrors the split. Its flow page cascades two page-scoped state roots from [src/AgenticLab.Web/Flow](src/AgenticLab.Web/Flow): `FlowViewState` (the user's selections, exposing feature collaborators under `Flow/ViewState/` — `Layout`, `Concepts`, `Guide`, `Options`, `WorkspacePrefs`, `Models`, `Diagram`, `Cursor`, `Roster`, `Agent`, `Harness`) and `FlowRunController` (the live run lifecycle, exposing `Projections`, `Replay`, `Focus`, `Status` and `Catalogs` under `Flow/Run/`). Components read them as `View.Layout.X` / `Run.Replay.Y`; the pure builders (`PromptSignatureBuilder`, `InferenceBuilder`, `EmbeddingBuilder`, `NetworkSimulation`, `ExecutionReplayBuilder`, `A2AFlowBuilder`) stay static and unit-testable. Each Razor component owns its scoped `.razor.css`; a component whose `@code` grows past a screen moves it into a `.razor.cs` code-behind.
 
 Blazor's [design system](docs/design-system.md) takes its visual language from React without a React
 runtime or npm build dependency. [design-system.css](src/AgenticLab.Web/wwwroot/design-system.css)
@@ -189,7 +202,7 @@ The detailed design notes live under [docs/](docs) — read the page for the are
 | [docs/react-frontend.md](docs/react-frontend.md) | Optional CSR React prototype, BFF routes, startup/build/test commands, scope and frontend customization. |
 | [docs/examples.md](docs/examples.md) | Reusable module interfaces, per-host registration, ownership rules, UI lifecycle and community example catalogue. |
 | [docs/execution-explorer.md](docs/execution-explorer.md) | The Execution dock (replay of a captured run, bounded archives, resource baseline), chat execution breakpoints and streaming/control API. |
-| [docs/learning.md](docs/learning.md) | The in-app Learn panel (concept content) and the standalone guided `/learn` journey. |
+| [docs/learning.md](docs/learning.md) | The in-app Learn panel (concept content), the standalone guided `/learn` journey and the `/learn/paths` learning paths (steps, browser-local progress, live-flow exercises). |
 | [docs/workspace.md](docs/workspace.md) | Workspace skills, custom instructions, workspace-defined agents (YAML + markdown conventions, tool aliases) and the workspace-scoped file/terminal tools. |
 | [docs/protocols.md](docs/protocols.md) | The MCP server, the A2A server and the observable discovery process + Discovery page. |
 | [README.md](README.md) | Purpose, prerequisites, local startup, contribution steps and documentation index. |
@@ -232,7 +245,8 @@ The detailed design notes live under [docs/](docs) — read the page for the are
   discovery; `/design-system` is also available there for isolated component inspection.
   Add `--learn-only` for backend-free, desktop-only guide checks against a standalone Web instance.
   Add `--navigation-only` to check Home, `/flow` routing and the guide with only Development Web
-  running, without an agent catalogue. Browser tools resolve `/flow` from the Web base URL.
+  running, without an agent catalogue. Add `--paths-only` to check the learning paths alone, with or
+  without an agent catalogue. Browser tools resolve `/flow` from the Web base URL.
 - Optional React (Node 24 LTS): `npm --prefix src/AgenticLab.React ci`, then
   `dotnet run --project src/AgenticLab.AppHost -- --ReactFrontend:Enabled=true`. Open `react` in Aspire.
 - React checks: `npm --prefix src/AgenticLab.React test` and `npm --prefix src/AgenticLab.React run build`;

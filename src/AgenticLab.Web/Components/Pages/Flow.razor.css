@@ -302,6 +302,11 @@
     .flow-app ::deep .side-right.collapsed { height: 44px; }
     .flow-app ::deep .side-right .panel-rail { flex-direction: row; padding: 8px 20px; }
     .flow-app ::deep .side-right .rail-title { writing-mode: horizontal-tb; }
+
+    /* A learning-path exercise is read before it is done, so its task leads the stacked page. */
+    .flow-body:has(> .learn-dock.guided) { display: flex; flex-direction: column; }
+    .flow-body:has(> .learn-dock.guided) > * { flex: 0 0 auto; }
+    .learn-dock.guided { order: -1; border-bottom: 1px solid var(--lab-border); }
 }
 
 @container workspace (max-width: 899px) {

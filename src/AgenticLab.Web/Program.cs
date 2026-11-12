@@ -2,6 +2,7 @@ using OpenTelemetry.Metrics;
 using AgenticLab.Web;
 using AgenticLab.Web.Components;
 using AgenticLab.Web.Flow;
+using AgenticLab.Web.Learning;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.Examples.ChatGpt;
 using AgenticLab.Examples.Claude;
@@ -31,6 +32,9 @@ builder.Services.AddRazorComponents()
 
 // Loads the in-app learning content (Concepts/<id>/meta.json + body.md) for the concept drawer.
 builder.Services.AddSingleton<ConceptCatalog>();
+
+// Learning-path progress lives in the visitor's browser; one store per circuit wraps its localStorage.
+builder.Services.AddScoped<LearningProgressStore>();
 
 builder.Services.AddOptions<ReplayRetentionOptions>()
     .BindConfiguration("ReplayRetention")

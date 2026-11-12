@@ -70,6 +70,27 @@ NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
 node tools/web-smoke.mjs --learn-only
 ```
 
+### Learning Paths
+
+Use `--paths-only` to check the [learning paths](../docs/learning.md#learning-paths) by themselves at all
+four viewports. It covers the picker, a planned path's outline, an unknown path, visited, completed and
+skipped statuses, resume, the lesson return link, the stored progress format, malformed stored data,
+reset, path completion and an exercise's task in Flow, including its place above the workspace on
+stacked layouts. It sends no chat.
+
+With only Web running, the exercise is checked in its unavailable state: nothing selected or pre-filled.
+Against a Web instance with an agent catalogue offering `WikiAssistant` with `SearchWiki` and
+`GetWikiPage`, the same run checks the prepared state instead. The screenshot name
+(`path-exercise-prepared-*` or `path-exercise-unavailable-*`) records which one ran.
+
+```sh
+AGENTICLAB_URL=http://127.0.0.1:5140 \
+NODE_PATH=/tmp/agentic-lab-loadtest/node_modules \
+node tools/web-smoke.mjs --paths-only
+```
+
+The navigation and full profiles run the same check after the guide checks.
+
 ### Full Application
 
 Use a **Development** Web instance with a reachable AI service catalogue. The script creates isolated

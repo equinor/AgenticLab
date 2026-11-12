@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using AgenticLab.Web.Flow;
+using AgenticLab.Web.Learning;
 using Xunit;
 
 namespace AgenticLab.Web.Tests;
@@ -109,6 +110,101 @@ public sealed class FlowDeepLinkTests
         Assert.Equal(["Who was Ada Lovelace?"], view.Agent.SuggestedPrompts);
         view.SelectedAgent = "MathTutor";
         Assert.Empty(view.Agent.SuggestedPrompts);
+    }
+
+    /// <summary>A tour identifies a learning-path task; it is carried in the link but is not a setting to apply.</summary>
+    [Fact]
+    public void Tour_IsCarriedButNotApplied()
+    {
+        Assert.Equal("/flow?tour=beginner%3Atools-disabled&agent=WikiAssistant",
+            FlowDeepLink.Href(new FlowLinkRequest(Agent: "WikiAssistant", Tour: "beginner:tools-disabled")));
+        Assert.Equal("beginner:tools-disabled",
+            FlowDeepLink.Parse(null, null, null, null, null, null, null, null, " beginner:tools-disabled ").Tour);
+        Assert.Null(FlowDeepLink.Parse(null, null, null, null, null, null, null, null).Tour);
+        Assert.True(new FlowLinkRequest(Tour: "beginner:tools-disabled").IsEmpty);
+
+        var view = LoadedView();
+        FlowDeepLink.Apply(new FlowLinkRequest(Tour: "beginner:tools-disabled"), view);
+        Assert.False(view.Guide.Active);
+        Assert.Equal(string.Empty, view.Message);
+    }
+
+    /// <summary>The two Beginner exercises switch the Wikipedia tools off, then on again, and only pre-fill the question.</summary>
+    [Fact]
+    public void PathExercises_PrepareToolsOffThenOnWithoutSending()
+    {
+        var view = LoadedView();
+        view.SelectedAgent = "MathTutor";
+        var beginner = LearningPaths.Find("beginner")!;
+        var disabled = beginner.Find("tools-disabled")!.Exercise!;
+        var enabled = beginner.Find("tools-enabled")!.Exercise!;
+
+        Assert.Null(GuidedTask.Check(disabled, view.Roster));
+        FlowDeepLink.Apply(disabled.Setup, view);
+        Assert.Equal("WikiAssistant", view.SelectedAgent);
+        Assert.False(view.Options.IsToolEnabled("SearchWiki") || view.Options.IsToolEnabled("GetWikiPage"));
+        Assert.Equal(2, view.Options.DisabledToolsOrNull!.Count);
+        Assert.True(view.Diagram.ShowTools && view.Diagram.ShowModel);
+        Assert.Equal("Who is the king of Norway", view.Message);
+
+        Assert.Null(GuidedTask.Check(enabled, view.Roster));
+        FlowDeepLink.Apply(enabled.Setup, view);
+        Assert.Null(view.Options.DisabledToolsOrNull);
+        Assert.Equal("Who is the king of Norway", view.Message);
+    }
+
+    /// <summary>An exercise is reported as unavailable when its host lacks the agent or the agent lacks a tool.</summary>
+    [Fact]
+    public void GuidedTask_ReportsAMissingAgentOrTool()
+    {
+        var exercise = LearningPaths.Find("beginner")!.Find("tools-disabled")!.Exercise!;
+        var view = LoadedView();
+
+        view.HostKey = "chatgpt";
+        Assert.Equal("The WikiAssistant agent is not available here.", GuidedTask.Check(exercise, view.Roster));
+        Assert.Null(GuidedTask.Check(exercise with { Setup = exercise.Setup with { Host = "default" } }, view.Roster));
+        Assert.NotNull(GuidedTask.Check(exercise with { Setup = exercise.Setup with { Host = "unknown" } }, view.Roster));
+
+        view.HostKey = "default";
+        view.Roster.SetAgents([new("WikiAssistant", "d", ["SearchWiki"])]);
+        Assert.Equal("The WikiAssistant agent does not have GetWikiPage here.", GuidedTask.Check(exercise, view.Roster));
+
+        view.Roster.SetAgents([]);
+        Assert.Equal("The WikiAssistant agent is not available here.", GuidedTask.Check(exercise, view.Roster));
+    }
+
+    /// <summary>The task keeps its place while a concept is read or the concept index is browsed.</summary>
+    [Fact]
+    public void GuidedTask_KeepsTheTaskWhileConceptsAreBrowsed()
+    {
+        var view = LoadedView();
+        var path = LearningPaths.Find("beginner")!;
+        var step = path.Find("tools-enabled")!;
+        Assert.False(view.Guide.Active);
+        Assert.False(view.Guide.ShowingTask);
+
+        var version = view.ContentVersion;
+        view.Guide.Start(path, step, unavailable: null);
+        Assert.True(view.Guide.Active && view.Guide.ShowingTask);
+        Assert.True(view.ContentVersion > version);
+        Assert.Equal(string.Empty, view.Message);
+        Assert.Null(view.Options.DisabledToolsOrNull);
+
+        view.Concepts.OpenConcept("tools");
+        Assert.NotNull(view.Concepts.ActiveConcept);
+        Assert.False(view.Guide.ShowingTask);
+        view.Concepts.CloseConcept();
+        Assert.True(view.Guide.ShowingTask);
+
+        view.Guide.BrowseConcepts();
+        Assert.False(view.Guide.ShowingTask);
+        view.Guide.ShowTask();
+        Assert.True(view.Guide.ShowingTask);
+        Assert.Same(step, view.Guide.Step);
+        Assert.Same(path, view.Guide.Path);
+
+        view.Guide.Start(path, step, "The agent list could not be loaded.");
+        Assert.Equal("The agent list could not be loaded.", view.Guide.Unavailable);
     }
 
     private sealed class LinkEnvironment : IWebHostEnvironment

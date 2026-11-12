@@ -10,6 +10,7 @@ const applicationVersion = readFileSync(new URL("../version.txt", import.meta.ur
 const learnOnly = process.argv.includes("--learn-only");
 const navigationOnly = process.argv.includes("--navigation-only");
 const markdownOnly = process.argv.includes("--markdown-only");
+const pathsOnly = process.argv.includes("--paths-only");
 const expectedHosts = process.env.AGENTICLAB_HOSTS?.split(",").map(key => key.trim());
 const legacyHosts = JSON.parse(process.env.AGENTICLAB_HOST_ALIASES ?? "{}");
 const screenshots = process.env.AGENTICLAB_SCREENSHOTS ?? path.join(tmpdir(), "agentic-lab-web-smoke");
@@ -23,7 +24,7 @@ try {
     for (const viewport of [{ width: 1440, height: 1000 }, { width: 1024, height: 900 }, { width: 390, height: 844 }, { width: 1920, height: 1080 }]) {
         if (learnOnly && viewport.width < 900) continue;
         const context = await browser.newContext({ viewport });
-        if (!markdownOnly && !learnOnly) {
+        if (!markdownOnly && !learnOnly && !pathsOnly) {
             const teaserPage = currentPage = await context.newPage();
             teaserPage.setDefaultTimeout(15000);
             teaserPage.on("pageerror", error => errors.push(error.message));
@@ -41,6 +42,13 @@ try {
         const page = currentPage = await context.newPage();
         page.setDefaultTimeout(15000);
         page.on("pageerror", error => errors.push(error.message));
+        if (pathsOnly) {
+            await checkLearningPaths(page, viewport.width);
+            await context.close();
+            currentPage = null;
+            console.log(`Learning paths ${viewport.width}x${viewport.height}: passed`);
+            continue;
+        }
         if (learnOnly) {
             page.on("request", request => {
                 const url = new URL(request.url());
@@ -70,6 +78,7 @@ try {
         await checkVersion(page);
         if (navigationOnly) {
             await checkLearning(page, viewport.width);
+            await checkLearningPaths(page, viewport.width);
             await checkVersion(page);
             await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
             assert.equal(await page.getByRole("link", { name: "Live flow", exact: true }).getAttribute("href"), "/flow");
@@ -139,6 +148,7 @@ try {
         await checkDocksAndDiscovery(page, viewport.width);
         await checkA2ADetails(page, viewport.width);
         await checkLearning(page, viewport.width);
+        await checkLearningPaths(page, viewport.width);
         await page.goto(new URL("/discovery", baseUrl).href, { waitUntil: "networkidle" });
         await capture(page, `discovery-${viewport.width}`);
         await page.goto(new URL("/design-system", baseUrl).href, { waitUntil: "networkidle" });
@@ -1019,6 +1029,154 @@ async function checkAgentLoop(page, width) {
     await lesson.getByRole("button", { name: "Restart", exact: true }).click();
     await page.locator('.turn-lesson[data-beat="0"]').waitFor();
     assert.equal(await lesson.locator(".loop-node.reached").count(), 1);
+}
+
+async function checkLearningPaths(page, width) {
+    const storageKey = "agenticlab-learning-progress";
+    const stored = () => page.evaluate(key => localStorage.getItem(key), storageKey);
+    const progress = text => page.waitForFunction(expected =>
+        document.querySelector(".rail-progress, [data-path='beginner'] .path-progress")?.textContent.trim() === expected, text);
+    const onStep = step => page.locator(`.path-workspace[data-step="${step}"]`).waitFor();
+    const status = async step => (await page.locator(`.step-list a[href$="step=${step}"] .step-status`).allTextContents()).join("").trim();
+
+    await page.goto(new URL("/learn/paths", baseUrl).href, { waitUntil: "networkidle" });
+    await page.evaluate(key => localStorage.removeItem(key), storageKey);
+    await page.reload({ waitUntil: "networkidle" });
+    assert.deepEqual(await page.locator(".path-row").evaluateAll(rows => rows.map(row => row.dataset.path)),
+        ["beginner", "intermediate", "advanced"]);
+    await progress("0 of 6 completed");
+    assert.equal(await page.getByRole("link", { name: "Start: Understand an agent", exact: true }).getAttribute("href"), "/learn/paths/beginner");
+    assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
+    await capture(page, `paths-${width}`);
+
+    await page.getByRole("link", { name: "View outline: Control a run", exact: true }).click();
+    await page.waitForURL(url => url.pathname === "/learn/paths/intermediate");
+    await page.getByRole("heading", { name: "Control a run", exact: true }).waitFor();
+    assert.equal(await page.locator(".step-rail, .step-actions").count(), 0, "A planned path shows an outline, not steps");
+    await page.goto(new URL("/learn/paths/expert", baseUrl).href, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Path not found", exact: true }).waitFor();
+
+    await page.goto(new URL("/learn/paths/beginner", baseUrl).href, { waitUntil: "networkidle" });
+    await onStep("agent-model");
+    await progress("0 of 6 completed");
+    await page.waitForFunction(() => document.querySelector(".step-status")?.textContent.trim() === "Visited");
+    assert.equal(await page.locator(".step-status").count(), 1, "Opening a path visits only its current step");
+
+    const lesson = page.getByRole("link", { name: "Lesson 2: Agent", exact: true });
+    assert.equal(await lesson.getAttribute("href"), "/learn?stage=model-to-agent&path=beginner&step=agent-model");
+    await lesson.click();
+    await page.waitForFunction(() => document.querySelector("#stage-title")?.textContent.trim() === "Agent");
+    assert.equal(await page.getByRole("link", { name: "Learning paths", exact: true }).count(), 0);
+    const back = page.getByRole("link", { name: "Back to path", exact: true });
+    assert.equal(await back.getAttribute("href"), "/learn/paths/beginner?step=agent-model");
+    await back.click();
+    await onStep("agent-model");
+    await progress("0 of 6 completed");
+    assert.equal(await status("agent-model"), "Visited", "Reading a lesson does not complete the step");
+
+    await page.getByRole("button", { name: "Finish step", exact: true }).click();
+    await onStep("context");
+    await progress("1 of 6 completed");
+    await page.waitForFunction(() => document.activeElement?.id === "step-title");
+    assert.equal(await status("agent-model"), "Completed");
+    await page.getByRole("button", { name: "Skip", exact: true }).click();
+    await onStep("tools-disabled");
+    await page.waitForFunction(() => document.querySelectorAll(".step-status").length === 3);
+    assert.equal(await status("context"), "Skipped");
+    assert.equal(await status("tools-disabled"), "Visited");
+    await progress("1 of 6 completed");
+    assert.deepEqual(JSON.parse(await stored()), {
+        v: 1,
+        paths: { beginner: { resume: "tools-disabled", steps: { "agent-model": "completed", context: "skipped", "tools-disabled": "visited" } } },
+    });
+
+    const walkthrough = page.locator(".walkthrough");
+    assert.equal(await walkthrough.evaluate(details => details.open), false, "The illustration is opened on request");
+    await walkthrough.locator("summary").click();
+    assert.equal(await walkthrough.locator("li:visible").count(), 4);
+    assert.match(await walkthrough.locator(".walkthrough-label").textContent(), /not a recording of a run/);
+    await capture(page, `path-step-${width}`);
+
+    await page.goto(new URL("/learn/paths/beginner", baseUrl).href, { waitUntil: "networkidle" });
+    await onStep("tools-disabled");
+    await page.goto(new URL("/learn/paths/beginner?step=missing", baseUrl).href, { waitUntil: "networkidle" });
+    await onStep("tools-disabled");
+
+    const exercise = page.getByRole("link", { name: "Open exercise in live flow", exact: true });
+    assert.match(await exercise.getAttribute("href"), /^\/flow\?tour=beginner%3Atools-disabled&agent=WikiAssistant&/);
+    await exercise.click();
+    await page.waitForURL(url => url.pathname === "/flow" && url.searchParams.get("tour") === "beginner:tools-disabled");
+    const task = page.locator(".guided-task");
+    await task.waitFor();
+    await task.getByRole("heading", { name: "Ask with tools switched off", exact: true }).waitFor();
+    assert.match(await task.locator(".task-eyebrow").textContent(), /Understand an agent · Step 3 of 6/);
+    assert.equal(await page.locator(".app-header").getByRole("link", { name: "Back to path", exact: true }).getAttribute("href"),
+        "/learn/paths/beginner?step=tools-disabled", "The return link stays at the top when the dock is stacked or hidden");
+    assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).count(), 0);
+    const taskTop = (await task.boundingBox()).y;
+    const composerTop = (await page.locator("#message").boundingBox()).y;
+    if (width < 1200) assert.ok(taskTop < composerTop, "A stacked page shows the task before the workspace");
+    else assert.ok(taskTop < page.viewportSize().height, "The docked task is visible without scrolling");
+    assert.equal(await page.getByRole("checkbox", { name: "Learn", exact: true }).isChecked(), true);
+    const prepared = await task.locator(".task-unavailable").count() === 0;
+    if (prepared) {
+        assert.equal(await page.locator("#agent").inputValue(), "WikiAssistant");
+        assert.equal(await page.locator("#message").inputValue(), "Who is the king of Norway");
+        assert.deepEqual((await task.locator(".task-facts dd").allTextContents()).map(text => text.trim()),
+            ["WikiAssistant", "none", "nothing sent yet"]);
+        assert.match(await task.locator(".task-note").textContent(), /Nothing is sent until you press Send/);
+    } else {
+        assert.equal(await task.locator(".task-facts").count(), 0, "An unavailable exercise reports no page state");
+        assert.equal(await page.locator("#message").inputValue(), "", "An unavailable exercise prepares nothing");
+    }
+    assert.equal(await page.locator(".chat-log .turn").count(), 0, "Opening an exercise sends nothing");
+    await capture(page, `path-exercise-${prepared ? "prepared" : "unavailable"}-${width}`);
+
+    await task.getByRole("button", { name: "Browse concepts", exact: true }).click();
+    await page.locator(".concept-index").waitFor();
+    assert.equal(await task.count(), 0);
+    await page.getByRole("button", { name: /^← Return to task: Ask with tools switched off$/ }).click();
+    await task.waitFor();
+    const returnLink = task.getByRole("link", { name: "Back to path", exact: true });
+    assert.equal(await returnLink.getAttribute("href"), "/learn/paths/beginner?step=tools-disabled");
+    await returnLink.click();
+    await onStep("tools-disabled");
+    await progress("1 of 6 completed");
+    assert.equal(await status("tools-disabled"), "Visited", "Opening an exercise does not complete the step");
+
+    await page.evaluate(key => localStorage.setItem(key, "not json"), storageKey);
+    await page.reload({ waitUntil: "networkidle" });
+    await onStep("tools-disabled");
+    await progress("0 of 6 completed");
+    await page.waitForFunction(key => localStorage.getItem(key)?.startsWith('{"v":1,'), storageKey);
+
+    await page.getByRole("button", { name: "Finish step", exact: true }).click();
+    await onStep("tools-enabled");
+    await progress("1 of 6 completed");
+    await page.getByRole("button", { name: "Reset progress", exact: true }).click();
+    await onStep("agent-model");
+    await progress("0 of 6 completed");
+    await page.waitForFunction(key => {
+        const steps = JSON.parse(localStorage.getItem(key) ?? "{}").paths?.beginner?.steps;
+        return steps && Object.keys(steps).join() === "agent-model" && steps["agent-model"] === "visited";
+    }, storageKey);
+
+    const finished = Object.fromEntries(["agent-model", "context", "tools-disabled", "tools-enabled", "agent-loop"].map(step => [step, "completed"]));
+    await page.evaluate(([key, steps]) => localStorage.setItem(key, JSON.stringify({ v: 1, paths: { beginner: { resume: "reflect", steps } } })),
+        [storageKey, finished]);
+    await page.goto(new URL("/learn/paths/beginner", baseUrl).href, { waitUntil: "networkidle" });
+    await onStep("reflect");
+    await progress("5 of 6 completed");
+    assert.equal(await page.locator(".path-complete").count(), 0, "A path is complete only when every step is finished");
+    assert.equal(await page.locator(".beat").count(), 2, "The reflection step has no prediction or task");
+    await page.getByRole("button", { name: "Finish step", exact: true }).click();
+    await progress("6 of 6 completed");
+    await page.locator(".path-complete").waitFor();
+    await page.goto(new URL("/learn/paths", baseUrl).href, { waitUntil: "networkidle" });
+    await progress("6 of 6 completed");
+    await page.getByRole("link", { name: "Review: Understand an agent", exact: true }).waitFor();
+    await page.evaluate(key => localStorage.removeItem(key), storageKey);
+    return prepared;
 }
 
 async function openFlow(page) {

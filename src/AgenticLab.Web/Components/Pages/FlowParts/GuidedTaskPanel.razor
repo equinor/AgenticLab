@@ -1,0 +1,102 @@
+@namespace AgenticLab.Web.Components.Pages.FlowParts
+@using AgenticLab.Web.Learning
+
+@* The learning-path exercise in the Learn dock. It describes the task and what the page shows right now; it
+   never sends a message, changes run options or records progress. Finishing a step happens on the path page. *@
+@if (View.Guide is { Path: { } path, Step: { } step } guide)
+{
+    @if (guide.ShowingTask)
+    {
+        <section class="guided-task" aria-labelledby="guided-task-title">
+            <p class="task-eyebrow">@path.Title <span class="task-position">· Step @(path.IndexOf(step) + 1) of @path.Steps.Count</span></p>
+            <h2 id="guided-task-title" class="task-title">@step.Title</h2>
+
+            @if (guide.Unavailable is { } reason)
+            {
+                <p class="task-unavailable" role="status">@reason</p>
+                <p class="task-text">Nothing was prepared on this page. The path page has an illustration of this run that needs no model.</p>
+            }
+            else if (step.Exercise is { } exercise)
+            {
+                <p class="task-text">@exercise.Task</p>
+                <p class="task-note">Send calls the configured model with your message. That can cost money. Nothing is sent until you press Send.</p>
+
+                <h3 class="task-heading">Look for</h3>
+                <ul class="task-list">
+                    @foreach (var item in exercise.LookFor)
+                    {
+                        <li>@item</li>
+                    }
+                </ul>
+
+                <h3 class="task-heading">On this page now</h3>
+                <dl class="task-facts">
+                    <div>
+                        <dt>Agent</dt>
+                        <dd>@(View.SelectedAgent ?? "none")</dd>
+                    </div>
+                    <div>
+                        <dt>Tools offered for the next message</dt>
+                        <dd>@OfferedTools</dd>
+                    </div>
+                    <div>
+                        <dt>Last run</dt>
+                        <dd>@LastRun</dd>
+                    </div>
+                </dl>
+            }
+
+            <div class="task-actions">
+                <a class="task-return" href="@LearningPaths.StepHref(path, step)">Back to path</a>
+                <button type="button" class="task-switch" @onclick="guide.BrowseConcepts">Browse concepts</button>
+            </div>
+        </section>
+    }
+    else
+    {
+        <button type="button" class="task-resume" @onclick="ReturnToTask">&larr; Return to task: @step.Title</button>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private FlowViewState View { get; set; } = default!;
+
+    [CascadingParameter]
+    private FlowRunController Run { get; set; } = default!;
+
+    private string OfferedTools
+    {
+        get
+        {
+            var tools = View.Agent.ToolNames.Where(View.Options.IsToolEnabled).ToArray();
+            return tools.Length == 0 ? "none" : string.Join(", ", tools);
+        }
+    }
+
+    // Describes only the run currently shown live on this page, never archived exchanges or replay.
+    private string LastRun
+    {
+        get
+        {
+            if (Run.Events.Count == 0)
+            {
+                return Run.Running ? "started" : "nothing sent yet";
+            }
+
+            var calls = Run.Events.Where(flowEvent => flowEvent.Kind == "tool-call")
+                .Select(flowEvent => flowEvent.ToolCall?.Name).ToArray();
+            var named = calls.OfType<string>().Distinct().ToArray();
+            var summary = calls.Length == 0
+                ? "no tool call"
+                : $"{calls.Length} tool call{(calls.Length == 1 ? "" : "s")}{(named.Length == 0 ? "" : $" ({string.Join(", ", named)})")}";
+            return Run.Running ? $"in progress, {summary} so far" : Run.Error is null ? summary : $"failed, {summary}";
+        }
+    }
+
+    private void ReturnToTask()
+    {
+        View.Concepts.CloseConcept();
+        View.Guide.ShowTask();
+    }
+}

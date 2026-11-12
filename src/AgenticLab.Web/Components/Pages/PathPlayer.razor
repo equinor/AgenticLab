@@ -1,0 +1,164 @@
+@page "/learn/paths/{PathId}"
+@rendermode InteractiveServer
+@using AgenticLab.Web.Learning
+
+<PageTitle>Agentic Lab - @(_path?.Title ?? "Learning paths")</PageTitle>
+
+<div class="path-app">
+    <AppHeader Context="Learning path">
+        <a class="header-link" href="@LearningPaths.Route">All paths</a>
+        <a class="header-link" href="/flow">Live flow</a>
+    </AppHeader>
+
+    @if (_path is null)
+    {
+        <main class="path-notice">
+            <h2>Path not found</h2>
+            <p>There is no learning path at this address. <a href="@LearningPaths.Route">Choose a learning path</a>.</p>
+        </main>
+    }
+    else if (_step is null)
+    {
+        <main class="path-notice" data-path="@_path.Id">
+            <p class="eyebrow">@_path.Level · Planned</p>
+            <h2>@_path.Title</h2>
+            <p>@_path.Outcome</p>
+            <p>This path is not written yet. It is planned to cover:</p>
+            <ul class="outline">
+                @foreach (var topic in _path.Outline)
+                {
+                    <li>@topic</li>
+                }
+            </ul>
+            <p><a href="@LearningPaths.Route">Choose a learning path</a></p>
+        </main>
+    }
+    else
+    {
+        var path = _path;
+        var step = _step;
+        var position = path.IndexOf(step) + 1;
+        var completed = _progress.CompletedCount(path);
+        <main class="path-workspace" data-path="@path.Id" data-step="@step.Id">
+            <nav class="step-rail" aria-label="Path steps">
+                <div class="rail-heading">
+                    <span>@path.Title</span>
+                    <span class="rail-progress" role="status">@(_loaded ? $"{completed} of {path.Steps.Count} completed" : $"{path.Steps.Count} steps")</span>
+                </div>
+                <ol class="step-list">
+                    @foreach (var item in path.Steps)
+                    {
+                        var status = _progress.Status(path, item);
+                        <li>
+                            <a href="@LearningPaths.StepHref(path, item)" aria-current="@(item.Id == step.Id ? "step" : null)">
+                                <span class="step-number" aria-hidden="true">@(path.IndexOf(item) + 1)</span>
+                                <span class="step-name">@item.Title</span>
+                                @if (status != StepStatus.NotVisited)
+                                {
+                                    <span class="step-status status-@(status.ToString().ToLowerInvariant())">@status</span>
+                                }
+                            </a>
+                        </li>
+                    }
+                </ol>
+                <button type="button" class="rail-reset" disabled="@(!_loaded || !_progress.HasProgress(path))" @onclick="ResetAsync">Reset progress</button>
+            </nav>
+
+            <section class="step-main" aria-labelledby="step-title">
+                <p class="eyebrow">@path.Level · Step @position of @path.Steps.Count</p>
+                <h2 id="step-title" tabindex="-1" @ref="_heading">@step.Title</h2>
+
+                <section class="beat" aria-labelledby="beat-explain">
+                    <h3 id="beat-explain">Explain</h3>
+                    <p>@step.Explain</p>
+                </section>
+
+                @if (step.Predict is { } predict)
+                {
+                    <section class="beat" aria-labelledby="beat-predict">
+                        <h3 id="beat-predict">Predict</h3>
+                        <p>@predict</p>
+                    </section>
+                }
+
+                @if (step.Try is { } task)
+                {
+                    <section class="beat" aria-labelledby="beat-try">
+                        <h3 id="beat-try">Try</h3>
+                        <p>@task</p>
+                        @if (step.StageIds.Count > 0)
+                        {
+                            <ul class="lesson-links">
+                                @foreach (var stageId in step.StageIds)
+                                {
+                                    <li>
+                                        <a href="@LearningPaths.LessonHref(path, step, stageId)">
+                                            Lesson @AgentLearningJourney.Number(stageId): @AgentLearningJourney.Resolve(stageId).Title
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        @if (step.Exercise is { } exercise)
+                        {
+                            <p class="exercise-note">
+                                The exercise needs the AI service and a configured model. Send calls that model with your
+                                message, which can cost money. Nothing is sent until you press Send.
+                            </p>
+                            <a class="exercise-link" href="@LearningPaths.ExerciseHref(path, step)">Open exercise in live flow</a>
+                            <h4>Look for</h4>
+                            <ul class="look-for">
+                                @foreach (var item in exercise.LookFor)
+                                {
+                                    <li>@item</li>
+                                }
+                            </ul>
+                            <details class="walkthrough">
+                                <summary>Illustrated walkthrough, no model needed</summary>
+                                <p class="walkthrough-label">
+                                    An illustration written for this step. It is not a recording of a run, and a real run can differ.
+                                </p>
+                                <ol>
+                                    @foreach (var beat in exercise.Walkthrough)
+                                    {
+                                        <li><strong>@beat.Actor</strong> @beat.Text</li>
+                                    }
+                                </ol>
+                            </details>
+                        }
+                    </section>
+                }
+
+                <section class="beat" aria-labelledby="beat-reflect">
+                    <h3 id="beat-reflect">Reflect</h3>
+                    <ul class="reflect">
+                        @foreach (var question in step.Reflect)
+                        {
+                            <li>@question</li>
+                        }
+                    </ul>
+                </section>
+
+                @if (_loaded && completed == path.Steps.Count)
+                {
+                    <p class="path-complete" role="status">
+                        You have completed this path. <a href="@LearningPaths.Route">Choose another path</a>
+                    </p>
+                }
+
+                <footer class="step-actions">
+                    @if (path.Neighbour(step, -1) is { } previous)
+                    {
+                        <a class="previous" href="@LearningPaths.StepHref(path, previous)">Previous</a>
+                    }
+                    else
+                    {
+                        <button type="button" class="previous" disabled>Previous</button>
+                    }
+                    <button type="button" class="skip" disabled="@(!_loaded)" @onclick="SkipAsync">Skip</button>
+                    <button type="button" class="finish" disabled="@(!_loaded)" @onclick="FinishAsync">Finish step</button>
+                </footer>
+            </section>
+        </main>
+    }
+</div>

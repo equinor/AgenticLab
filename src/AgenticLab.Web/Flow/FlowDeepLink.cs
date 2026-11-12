@@ -3,7 +3,8 @@ namespace AgenticLab.Web.Flow;
 /// <summary>
 /// A request to open the flow page with a prepared starting state, carried in the <c>/flow</c> query string.
 /// Every member is optional; unknown or unavailable values are ignored when applied. The prompt is only
-/// pre-filled in the composer and is never sent automatically.
+/// pre-filled in the composer and is never sent automatically. <paramref name="Tour"/> names a learning-path
+/// exercise as <c>path-id:step-id</c>; it identifies the task to show and is not applied as a setting.
 /// </summary>
 internal sealed record FlowLinkRequest(
     string? Host = null,
@@ -13,7 +14,8 @@ internal sealed record FlowLinkRequest(
     bool ExpandHarness = false,
     FlowMode? Mode = null,
     IReadOnlyList<string>? Breakpoints = null,
-    IReadOnlyList<string>? Tools = null)
+    IReadOnlyList<string>? Tools = null,
+    string? Tour = null)
 {
     /// <summary>Whether the request carries nothing to apply (a plain <c>/flow</c> visit).</summary>
     public bool IsEmpty =>
@@ -27,9 +29,9 @@ internal readonly record struct FlowLinkOutcome(bool HostApplied, bool AgentAppl
 /// <summary>
 /// Builds, parses and applies <c>/flow</c> deep links. The query-string vocabulary is: <c>host</c> (catalogue key or
 /// legacy alias), <c>agent</c>, <c>prompt</c>, <c>view</c> (<c>basic</c>|<c>technical</c>), <c>harness</c> (<c>1</c> expands the
-/// harness anatomy), <c>mode</c> (<c>auto</c>|<c>manual</c>), <c>breakpoints</c> (comma-separated kinds) and <c>tools</c>
-/// (comma-separated tool names; a leading <c>-</c> disables the tool). A deep-linked host applies for that page load
-/// only and is not saved as the user's preferred host.
+/// harness anatomy), <c>mode</c> (<c>auto</c>|<c>manual</c>), <c>breakpoints</c> (comma-separated kinds), <c>tools</c>
+/// (comma-separated tool names; a leading <c>-</c> disables the tool) and <c>tour</c> (a learning-path exercise). A
+/// deep-linked host applies for that page load only and is not saved as the user's preferred host.
 /// </summary>
 internal static class FlowDeepLink
 {
@@ -40,6 +42,7 @@ internal static class FlowDeepLink
     public static string Href(FlowLinkRequest request)
     {
         var parts = new List<string>();
+        Add(parts, "tour", request.Tour);
         Add(parts, "host", request.Host);
         Add(parts, "agent", request.Agent);
         Add(parts, "view", request.View?.ToString().ToLowerInvariant());
@@ -64,7 +67,7 @@ internal static class FlowDeepLink
 
     /// <summary>Parses raw query-string values; unrecognised view/mode words become null, blanks are dropped.</summary>
     public static FlowLinkRequest Parse(string? host, string? agent, string? prompt, string? view, string? harness,
-        string? mode, string? breakpoints, string? tools) =>
+        string? mode, string? breakpoints, string? tools, string? tour = null) =>
         new(
             Clean(host),
             Clean(agent),
@@ -73,7 +76,8 @@ internal static class FlowDeepLink
             Clean(harness) is "1" or "true",
             Clean(mode)?.ToLowerInvariant() switch { "auto" => FlowMode.Auto, "manual" => FlowMode.Manual, _ => null },
             Split(breakpoints),
-            Split(tools));
+            Split(tools),
+            Clean(tour));
 
     /// <summary>
     /// Applies a request to loaded view state in dependency order: host, then agent (which resets the per-agent

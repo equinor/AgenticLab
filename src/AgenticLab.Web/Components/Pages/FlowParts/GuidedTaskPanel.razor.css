@@ -1,0 +1,121 @@
+/* GuidedTaskPanel: a learning-path exercise in the Learn dock. Colours inherit the .flow-app variables. */
+
+.guided-task {
+    display: flex;
+    flex-direction: column;
+    gap: .7rem;
+    color: var(--text);
+    overflow-wrap: anywhere;
+}
+
+.task-eyebrow {
+    margin: 0;
+    font: var(--lab-text-xs) var(--lab-font-mono);
+    color: var(--text-muted);
+}
+
+.task-position { white-space: nowrap; }
+
+.task-title {
+    margin: 0;
+    font: 500 20px/1.25 var(--lab-font-sans);
+    color: var(--heading);
+}
+
+.task-text,
+.task-note,
+.task-unavailable {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.task-note {
+    padding: .5rem .65rem;
+    border-left: 3px solid var(--lab-warning);
+    background: var(--lab-warning-soft);
+    color: var(--lab-ink);
+}
+
+.task-unavailable {
+    padding: .5rem .65rem;
+    border-left: 3px solid var(--lab-danger);
+    background: var(--lab-danger-soft);
+    color: var(--lab-ink);
+}
+
+.task-heading {
+    margin: .4rem 0 0;
+    font: 600 var(--lab-text-sm)/1.4 var(--lab-font-sans);
+    color: var(--text-muted);
+}
+
+.task-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.task-list li + li { margin-top: .35rem; }
+
+.task-facts {
+    display: grid;
+    gap: .5rem;
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.task-facts dt { color: var(--text-muted); font-size: var(--lab-text-sm); }
+.task-facts dd { margin: 0; font-family: var(--lab-font-mono); font-size: var(--lab-text-sm); }
+
+.task-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .5rem 1rem;
+    margin-top: .4rem;
+    padding-top: .8rem;
+    border-top: 1px solid var(--border-soft);
+}
+
+.task-return {
+    padding: .45rem .8rem;
+    border-radius: var(--lab-radius-sm);
+    background: var(--lab-accent);
+    color: var(--lab-on-accent);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.task-return:hover { background: var(--lab-accent-hover); }
+
+.task-switch,
+.task-resume {
+    border: 0;
+    padding: .45rem 0;
+    background: transparent;
+    color: var(--lab-accent);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+
+.task-resume {
+    display: block;
+    width: 100%;
+    margin-bottom: .9rem;
+    padding-bottom: .8rem;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.task-return:focus-visible,
+.task-switch:focus-visible,
+.task-resume:focus-visible {
+    outline: var(--lab-focus-ring);
+    outline-offset: var(--lab-focus-offset);
+}

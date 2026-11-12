@@ -372,7 +372,7 @@ dotnet run --project src/AgenticLab.AppHost -- --Examples:copilot365:Enabled=tru
 | [Web Flow Workspace](docs/web-flow-page.md) | Live visualization, panels, captured context, and execution controls. |
 | [Blazor Design System](docs/design-system.md) | Shared tokens, components, local fonts, accessibility, and the development catalogue. |
 | [Execution Explorer](docs/execution-explorer.md) | Replay, breakpoints, streaming/control API, and retention limits. |
-| [Learning](docs/learning.md) | Guided lessons and the contextual Learn panel. |
+| [Learning](docs/learning.md) | Guided lessons, learning paths and the contextual Learn panel. |
 | [Workspace Features](docs/workspace.md) | Workspace agents, skills, custom instructions, and file/terminal tools. |
 | [Protocols](docs/protocols.md) | MCP tools, A2A agents, discovery, and protocol integration tests. |
 | [React Frontend Example](docs/react-frontend.md) | Adding an alternative frontend on top of the existing AI service. |

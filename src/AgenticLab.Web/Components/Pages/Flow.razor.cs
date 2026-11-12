@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Options;
 using Microsoft.JSInterop;
 using AgenticLab.Web.Flow;
+using AgenticLab.Web.Learning;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.Web.Components.Pages.FlowParts;
 
@@ -65,6 +66,10 @@ public partial class Flow : IDisposable
     /// <summary>Deep-link comma-separated tool names; a leading <c>-</c> disables the tool for the run.</summary>
     [SupplyParameterFromQuery(Name = "tools")]
     public string? LinkTools { get; set; }
+
+    /// <summary>Deep-link learning-path exercise as <c>path-id:step-id</c>; its setup comes from the catalogue.</summary>
+    [SupplyParameterFromQuery(Name = "tour")]
+    public string? LinkTour { get; set; }
 
     private FlowViewState _view = default!;
     private FlowRunController _run = default!;
@@ -141,6 +146,8 @@ public partial class Flow : IDisposable
 
     protected override async Task OnInitializedAsync()
     {
+        var link = FlowDeepLink.Parse(LinkHost, LinkAgent, LinkPrompt, LinkView, LinkHarness, LinkMode, LinkBreakpoints, LinkTools, LinkTour);
+        var tour = LearningPaths.ResolveTour(link.Tour);
         try
         {
             var vendors = await Ai.GetVendorsAsync();
@@ -190,8 +197,19 @@ public partial class Flow : IDisposable
             // A deep link describes the whole starting state for this load, so it also replaces the stored
             // host preference (without overwriting it). Applied after both catalogues are known so unknown
             // hosts, agents, breakpoints and tools can be ignored.
-            var link = FlowDeepLink.Parse(LinkHost, LinkAgent, LinkPrompt, LinkView, LinkHarness, LinkMode, LinkBreakpoints, LinkTools);
-            if (!link.IsEmpty)
+            if (tour is { } guided && _catalogsLoaded)
+            {
+                // A path exercise must not run against a substitute, so nothing is prepared unless its agent and tools exist.
+                var unavailable = GuidedTask.Check(guided.Step.Exercise!, _view.Roster);
+                if (unavailable is null)
+                {
+                    FlowDeepLink.Apply(guided.Step.Exercise!.Setup, _view);
+                }
+
+                StartGuide(guided.Path, guided.Step, unavailable);
+                _linkApplied = true;
+            }
+            else if (tour is null && !link.IsEmpty)
             {
                 FlowDeepLink.Apply(link, _view);
                 _linkApplied = true;
@@ -213,6 +231,17 @@ public partial class Flow : IDisposable
         {
             _run.ReportError($"Could not load the agent list: {ex.Message}");
         }
+
+        if (tour is { } pending && !_view.Guide.Active)
+        {
+            StartGuide(pending.Path, pending.Step, "The agent list could not be loaded, so the live exercise is not available.");
+        }
+    }
+
+    private void StartGuide(LearningPath path, PathStep step, string? unavailable)
+    {
+        _view.Guide.Start(path, step, unavailable);
+        _view.Concepts.ShowConcepts = true;
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -253,6 +282,8 @@ public partial class Flow : IDisposable
             {
                 _view.Layout.Init(panels.LeftCollapsed, panels.RightCollapsed, panels.BottomCollapsed,
                     panels.LeftWidth, panels.RightWidth, panels.BottomHeight, panels.AdaptiveConversationWidth);
+                // A saved collapsed Learn dock would hide the exercise this load was opened for.
+                if (_view.Guide.Active) _view.Layout.RevealRight();
                 StateHasChanged();
             }
 

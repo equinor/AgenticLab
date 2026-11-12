@@ -4,7 +4,7 @@
 /// The flow page's <em>view</em> state root: the handful of top-level selections every part of the page
 /// keys off (message, agent, workspace, vendor, active tab) plus the feature-scoped
 /// collaborators that hold the rest — <see cref="Layout"/> (dockable panels), <see cref="Concepts"/>
-/// (the Learn UI), <see cref="Options"/> (per-run stepping/breakpoint/toggle options),
+/// (the Learn UI), <see cref="Guide"/> (a learning-path exercise in the Learn dock), <see cref="Options"/> (per-run stepping/breakpoint/toggle options),
 /// <see cref="WorkspacePrefs"/> (persisted workspace preferences), <see cref="ServerWorkspace"/> (the
 /// service's workspace mode), <see cref="ChatLimits"/> (the service's input limits), <see cref="Models"/>
 /// (the selectable models and the user's choice), <see cref="Diagram"/> (diagram
@@ -29,6 +29,7 @@ internal sealed class FlowViewState
         var layout = new PanelLayout(() => Changed?.Invoke(), () => Concepts!.ShowConcepts);
         Details = new HostDetailsSelection(() => { }, Notify);
         Concepts = new ConceptDrawer(concepts, layout.RevealRight, Notify);
+        Guide = new GuidedTask(() => Concepts.ActiveConcept is not null, Notify);
         Layout = layout;
         Options = new RunOptions(Notify);
         WorkspacePrefs = new WorkspacePrefs(Notify);
@@ -56,6 +57,7 @@ internal sealed class FlowViewState
 
     public PanelLayout Layout { get; }
     public ConceptDrawer Concepts { get; }
+    public GuidedTask Guide { get; }
     public RunOptions Options { get; }
     public WorkspacePrefs WorkspacePrefs { get; }
     public ServerWorkspace ServerWorkspace { get; }

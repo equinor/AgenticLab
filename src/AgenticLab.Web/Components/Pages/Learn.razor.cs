@@ -18,7 +18,17 @@ public partial class Learn : IAsyncDisposable
     [SupplyParameterFromQuery(Name = "stage")]
     public string? StageId { get; set; }
 
+    /// <summary>The learning path this lesson was opened from, if any; only used for the return link.</summary>
+    [SupplyParameterFromQuery(Name = "path")]
+    public string? ReturnPath { get; set; }
+
+    /// <summary>The path step to return to, together with <see cref="ReturnPath"/>.</summary>
+    [SupplyParameterFromQuery(Name = "step")]
+    public string? ReturnStep { get; set; }
+
     private static IReadOnlyList<LearningStage> Stages => AgentLearningJourney.Stages;
+    private bool OnLearnRoute => Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].Trim('/')
+        .Equals("learn", StringComparison.OrdinalIgnoreCase);
     private LearningStage _stage = Stages[0];
     private int _stageIndex;
     private int _introStep;
@@ -40,10 +50,17 @@ public partial class Learn : IAsyncDisposable
     private TaskCompletionSource? _keyboardUpdate;
     private bool _checkKeyboardFocus;
     private bool _disposed;
+    private string? _pathReturn;
 
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
+        // Leaving the page changes the query string before this component is removed; that is not a stage change.
+        if (_initialized && !OnLearnRoute)
+        {
+            return;
+        }
+
         var next = AgentLearningJourney.Resolve(StageId);
         if (_navigatingTo != next.Id)
         {
@@ -59,6 +76,7 @@ public partial class Learn : IAsyncDisposable
         _activeConcept = null;
         _stage = next;
         _stageIndex = AgentLearningJourney.IndexOf(next.Id);
+        _pathReturn = LearningPaths.ReturnHref(ReturnPath, ReturnStep);
         _initialized = true;
     }
 

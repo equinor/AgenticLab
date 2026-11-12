@@ -1,0 +1,71 @@
+@page "/learn/paths"
+@rendermode InteractiveServer
+@using AgenticLab.Web.Learning
+
+<PageTitle>Agentic Lab - Learning paths</PageTitle>
+
+<div class="paths-app">
+    <AppHeader Context="Learning paths">
+        <a class="header-link" href="/learn">Agent guide</a>
+        <a class="header-link" href="/flow">Live flow</a>
+    </AppHeader>
+
+    <main class="paths-main">
+        <h2>Learning paths</h2>
+        <p class="paths-intro">
+            A path combines short lessons with exercises in the live flow. Choose by what you want to be able to do.
+            The level is a guide: every path and every step is open.
+        </p>
+
+        <ol class="path-list">
+            @foreach (var path in LearningPaths.All)
+            {
+                var action = ActionLabel(path);
+                <li class="path-row" data-path="@path.Id">
+                    <div class="path-text">
+                        <h3>@path.Title</h3>
+                        <p class="path-level">@path.Level</p>
+                        <p class="path-outcome">@path.Outcome</p>
+                    </div>
+                    <p class="path-progress" role="status">@ProgressLabel(path)</p>
+                    <a class="path-action @(path.Available ? "primary" : null)" href="@LearningPaths.Href(path)"
+                       aria-label="@($"{action}: {path.Title}")">@action</a>
+                </li>
+            }
+        </ol>
+
+        <p class="paths-guide"><a href="/learn">Browse the full agent guide</a> to read every lesson in order.</p>
+    </main>
+</div>
+
+@code {
+    [Inject]
+    private LearningProgressStore Store { get; set; } = default!;
+
+    private LearningProgress _progress = new();
+    private bool _loaded;
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        _progress = await Store.LoadAsync();
+        _loaded = true;
+        StateHasChanged();
+    }
+
+    private string ProgressLabel(LearningPath path) =>
+        !path.Available ? "Planned"
+        : _loaded ? $"{_progress.CompletedCount(path)} of {path.Steps.Count} completed"
+        : $"{path.Steps.Count} steps";
+
+    private string ActionLabel(LearningPath path) =>
+        !path.Available ? "View outline"
+        : !_progress.HasProgress(path) ? "Start"
+        : _progress.CompletedCount(path) == path.Steps.Count ? "Review"
+        : "Continue";
+}

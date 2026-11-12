@@ -106,11 +106,18 @@ starting state, so it replaces the stored host preference for that load without 
 | `breakpoints` | comma-separated kinds: `before-model`, `after-model`, `before-tool`, `after-tool` | Enables those breakpoints. |
 | `tools` | comma-separated tool names; a leading `-` disables | Toggles the selected agent's tools for the run. |
 | `prompt` | text | Pre-fills the composer, truncated to the service's input limit. |
+| `tour` | `<path>:<step>` of a learning-path exercise, e.g. `beginner:tools-disabled` | Shows that exercise's task in the Learn dock and applies the exercise's own setup. |
 
 Order of application is host, agent, view, run options, prompt, after both catalogues load.
 `FlowDeepLink` in [Flow/FlowDeepLink.cs](../src/AgenticLab.Web/Flow/FlowDeepLink.cs) builds (`Href`),
 parses and applies links; the [agent guide](learning.md#agent-guide) uses it for **Show in live flow**.
 There is no workspace-path parameter.
+
+A `tour` that names a [learning-path exercise](learning.md#exercises-in-the-live-flow) is stricter than
+an ordinary link. The exercise's setup comes from the path catalogue and the URL's other parameters are
+not used. It is applied only when the exercise's agent is offered by its host and has the required
+tools; otherwise nothing is selected or pre-filled and the task states why. Any other `tour` value is
+ignored and the link behaves as an ordinary deep link.
 
 ### Run controls
 
@@ -233,6 +240,11 @@ Closing cancels only Discovery's stream and restores focus. See the [protocol gu
 
 **Learn** opens the contextual topic dock; **Agent guide** opens the standalone lessons in a new tab.
 They are independent of Details. See the [learning guide](learning.md).
+
+When the page is opened for a learning-path exercise, the Learn dock shows that exercise's task in
+place of the topic index, and the header's **Agent guide** link becomes **Back to path**. The task
+describes the page's current agent, offered tools and live run; it does not send, change run options
+or record progress. Concepts stay available through **Browse concepts** and the info buttons.
 
 ### Layout and preferences
 

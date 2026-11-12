@@ -1,8 +1,9 @@
 # In-app learning (Learn panel + guided journey)
 
-Agentic Lab has two learning surfaces: a contextual **Learn** panel on the
-[Flow page](web-flow-page.md) at `/flow` and a standalone **Agent guide** at `/learn`.
-The front page at `/` offers direct links to both experiences.
+Agentic Lab has three learning surfaces: a contextual **Learn** panel on the
+[Flow page](web-flow-page.md) at `/flow`, a standalone **Agent guide** at `/learn`, and
+[learning paths](#learning-paths) at `/learn/paths` that combine guide lessons with exercises in the live flow.
+The front page at `/` offers direct links to the live flow and the guide; the guide's header links to the paths.
 
 Both use **Agent = Harness + Model**. The harness manages context, instructions, tools, memory and
 execution controls; the model reasons and chooses an answer or next step. A tool request is not
@@ -40,6 +41,11 @@ deployment/security maps. Their controls make no model, tool, discovery, schedul
 calls. Live-flow links navigate without sending a prompt. For Discovery, use the
 [Flow overlay or standalone page](protocols.md#discovery-visualization-mcp--a2a); Learn has no
 Discovery entry.
+
+The guide's header links to **Learning paths**. A lesson opened from a path step
+(`/learn?stage=<id>&path=<path>&step=<step>`) shows **Back to path** there instead, returning to that
+step; unknown path or step values are ignored. The return context is not carried by the guide's own
+Previous/Next links.
 
 ## Agent guide
 
@@ -211,6 +217,78 @@ products and managed runtimes. Offerings can span categories. Sources were check
 Changing category collapses entry details without resetting the lesson. Foundry hosting and managed
 evaluation integration are future directions, not capabilities implemented by the guide.
 
+## Learning paths
+
+A learning path is an ordered set of steps that reuses the guide's lessons and prepares exercises in
+the live flow. It adds no lesson content of its own. Paths are named by outcome; the level is a label
+for choosing. Every path and step is open: there is no placement check, score, prerequisite or lock.
+
+| Path | ID | Level | State |
+| --- | --- | --- | --- |
+| Understand an agent | `beginner` | Beginner | Six steps |
+| Control a run | `intermediate` | Intermediate | Planned; shows its outline only |
+| Investigate and extend | `advanced` | Advanced | Planned; shows its outline only |
+
+| URL | Shows |
+| --- | --- |
+| `/learn/paths` | The picker, with each path's progress and Start, Continue, Review or View outline. |
+| `/learn/paths/<path>` | The step last opened on that path, otherwise its first step. |
+| `/learn/paths/<path>?step=<step>` | One step. An unknown step falls back as above; an unknown path shows **Path not found**. |
+
+Path pages need no AI service, model or credentials. Step identifiers are stable bookmarks.
+
+Each step follows **explain, predict, try, reflect**. The Beginner path:
+
+| # | Step | ID | Try |
+| --- | --- | --- | --- |
+| 1 | Agent = Harness + Model | `agent-model` | Lessons `why-agents` and `model-to-agent`. |
+| 2 | What the model sees | `context` | Lesson `inside-the-harness`. |
+| 3 | Ask with tools switched off | `tools-disabled` | Live exercise: the Wikipedia agent with both tools off for the run. |
+| 4 | Ask again with tools switched on | `tools-enabled` | Live exercise: the same question in a new conversation with both tools on. |
+| 5 | Follow the loop | `agent-loop` | Lesson `agent-loop`. |
+| 6 | Reflect | `reflect` | Three questions; no prediction or task. |
+
+Steps 3 and 4 differ only in the tools offered to the model. Offering a tool permits its use; it does
+not force a call or guarantee a better answer. Step 4 says that a run without a tool call is a valid
+outcome. Each exercise step also has an **Illustrated walkthrough**, collapsed by default and labelled
+as written for the step: it is not a recording, and a real run can differ. It needs no model.
+No path references lesson 2.4 (`anatomy-of-agent`).
+
+### Progress
+
+A step is **Visited** when opened, **Completed** only through **Finish step**, and **Skipped** through
+**Skip**. A skipped step is not completed. Reading a lesson or opening an exercise changes nothing.
+Finish and Skip move to the next step; a path is complete when all its steps are completed.
+**Reset progress** forgets one path.
+
+Progress is stored in the browser only, as versioned JSON under `agenticlab-learning-progress`: a
+status per step and the step to resume. It contains identifiers only, never answers, predictions,
+messages or run content, and is not sent to a server-side store. Data that is unreadable, from another
+version, oversized, or naming removed paths or steps is dropped. Without usable storage the paths
+still work and nothing is remembered.
+
+### Exercises in the live flow
+
+**Open exercise in live flow** uses a [`tour` deep link](web-flow-page.md#deep-links). `tour` names a
+catalogue exercise as `<path>:<step>`; the catalogue, not the rest of the URL, supplies the agent, view,
+tool toggles and pre-filled question. Before anything is applied, Flow checks that the exercise's agent
+is offered by its host and has the tools the exercise depends on. If not, or if the agent list cannot be
+loaded, nothing is prepared and the task explains why. A listed agent does not prove that a model is
+configured or reachable. A `tour` value that names no exercise is ignored.
+
+The task is shown in the Learn dock, which is switched on and expanded for that load without saving a
+layout preference. It shows what to do, a note that Send calls the configured model and can cost money,
+what to look for, and **On this page now**: the selected agent, the tools offered for the next message,
+and the tool calls of the run currently shown live. That last line never reads archived exchanges or
+replay, and it describes what happened, not whether the learner understood it. Flow never sends for
+the learner, never clears a conversation and never records progress; a step is finished on its path
+page.
+
+**Back to path** is in the dock and replaces **Agent guide** in the header. **Browse concepts** shows
+the topic index; opening any concept takes the task's place, and **Return to task** restores it. On
+layouts narrower than 1200 pixels, where the docks stack, an exercise's task is placed above the
+workspace instead of below it.
+
 ## Authoring and verification
 
 Each topic lives in [Concepts](../src/AgenticLab.Web/Concepts) as a `Concepts/<id>` folder containing:
@@ -238,7 +316,16 @@ and defines the conceptual `AgentLoopStory`; [FoundationStory](../src/AgenticLab
 [HostingStory](../src/AgenticLab.Web/Learning/HostingStory.cs) own illustrative content and reveal
 state. Keep source-review dates aligned with the curated hosting list when rechecking it.
 
-Tests cover stage URLs, navigation, reveal/reset behavior and topic references:
+[LearningPaths](../src/AgenticLab.Web/Learning/LearningPaths.cs) owns the path catalogue and its URLs.
+A step references lessons by stage ID and may carry one exercise: a `FlowLinkRequest` setup, the task
+text shown in Flow, the tools it requires, what to look for and its walkthrough. Preserve path and step
+IDs; stored progress and bookmarks use them. A path without steps is listed as planned with its outline.
+[LearningProgress](../src/AgenticLab.Web/Learning/LearningProgress.cs) owns the stored format;
+[GuidedTask](../src/AgenticLab.Web/Flow/ViewState/GuidedTask.cs) is the Flow page's exercise state and
+prerequisite check.
+
+Tests cover stage URLs, navigation, reveal/reset behavior and topic references, plus the path
+catalogue, its links, progress storage and exercise preparation (`LearningPathTests`, `FlowDeepLinkTests`):
 
 ```sh
 dotnet test tests/AgenticLab.Web.Tests/AgenticLab.Web.Tests.csproj
@@ -251,3 +338,8 @@ nodes, conceptual loop paths and Anatomy configurations without model or tool ca
 tests cover the current lesson order, context reveals and eight-step loop. The browser script still
 contains selectors for the earlier Wikipedia walkthrough and harness lesson; update those before
 final browser verification. Browser checks remain deferred during fast Learn iteration.
+
+`node tools/web-smoke.mjs --paths-only` checks the learning paths on their own at four viewports: the
+picker, a planned outline, visited/completed/skipped statuses, resume, the lesson return link, malformed
+stored data, reset, path completion and an exercise's task in Flow. It sends no chat. With only Web
+running it checks the unavailable exercise; with an agent catalogue it checks the prepared one.

@@ -7,6 +7,14 @@
 
 <div class="learn-app" @ref="_root">
     <AppHeader Context="Agent guide">
+        @if (_pathReturn is not null)
+        {
+            <a class="header-link" href="@_pathReturn">Back to path</a>
+        }
+        else
+        {
+            <a class="header-link" href="@LearningPaths.Route">Learning paths</a>
+        }
         <a class="header-link" href="/flow">Live flow</a>
     </AppHeader>
 

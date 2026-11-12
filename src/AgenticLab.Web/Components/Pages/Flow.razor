@@ -1,5 +1,6 @@
 @page "/flow"
 @rendermode InteractiveServer
+@using AgenticLab.Web.Learning
 
 <PageTitle>Agentic Lab — @_view.Roster.VendorName</PageTitle>
 
@@ -7,7 +8,14 @@
     <CascadingValue Value="_view" IsFixed="true">
         <CascadingValue Value="_run" IsFixed="true">
             <AppHeader Context="Flow workspace">
-                <a class="header-link" href="/learn">Agent guide</a>
+                @if (_view.Guide is { Path: { } guidePath, Step: { } guideStep })
+                {
+                    <a class="header-link" href="@LearningPaths.StepHref(guidePath, guideStep)">Back to path</a>
+                }
+                else
+                {
+                    <a class="header-link" href="/learn">Agent guide</a>
+                }
                 <button type="button" class="header-link" aria-haspopup="dialog"
                         @onclick="() => _view.Layout.DiscoveryOpen = true" title="View MCP and A2A discovery">Discovery</button>
                 <label class="header-check" title="Show or hide the learning panel and contextual info buttons">
@@ -154,13 +162,17 @@
 
                     @if (_view.Layout.RightPanelVisible)
                     {
-                        <div class="learn-dock">
+                        <div class="learn-dock @(_view.Guide.Active ? "guided" : null)">
                         <SidePanel Side="PanelSide.Right" Title="Learn" KeepContentMounted="true"
                                    Collapsed="_view.Layout.RightPanelCollapsed"
                                    OnToggleCollapse="ToggleRightPanel"
                                    OnResize="SetRightWidth">
                             <FlowContent RunVersion="_runRenderVersion" Visible="@(!_view.Layout.RightPanelCollapsed)">
-                                <ConceptPanel />
+                                <GuidedTaskPanel />
+                                @if (!_view.Guide.ShowingTask)
+                                {
+                                    <ConceptPanel />
+                                }
                             </FlowContent>
                         </SidePanel>
                         </div>
