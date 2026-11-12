@@ -207,6 +207,55 @@ public sealed class FlowDeepLinkTests
         Assert.Equal("The agent list could not be loaded.", view.Guide.Unavailable);
     }
 
+    /// <summary>New Wikipedia exercises select their host even when a different host was previously selected.</summary>
+    [Theory]
+    [InlineData("intermediate", "tool-selection", FlowMode.Auto, false, false)]
+    [InlineData("intermediate", "pause-and-step", FlowMode.Manual, true, false)]
+    [InlineData("intermediate", "replay", FlowMode.Auto, false, false)]
+    [InlineData("advanced", "captured-context", FlowMode.Auto, false, true)]
+    internal void NewExercises_PrepareTheirControls(string pathId, string stepId, FlowMode mode, bool pause, bool expand)
+    {
+        var view = LoadedView();
+        view.HostKey = "chatgpt";
+        var exercise = LearningPaths.Find(pathId)!.Find(stepId)!.Exercise!;
+        Assert.Null(GuidedTask.Check(exercise, view.Roster));
+        Assert.Equal(new FlowLinkOutcome(true, true), FlowDeepLink.Apply(exercise.Setup, view));
+        Assert.Equal("default", view.HostKey);
+        Assert.Equal("WikiAssistant", view.SelectedAgent);
+        Assert.Equal(mode, view.Options.Mode);
+        Assert.Equal(pause, view.Options.IsBreakpointEnabled("before-tool"));
+        Assert.Equal(expand, view.Diagram.ExpandHarness);
+        Assert.True(view.Options.IsToolEnabled("SearchWiki"));
+        Assert.Equal(stepId != "tool-selection", view.Options.IsToolEnabled("GetWikiPage"));
+        Assert.Equal(exercise.Setup.Prompt, view.Message);
+        Assert.False(view.Guide.Active);
+    }
+
+    /// <summary>Security exercises require the optional host and match its real scripted agents and tool lists.</summary>
+    [Theory]
+    [InlineData("security-scenario", "LeakyAssistant")]
+    [InlineData("defended-boundary", "DefendedAssistant")]
+    public void SecurityExercises_RequireTheirHostAndPrepareBeforeToolPause(string stepId, string agentName)
+    {
+        var view = LoadedView();
+        var exercise = LearningPaths.Find("advanced")!.Find(stepId)!.Exercise!;
+        Assert.NotNull(GuidedTask.Check(exercise, view.Roster));
+        AgenticLab.Examples.Security.Agents.ScenarioAgentBase agent = agentName == "LeakyAssistant"
+            ? new AgenticLab.Examples.Security.Agents.LeakyAssistantAgent()
+            : new AgenticLab.Examples.Security.Agents.DefendedAssistantAgent();
+        view.Roster.SetExamples([new AgenticLab.Examples.Security.SecurityExample().Manifest]);
+        view.Roster.SetVendors([new("security", "Security Lab", "", [new(agent.Name, agent.Name)], "security")]);
+        view.Roster.SetAgents([new(agent.Name, agent.Description, agent.Tools.Select(tool => tool.Name).ToArray())]);
+        Assert.Null(GuidedTask.Check(exercise, view.Roster));
+        Assert.Equal(new FlowLinkOutcome(true, true), FlowDeepLink.Apply(exercise.Setup, view));
+        Assert.Equal(agentName, view.SelectedAgent);
+        Assert.Equal("security", view.HostKey);
+        Assert.Equal(["before-tool"], view.Options.Breakpoints);
+        Assert.Equal(FlowMode.Auto, view.Options.Mode);
+        Assert.Null(view.Options.DisabledToolsOrNull);
+        Assert.Equal(exercise.Setup.Prompt, view.Message);
+    }
+
     private sealed class LinkEnvironment : IWebHostEnvironment
     {
         public string ApplicationName { get; set; } = "AgenticLab.Web.Tests";

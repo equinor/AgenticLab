@@ -102,8 +102,9 @@
                         @if (step.Exercise is { } exercise)
                         {
                             <p class="exercise-note">
-                                The exercise needs the AI service and a configured model. Send calls that model with your
-                                message, which can cost money. Nothing is sent until you press Send.
+                                Live exercises need the AI service. Provider-backed agents send context to a model and can
+                                cost money; Security Lab agents use simulated tools and scripted responses instead.
+                                Nothing is sent until you press Send.
                             </p>
                             <a class="exercise-link" href="@LearningPaths.ExerciseHref(path, step)">Open exercise in live flow</a>
                             <h4>Look for</h4>

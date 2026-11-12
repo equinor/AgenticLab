@@ -73,7 +73,7 @@ node tools/web-smoke.mjs --learn-only
 ### Learning Paths
 
 Use `--paths-only` to check the [learning paths](../docs/learning.md#learning-paths) by themselves at all
-four viewports. It covers the picker, a planned path's outline, an unknown path, visited, completed and
+four viewports. It covers the picker, every Intermediate and Advanced step and exercise link, an unknown path, visited, completed and
 skipped statuses, resume, the lesson return link, the stored progress format, malformed stored data,
 reset, path completion and an exercise's task in Flow, including its place above the workspace on
 stacked layouts. It sends no chat.

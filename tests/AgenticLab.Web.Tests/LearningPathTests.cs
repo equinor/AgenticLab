@@ -12,20 +12,21 @@ public sealed class LearningPathTests
 {
     private static LearningPath Beginner => LearningPaths.Find("beginner")!;
 
-    /// <summary>Paths are named by outcome; only the Beginner path can be started, the others show an outline.</summary>
+    /// <summary>Every level has a startable path named by its outcome.</summary>
     [Fact]
-    public void Paths_AreNamedByOutcomeAndOnlyBeginnerIsStartable()
+    public void Paths_AreNamedByOutcomeAndAllAreStartable()
     {
         Assert.Equal(["beginner", "intermediate", "advanced"], LearningPaths.All.Select(path => path.Id).ToArray());
         Assert.Equal([PathLevel.Beginner, PathLevel.Intermediate, PathLevel.Advanced], LearningPaths.All.Select(path => path.Level).ToArray());
         Assert.Equal(["Understand an agent", "Control a run", "Investigate and extend"], LearningPaths.All.Select(path => path.Title).ToArray());
         Assert.All(LearningPaths.All, path => Assert.False(string.IsNullOrWhiteSpace(path.Outcome)));
 
-        Assert.True(Beginner.Available);
-        foreach (var planned in LearningPaths.All.Where(path => path.Id != "beginner"))
+        foreach (var path in LearningPaths.All)
         {
-            Assert.False(planned.Available);
-            Assert.NotEmpty(planned.Outline);
+            Assert.True(path.Available);
+            Assert.Empty(path.Outline);
+            Assert.True(path.Steps.Count >= 6);
+            Assert.Equal("reflect", path.Steps[^1].Id);
         }
 
         Assert.Same(Beginner, LearningPaths.Find("BEGINNER"));
@@ -57,7 +58,7 @@ public sealed class LearningPathTests
     [Fact]
     public void Steps_FollowExplainPredictTryReflect()
     {
-        foreach (var step in Beginner.Steps)
+        foreach (var step in LearningPaths.All.SelectMany(path => path.Steps))
         {
             Assert.False(string.IsNullOrWhiteSpace(step.Explain));
             Assert.NotEmpty(step.Reflect);
@@ -263,6 +264,52 @@ public sealed class LearningPathTests
         await store.SaveAsync(progress);
         Assert.Equal(["agenticlab-learning-progress"], storage.Values.Keys.ToArray());
         Assert.Equal(StepStatus.Completed, (await store.LoadAsync()).Status(Beginner, Beginner.Steps[0]));
+    }
+
+    /// <summary>New paths have stable bookmarks and keep progress and resets independent of one another.</summary>
+    [Fact]
+    public void NewPaths_KeepStableStepsAndIndependentProgress()
+    {
+        var intermediate = LearningPaths.Find("intermediate")!;
+        var advanced = LearningPaths.Find("advanced")!;
+        Assert.Equal(["tool-selection", "pause-and-step", "replay", "compare-models", "discovery", "workspace-context", "reflect"],
+            intermediate.Steps.Select(step => step.Id));
+        Assert.Equal(["captured-context", "security-scenario", "defended-boundary", "workspace-agent", "example-module", "hosting", "reflect"],
+            advanced.Steps.Select(step => step.Id));
+
+        var progress = new LearningProgress();
+        foreach (var path in LearningPaths.All)
+        {
+            progress.Complete(path, path.Steps[0]);
+            progress.Skip(path, path.Steps[1]);
+            progress.Visit(path, path.Steps[2]);
+        }
+
+        var restored = LearningProgress.Parse(progress.Serialize());
+        restored.Reset(intermediate);
+        Assert.False(restored.HasProgress(intermediate));
+        foreach (var path in new[] { Beginner, advanced })
+        {
+            Assert.Equal(1, restored.CompletedCount(path));
+            Assert.Equal(StepStatus.Skipped, restored.Status(path, path.Steps[1]));
+            Assert.Same(path.Steps[2], restored.Resume(path));
+        }
+    }
+
+    /// <summary>Every exercise resolves from its URL to its own catalogue entry, including the new levels.</summary>
+    [Fact]
+    public void AllExerciseLinks_ResolveToTheirOwnPathAndStep()
+    {
+        foreach (var path in LearningPaths.All)
+        foreach (var step in path.Steps.Where(step => step.Exercise is not null))
+        {
+            var href = LearningPaths.ExerciseHref(path, step)!;
+            var query = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(href[href.IndexOf('?')..]);
+            var tour = LearningPaths.ResolveTour(query["tour"]);
+            Assert.Same(path, tour!.Value.Path);
+            Assert.Same(step, tour.Value.Step);
+            Assert.Equal(LearningPaths.StepHref(path, step), LearningPaths.ReturnHref(path.Id, step.Id));
+        }
     }
 
     private sealed class Storage(bool fail) : IJSRuntime

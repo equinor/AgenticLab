@@ -1049,10 +1049,46 @@ async function checkLearningPaths(page, width) {
     assert.equal(await page.getByRole("link", { name: "Agent guide", exact: true }).getAttribute("href"), "/learn");
     await capture(page, `paths-${width}`);
 
-    await page.getByRole("link", { name: "View outline: Control a run", exact: true }).click();
-    await page.waitForURL(url => url.pathname === "/learn/paths/intermediate");
-    await page.getByRole("heading", { name: "Control a run", exact: true }).waitFor();
-    assert.equal(await page.locator(".step-rail, .step-actions").count(), 0, "A planned path shows an outline, not steps");
+    for (const [pathId, title, steps] of [
+        ["intermediate", "Control a run", ["tool-selection", "pause-and-step", "replay", "compare-models", "discovery", "workspace-context", "reflect"]],
+        ["advanced", "Investigate and extend", ["captured-context", "security-scenario", "defended-boundary", "workspace-agent", "example-module", "hosting", "reflect"]],
+    ]) {
+        await page.goto(new URL("/learn/paths", baseUrl).href, { waitUntil: "networkidle" });
+        await page.getByRole("link", { name: `Start: ${title}`, exact: true }).click();
+        await onStep(steps[0]);
+        await progress("0 of 7 completed");
+        assert.equal(await page.locator(".step-list a").count(), 7);
+        await page.getByRole("button", { name: "Finish step", exact: true }).click();
+        await onStep(steps[1]);
+        await page.getByRole("button", { name: "Skip", exact: true }).click();
+        await onStep(steps[2]);
+        await progress("1 of 7 completed");
+        await page.goto(new URL(`/learn/paths/${pathId}`, baseUrl).href, { waitUntil: "networkidle" });
+        await onStep(steps[2]);
+        assert.equal(await status(steps[0]), "Completed");
+        assert.equal(await status(steps[1]), "Skipped");
+
+        for (const step of steps) {
+            await page.goto(new URL(`/learn/paths/${pathId}?step=${step}`, baseUrl).href, { waitUntil: "networkidle" });
+            await onStep(step);
+            assert.equal(await page.locator(".beat").count(), step === "reflect" ? 2 : 4);
+            await capture(page, `path-${pathId}-${step}-${width}`);
+            const exerciseLink = page.getByRole("link", { name: "Open exercise in live flow", exact: true });
+            if (await exerciseLink.count()) {
+                const href = await exerciseLink.getAttribute("href");
+                assert.equal(new URL(href, baseUrl).searchParams.get("tour"), `${pathId}:${step}`);
+                await exerciseLink.click();
+                const guidedTask = page.locator(".guided-task");
+                await guidedTask.waitFor();
+                assert.match(await guidedTask.locator(".task-eyebrow").textContent(), new RegExp(title));
+                assert.equal(await page.locator(".chat-log .turn").count(), 0, "Opening a new exercise sends nothing");
+                assert.equal(await page.locator(".app-header").getByRole("link", { name: "Back to path", exact: true }).getAttribute("href"),
+                    `/learn/paths/${pathId}?step=${step}`);
+                await capture(page, `exercise-${pathId}-${step}-${width}`);
+            }
+        }
+    }
+    await page.evaluate(key => localStorage.removeItem(key), storageKey);
     await page.goto(new URL("/learn/paths/expert", baseUrl).href, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "Path not found", exact: true }).waitFor();
 

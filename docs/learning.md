@@ -226,12 +226,12 @@ for choosing. Every path and step is open: there is no placement check, score, p
 | Path | ID | Level | State |
 | --- | --- | --- | --- |
 | Understand an agent | `beginner` | Beginner | Six steps |
-| Control a run | `intermediate` | Intermediate | Planned; shows its outline only |
-| Investigate and extend | `advanced` | Advanced | Planned; shows its outline only |
+| Control a run | `intermediate` | Intermediate | Seven steps |
+| Investigate and extend | `advanced` | Advanced | Seven steps |
 
 | URL | Shows |
 | --- | --- |
-| `/learn/paths` | The picker, with each path's progress and Start, Continue, Review or View outline. |
+| `/learn/paths` | The picker, with each path's progress and Start, Continue or Review. |
 | `/learn/paths/<path>` | The step last opened on that path, otherwise its first step. |
 | `/learn/paths/<path>?step=<step>` | One step. An unknown step falls back as above; an unknown path shows **Path not found**. |
 
@@ -253,6 +253,38 @@ not force a call or guarantee a better answer. Step 4 says that a run without a 
 outcome. Each exercise step also has an **Illustrated walkthrough**, collapsed by default and labelled
 as written for the step: it is not a recording, and a real run can differ. It needs no model.
 No path references lesson 2.4 (`anatomy-of-agent`).
+
+The Intermediate path:
+
+| # | Step | ID | Try |
+| --- | --- | --- | --- |
+| 1 | Offer one tool at a time | `tool-selection` | Wikipedia search enabled, page retrieval disabled. |
+| 2 | Pause before an action | `pause-and-step` | Manual execution with a before-tool breakpoint; inspect, advance or stop. |
+| 3 | Read a captured run | `replay` | Finish a run, then inspect earlier events without executing again. |
+| 4 | Compare models fairly | `compare-models` | Same task and tools in fresh conversations; compare answers and usage. |
+| 5 | Distinguish tools from delegates | `discovery` | Inspect MCP and A2A capability groups without rediscovery. |
+| 6 | Choose workspace context | `workspace-context` | Inspect sample-workspace skills and instructions on a trusted local instance. |
+| 7 | Reflect | `reflect` | Distinguish configuration, execution and evidence. |
+
+The Advanced path:
+
+| # | Step | ID | Try |
+| --- | --- | --- | --- |
+| 1 | Trace a claim to its input | `captured-context` | Inspect captured requests and the prompt signature with the harness expanded. |
+| 2 | Inspect an unsafe tool request | `security-scenario` | Security Lab's `LeakyAssistant`, paused before simulated tool calls. |
+| 3 | Compare a code-enforced boundary | `defended-boundary` | `DefendedAssistant` rejects an external mail recipient in code. |
+| 4 | Define a workspace agent | `workspace-agent` | Adapt the local Guide YAML example using existing backend tools. |
+| 5 | Plan an example module | `example-module` | Sketch ownership, registrations and fake-data tests using the module guide. |
+| 6 | Choose a runtime and checks | `hosting` | Map data, identity and permission boundaries; plan evaluation without deploying. |
+| 7 | Reflect | `reflect` | Separate evidence, enforcement and extension choices. |
+
+The six new prepared exercises explicitly select Default or Security Lab, independent of a saved host.
+Model comparison, discovery and workspace work use existing controls manually; a path never configures
+a model, workspace, deployment or module on the learner's behalf. Each step explains a backend-free
+alternative or a local drafting task. Security Lab exercises require the optional `security` example
+on AiService and Web; their model responses and tools are simulated, with no provider call or real mail.
+Provider-backed exercises need a configured model and can incur charges. Captures do not reveal private
+model reasoning, and scripted security outcomes are not evaluations of a live model.
 
 ### Progress
 
@@ -277,7 +309,7 @@ loaded, nothing is prepared and the task explains why. A listed agent does not p
 configured or reachable. A `tour` value that names no exercise is ignored.
 
 The task is shown in the Learn dock, which is switched on and expanded for that load without saving a
-layout preference. It shows what to do, a note that Send calls the configured model and can cost money,
+layout preference. It shows what to do, a note distinguishing billable provider-backed runs from scripted scenarios,
 what to look for, and **On this page now**: the selected agent, the tools offered for the next message,
 and the tool calls of the run currently shown live. That last line never reads archived exchanges or
 replay, and it describes what happened, not whether the learner understood it. Flow never sends for
@@ -340,6 +372,6 @@ contains selectors for the earlier Wikipedia walkthrough and harness lesson; upd
 final browser verification. Browser checks remain deferred during fast Learn iteration.
 
 `node tools/web-smoke.mjs --paths-only` checks the learning paths on their own at four viewports: the
-picker, a planned outline, visited/completed/skipped statuses, resume, the lesson return link, malformed
+picker, every Intermediate and Advanced step and exercise link, visited/completed/skipped statuses, resume, the lesson return link, malformed
 stored data, reset, path completion and an exercise's task in Flow. It sends no chat. With only Web
 running it checks the unavailable exercise; with an agent catalogue it checks the prepared one.

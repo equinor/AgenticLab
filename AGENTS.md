@@ -63,7 +63,9 @@ Learning paths sit beside the guide at `/learn/paths` ([PathPicker](src/AgenticL
 [PathPlayer](src/AgenticLab.Web/Components/Pages/PathPlayer.razor)) and need no AI service.
 [LearningPaths](src/AgenticLab.Web/Learning/LearningPaths.cs) is the catalogue: outcome-named paths whose
 steps reference existing lesson stage IDs and optional live-flow exercises. It owns no lesson content;
-only `beginner` has steps, and `intermediate`/`advanced` are outlines. Progress
+`beginner` has six steps, and `intermediate`/`advanced` have seven each. Intermediate covers run controls,
+replay, model comparison, discovery and workspace context. Advanced covers captured requests, optional
+scripted Security Lab exercises, workspace agents, module design and hosting. Progress
 ([LearningProgress](src/AgenticLab.Web/Learning/LearningProgress.cs)) is browser-local under
 `agenticlab-learning-progress`, versioned and limited to identifiers; visiting or skipping a step is
 not completing it. `/flow?tour=<path>:<step>` opens an exercise: Flow takes the setup from the
