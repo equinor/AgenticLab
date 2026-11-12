@@ -1,7 +1,7 @@
 {
   "title": "Prompt signature",
   "category": "core",
-  "summary": "A breakdown of a single model request by message category — system prompt, user, assistant, tool results and the tool catalogue — and how much of it is reused from the previous request (prompt-cache stability).",
+  "summary": "A breakdown of model input into instructions, user messages, replies and tool results, with a comparison of how much text matches a previous request.",
   "links": [
     { "label": "Anthropic — Prompt caching", "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching" },
     { "label": "OpenAI — Prompt caching", "url": "https://platform.openai.com/docs/guides/prompt-caching" },

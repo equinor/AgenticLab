@@ -1,7 +1,7 @@
 {
   "title": "Settings",
   "category": "core",
-  "summary": "The run-time knobs for a turn — which model answers and how the run is paced (stepping). They shape execution without changing the prompt.",
+  "summary": "Run-time options such as which model answers and whether execution pauses for stepping. They configure the run rather than supply instructions.",
   "links": [
     { "label": "Azure OpenAI Service", "url": "https://learn.microsoft.com/azure/ai-services/openai/overview" }
   ]

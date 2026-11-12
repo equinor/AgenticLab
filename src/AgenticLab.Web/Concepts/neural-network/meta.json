@@ -1,7 +1,7 @@
 {
   "title": "Neural networks",
   "category": "core",
-  "summary": "How embedding vectors flow forward through layers of weighted connections to produce a score for every possible next token — the computation at the heart of a language model.",
+  "summary": "Layers of weighted connections transform input vectors into outputs. In a language model, they produce scores for possible next tokens.",
   "links": [
     { "label": "3Blue1Brown — But what is a neural network?", "url": "https://www.youtube.com/watch?v=aircAruvnKk" },
     { "label": "Google ML — Neural networks", "url": "https://developers.google.com/machine-learning/crash-course/neural-networks/nodes-hidden-layers" },

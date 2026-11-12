@@ -1,0 +1,10 @@
+{
+  "title": "Token",
+  "category": "core",
+  "summary": "A piece of text a model reads or generates, such as a word, word part, or punctuation.",
+  "links": [
+    { "label": "OpenAI — What are tokens?", "url": "https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them" },
+    { "label": "OpenAI Tokenizer", "url": "https://platform.openai.com/tokenizer" },
+    { "label": "Hugging Face — Tokenizers", "url": "https://huggingface.co/learn/nlp-course/chapter6/1" }
+  ]
+}

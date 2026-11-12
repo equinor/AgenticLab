@@ -1,7 +1,7 @@
 {
   "title": "Claude",
   "category": "product",
-  "summary": "Anthropic's family of LLMs and the Claude assistant — strong at reasoning, long context and tool use, and the engine behind Claude Code.",
+  "summary": "Anthropic's family of language models and the Claude assistant, with reasoning, long-context and tool-use capabilities. The models also power Claude Code.",
   "links": [
     { "label": "Claude", "url": "https://claude.com" },
     { "label": "Anthropic developer docs", "url": "https://docs.claude.com" }

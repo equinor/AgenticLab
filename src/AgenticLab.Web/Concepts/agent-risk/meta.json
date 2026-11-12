@@ -1,7 +1,7 @@
 {
   "title": "Agent risk",
   "category": "core",
-  "summary": "Agentic tools are powerful because they can take real actions on your behalf — which is exactly why they carry real risk.",
+  "summary": "Agentic tools can take real actions on your behalf. Their risk depends on what they can access, change or send.",
   "links": [
     { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
     { "label": "OWASP — Top 10 for LLM applications", "url": "https://genai.owasp.org/llm-top-10/" },

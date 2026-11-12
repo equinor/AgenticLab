@@ -1,7 +1,7 @@
 {
   "title": "Choosing a model",
   "category": "core",
-  "summary": "Models differ in how well and how efficiently they use tools: when they call one, which one, with what arguments, how many calls they batch and when they stop. Compare them on the same task by quality, round-trips, tool calls, tokens and time.",
+  "summary": "Models differ in when they call tools, argument accuracy and how many steps they need. Compare the same task by answer quality, model calls, tool calls, tokens and time.",
   "links": [
     { "label": "OpenAI — Function calling (including parallel calls)", "url": "https://platform.openai.com/docs/guides/function-calling" },
     { "label": "Berkeley Function-Calling Leaderboard", "url": "https://gorilla.cs.berkeley.edu/leaderboard.html" }

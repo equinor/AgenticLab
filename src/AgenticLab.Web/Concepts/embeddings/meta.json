@@ -1,7 +1,7 @@
 {
   "title": "Embeddings",
   "category": "core",
-  "summary": "How a model turns each token into a vector of numbers (an embedding) so that similar meanings sit close together — the bridge from language to the numbers a network computes on.",
+  "summary": "Vectors of numbers that represent tokens or larger pieces of text. They let models compute on language and search systems compare meaning.",
   "links": [
     { "label": "Google ML — Embeddings", "url": "https://developers.google.com/machine-learning/crash-course/embeddings/video-lecture" },
     { "label": "Cohere — What are embeddings", "url": "https://cohere.com/llmu/sentence-word-embeddings" },
