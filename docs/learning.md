@@ -226,7 +226,10 @@ a topic makes it available in the index, with an optional contextual `OpenConcep
 Preserve existing concept IDs such as `harness` and `llm` and the stage IDs above.
 
 Follow the [authoring rules](../src/AgenticLab.Web/Concepts/AUTHORING.md): summaries and general
-explanations are product-agnostic. Put Agentic Lab-specific details in one trailing
+explanations are product-agnostic. Summaries usually use one or two sentences, retaining concrete
+examples and useful distinctions; longer explanations belong in the body and linked sources.
+**Token** has its own vocabulary entry alongside **Tokenization & inference**.
+Put Agentic Lab-specific details in one trailing
 `In this application (Agentic Lab)` section. Product topics are the exception.
 
 [AgentLearningJourney](../src/AgenticLab.Web/Learning/AgentLearningJourney.cs) owns stages and topic

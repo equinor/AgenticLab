@@ -1,7 +1,7 @@
 {
   "title": "A2A (Agent2Agent)",
   "category": "core",
-  "summary": "An open protocol that lets one agent discover and call another agent — where MCP standardizes model-to-tool calls, A2A standardizes agent-to-agent calls.",
+  "summary": "An open protocol that lets one agent discover and call another. MCP connects agents to tools and data; A2A connects agents to each other.",
   "links": [
     { "label": "A2A protocol", "url": "https://a2a-protocol.org/" },
     { "label": "What is A2A?", "url": "https://a2a-protocol.org/latest/topics/what-is-a2a/" },

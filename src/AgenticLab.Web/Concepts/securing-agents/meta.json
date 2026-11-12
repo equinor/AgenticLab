@@ -1,7 +1,7 @@
 {
   "title": "Securing agents",
   "category": "core",
-  "summary": "How to protect against the risks of an agent: layered techniques — least privilege, sandboxing, allowlists, human approval, prompt-injection defences and monitoring — so a wrong or manipulated decision can't cause real harm.",
+  "summary": "Layered protections — least privilege, sandboxing, allowlists, human approval and monitoring — reduce harm from agent mistakes and prompt injection.",
   "links": [
     { "label": "OWASP — Top 10 for LLM Applications", "url": "https://genai.owasp.org/llm-top-10/" },
     { "label": "OWASP — Agentic AI: Threats & Mitigations", "url": "https://genai.owasp.org/resource/agentic-ai-threats-and-mitigations/" },

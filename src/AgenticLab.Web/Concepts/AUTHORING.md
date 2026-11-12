@@ -18,6 +18,9 @@ agent app.
   **product-agnostic** — describe the concept itself (what it is, why it matters, how it
   generally works). Do **not** mention agent names, the diagram/UI, or this app's wiring
   there.
+- Keep summaries concise, usually one or two sentences. Preserve concrete examples and
+  useful distinctions; trim repetition rather than shorten every entry. Put longer
+  explanations in `body.md` and keep links for detailed reading.
 - Put **every** Agentic Lab-specific detail under a single trailing section titled exactly:
 
   ```markdown

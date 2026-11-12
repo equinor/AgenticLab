@@ -142,7 +142,10 @@ internal sealed record PromptSignatureCategory(string Key, string Label, int Cha
 /// the previous exchange — i.e. the previous exchange's total, re-sent as this one's prefix) and
 /// <paramref name="AddedChars"/> (what this exchange newly appended, = total − reused). Stacking these
 /// oldest→newest shows each conversation adding onto the previous one, and the totals chain exactly
-/// (previous total + added = this total).
+/// (previous total + added = this total). <paramref name="Tokens"/> is the provider-reported usage shown
+/// beside the character total: the whole exchange once its answer is delivered, otherwise the representative
+/// round-trip once its response has been captured. It is measured on whole requests (tool catalogue and
+/// message framing included), so it is not split by category.
 /// </summary>
 internal sealed record PromptSignatureRequest(
     int Index,
@@ -150,7 +153,16 @@ internal sealed record PromptSignatureRequest(
     IReadOnlyList<PromptSignatureCategory> Categories,
     int TotalChars,
     int ReusedChars,
-    int AddedChars);
+    int AddedChars,
+    PromptSignatureTokens? Tokens = null);
+
+/// <summary>
+/// The provider-reported tokens shown on an exchange's row and what they cover. With a null
+/// <paramref name="Turn"/>, <paramref name="Usage"/> is the sum over all <paramref name="ModelCalls"/> of a
+/// delivered exchange, which is what the reply's run summary reports. Otherwise it is the single model call
+/// of that round-trip, shown while the exchange is still running or replayed at one of its model turns.
+/// </summary>
+internal sealed record PromptSignatureTokens(ModelCallUsage Usage, int ModelCalls, int? Turn = null);
 
 /// <summary>
 /// A breakdown of the most recent conversation exchange's request by message category, compared against the
@@ -177,6 +189,18 @@ internal sealed record PromptSignatureView(
 
     /// <summary>The largest single exchange total across the conversation, used to scale the delta bars.</summary>
     public int MaxRequestChars => Requests.Count == 0 ? 0 : Requests.Max(r => r.TotalChars);
+
+    /// <summary>The newest exchange in <see cref="Requests"/>, the one the Current bar measures; null when empty.</summary>
+    public PromptSignatureRequest? CurrentRequest => Requests.Count > 0 ? Requests[^1] : null;
+
+    /// <summary>The exchange before <see cref="CurrentRequest"/>, the one the Previous bar measures; null on the first exchange.</summary>
+    public PromptSignatureRequest? PreviousRequest => Requests.Count > 1 ? Requests[^2] : null;
+
+    /// <summary>Whether any exchange carries provider-reported tokens, so the panel can reserve room for them.</summary>
+    public bool HasTokens => Requests.Any(r => r.Tokens is not null);
+
+    /// <summary>Whether any exchange also reports cached input tokens, which lengthen the token line.</summary>
+    public bool HasCachedTokens => Requests.Any(r => r.Tokens?.Usage.CachedInputTokens is not null);
 }
 
 /// <summary>

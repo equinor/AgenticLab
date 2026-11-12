@@ -238,6 +238,20 @@ public sealed class AgentLearningJourneyTests
         Assert.Contains("outside the harness", client.BodyHtml);
     }
 
+    /// <summary>The glossary exposes Token as a concise topic with further reading.</summary>
+    [Fact]
+    public void TokenConcept_IsAvailableWithFurtherReading()
+    {
+        var catalog = new ConceptCatalog(new ContentEnvironment(), NullLogger<ConceptCatalog>.Instance);
+        var token = catalog.Get("token");
+
+        Assert.NotNull(token);
+        Assert.Equal("Token", token.Title);
+        Assert.Contains("piece of text", token.Summary);
+        Assert.Contains("A token is a piece of text", token.BodyHtml);
+        Assert.NotEmpty(token.Links);
+    }
+
     /// <summary>Any concepts and architecture nodes referenced by a stage must exist.</summary>
     [Fact]
     public void Stages_ReferenceExistingConceptsAndNodes()

@@ -46,12 +46,14 @@ internal static class PromptSignatureBuilder
         // that exchange's final assistant reply. The reply is captured separately because it is produced
         // *after* the request, so it only re-appears inside a *later* turn's request as carried history —
         // folding it into the exchange's own Assistant count makes it show on the current (last) turn too,
-        // not just once a follow-up turn carries it forward.
-        var reps = new List<(string Label, string Json, string? Reply)>(exchanges.Count);
+        // not just once a follow-up turn carries it forward. The provider-reported tokens cover the whole
+        // exchange once it is delivered, and otherwise the response of that same round-trip.
+        var reps = new List<(string Label, string Json, string? Reply, PromptSignatureTokens? Tokens)>(exchanges.Count);
         foreach (var (label, events) in exchanges)
         {
             string? json = null;
             string? reply = null;
+            var turn = 0;
             for (var i = events.Count - 1; i >= 0; i--)
             {
                 var kind = events[i].Kind;
@@ -62,6 +64,7 @@ internal static class PromptSignatureBuilder
                 else if (json is null && kind == "llm-request" && !string.IsNullOrWhiteSpace(events[i].Data))
                 {
                     json = events[i].Data;
+                    turn = events[i].Turn;
                 }
 
                 if (json is not null && reply is not null)
@@ -72,7 +75,7 @@ internal static class PromptSignatureBuilder
 
             if (json is not null)
             {
-                reps.Add((label, json, reply));
+                reps.Add((label, json, reply, TokensFor(events, turn)));
             }
         }
 
@@ -93,7 +96,7 @@ internal static class PromptSignatureBuilder
             var total = cats.Sum(c => c.Chars);
             var reused = i == 0 ? 0 : Math.Min(prevTotal, total);
             var added = total - reused;
-            requests.Add(new PromptSignatureRequest(i + 1, reps[i].Label, cats, total, reused, added));
+            requests.Add(new PromptSignatureRequest(i + 1, reps[i].Label, cats, total, reused, added, reps[i].Tokens));
             prevTotal = total;
         }
 
@@ -116,6 +119,30 @@ internal static class PromptSignatureBuilder
             HasPrevious: hasPrevious,
             HasCurrent: true,
             requests);
+    }
+
+    /// <summary>
+    /// The tokens to show for one exchange's (possibly partial) events. Once the answer is delivered they are
+    /// the sum of every model call, matching the run summary on the reply; that needs usage from every call,
+    /// so a partial sum is never shown as the total. Before delivery, which is also a replay cursor on a model
+    /// turn, they are the call of <paramref name="turn"/> alone, and only once its response is among the events.
+    /// </summary>
+    private static PromptSignatureTokens? TokensFor(IReadOnlyList<FlowEvent> events, int turn)
+    {
+        var responses = events.Where(e => e.Kind == "llm-response").ToArray();
+        if (!events.Any(e => e.Kind == "final"))
+        {
+            return responses.LastOrDefault(e => e.Turn == turn)?.Usage is { } call ? new(call, 1, turn) : null;
+        }
+
+        var calls = responses.Select(e => e.Usage).OfType<ModelCallUsage>().ToArray();
+        if (calls.Length == 0 || calls.Length != responses.Length)
+        {
+            return null;
+        }
+
+        long? cached = calls.All(c => c.CachedInputTokens is not null) ? calls.Sum(c => c.CachedInputTokens!.Value) : null;
+        return new(new ModelCallUsage(calls.Sum(c => c.InputTokens), calls.Sum(c => c.OutputTokens), cached), calls.Length);
     }
 
     /// <summary>

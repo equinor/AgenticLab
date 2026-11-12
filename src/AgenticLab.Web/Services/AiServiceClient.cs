@@ -325,13 +325,21 @@ internal sealed record FlowChatRequest(string Message, string? Agent, string Ses
 internal sealed record FlowControlRequest(string SessionId, string? Action, bool? Manual, int? DelayMs, string? Answer = null, IReadOnlyList<string>? Breakpoints = null, string? BreakpointId = null);
 internal sealed record BreakpointNotice(string Id, string Kind, string? Tool, bool Paused, bool Manual);
 internal sealed record ConversationResetRequest(string ConversationId);
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, RunSummary? Run = null);
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, RunSummary? Run = null, ModelCallUsage? Usage = null);
 
 /// <summary>A captured function name and structured arguments, separate from readable display text.</summary>
 public sealed record FlowToolCall(string Name, System.Text.Json.JsonElement Arguments);
 
 /// <summary>Sent with a <c>final</c> event: the model that answered and the run's cost, for comparing models.</summary>
 public sealed record RunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls, long ModelDurationMs = 0);
+
+/// <summary>
+/// Sent with an <c>llm-response</c> event when the provider reports both counts: the tokens of that one model
+/// round-trip. Input covers the whole request, including the tool catalogue and message framing;
+/// <paramref name="CachedInputTokens"/> is the part of it read from the provider's prompt cache, null when
+/// the provider does not report cache usage.
+/// </summary>
+public sealed record ModelCallUsage(long InputTokens, long OutputTokens, long? CachedInputTokens = null);
 
 /// <summary>A snapshot of every discovery source's status plus whether discovery runs at startup.</summary>
 public sealed record DiscoverySnapshotResponse(bool DiscoverOnStartup, IReadOnlyList<DiscoverySourceStatusDto> Sources);

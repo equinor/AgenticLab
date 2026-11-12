@@ -1,7 +1,7 @@
 {
   "title": "Sandbox",
   "category": "core",
-  "summary": "An isolated environment that contains what an agent can touch, so its actions can't reach beyond a known boundary.",
+  "summary": "An isolated environment that restricts what an agent can access or change, limiting the impact of mistakes or malicious instructions.",
   "links": [
     { "label": "OWASP — Excessive agency", "url": "https://genai.owasp.org/llmrisk/llm08-excessive-agency/" },
     { "label": "Docker — What is a container?", "url": "https://www.docker.com/resources/what-container/" },

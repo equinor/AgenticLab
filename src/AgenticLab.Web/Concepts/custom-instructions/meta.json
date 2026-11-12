@@ -1,7 +1,7 @@
 {
   "title": "Custom instructions",
   "category": "core",
-  "summary": "Project-specific guidance stored in the workspace and always applied. The agent follows them on every run when present — like GitHub Copilot's custom instructions.",
+  "summary": "Project-specific guidance supplied alongside the task, such as coding conventions or build commands. The harness selects which instructions apply.",
   "links": [
     { "label": "GitHub Copilot — Custom instructions", "url": "https://code.visualstudio.com/docs/copilot/customization/custom-instructions" },
     { "label": "VS Code — Agent harnesses", "url": "https://code.visualstudio.com/blogs/2026/05/15/agent-harnesses-github-copilot-vscode" }

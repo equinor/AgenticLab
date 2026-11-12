@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 using AgenticLab.AiService.Application.Flow;
+using AgenticLab.AiService.Application.Models;
 using Xunit;
 
 namespace AgenticLab.AiService.Tests;
@@ -49,6 +50,34 @@ public sealed class FlowCaptureTests
         Assert.Contains("Search", turns[0].ResponseData!);
         Assert.DoesNotContain("Done", turns[0].ResponseData!);
         Assert.Contains("Done", turns[1].ResponseData!);
+    }
+
+    [Fact]
+    public async Task EveryRoundTripKeepsItsOwnTokenUsage()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+        var capture = await RunAsync(timeout.Token);
+        var turns = capture.Turns;
+
+        // The first call reports usage in two parts; the second reports none.
+        Assert.Equal(new ModelCallUsage(10, 5, 4), turns[0].Usage);
+        Assert.Null(turns[1].Usage);
+    }
+
+    /// <summary>A reported zero is usage; a missing count is not, so partial figures are never shown as measured.</summary>
+    [Theory]
+    [InlineData(0L, 0L, null, true)]
+    [InlineData(20L, 7L, 12L, true)]
+    [InlineData(20L, 7L, 0L, true)]
+    [InlineData(null, 7L, 3L, false)]
+    [InlineData(20L, null, null, false)]
+    [InlineData(null, null, null, false)]
+    public void CallUsageRequiresBothReportedCounts(long? input, long? output, long? cached, bool reported)
+    {
+        var usage = ModelCallUsage.From(new UsageDetails { InputTokenCount = input, OutputTokenCount = output, CachedInputTokenCount = cached });
+
+        // The cached count is optional detail: kept as reported, including an unreported null.
+        Assert.Equal(reported ? new ModelCallUsage(input!.Value, output!.Value, cached) : null, usage);
     }
 
     [Fact]
@@ -122,6 +151,8 @@ public sealed class FlowCaptureTests
                     ],
                     FinishReason = ChatFinishReason.ToolCalls,
                 };
+                yield return new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(new UsageDetails { InputTokenCount = 10, CachedInputTokenCount = 4 })]);
+                yield return new ChatResponseUpdate(ChatRole.Assistant, [new UsageContent(new UsageDetails { OutputTokenCount = 5 })]);
             }
             else
             {

@@ -53,3 +53,25 @@ public sealed class ModelUsage
 /// <param name="ToolCalls">Tool calls the model requested.</param>
 /// <param name="ModelDurationMs">Time spent waiting for the local model across round-trips, excluding tools, stepping and breakpoint pauses.</param>
 public sealed record ModelRunSummary(string? Model, long DurationMs, long InputTokens, long OutputTokens, int ModelCalls, int ToolCalls, long ModelDurationMs = 0);
+
+/// <summary>
+/// The provider-reported tokens of a single model round-trip. Unlike <see cref="ModelRunSummary"/>, which sums
+/// every round-trip of a run, this describes one request and its response.
+/// </summary>
+/// <param name="InputTokens">Tokens in the whole request, including the tool catalogue and message framing.</param>
+/// <param name="OutputTokens">Tokens the model generated in response.</param>
+/// <param name="CachedInputTokens">
+/// The part of <paramref name="InputTokens"/> the provider read from its prompt cache; null when it does not
+/// report cache usage, which is different from a reported zero (nothing was served from cache).
+/// </param>
+public sealed record ModelCallUsage(long InputTokens, long OutputTokens, long? CachedInputTokens = null)
+{
+    /// <summary>
+    /// Maps provider usage to a round-trip's tokens. Null unless the provider reported both counts, so a
+    /// reported zero stays distinct from missing or partial usage.
+    /// </summary>
+    public static ModelCallUsage? From(UsageDetails? usage) =>
+        usage is { InputTokenCount: { } input, OutputTokenCount: { } output }
+            ? new(input, output, usage.CachedInputTokenCount)
+            : null;
+}

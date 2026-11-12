@@ -1,7 +1,7 @@
 {
   "title": "Context",
   "category": "core",
-  "summary": "Everything the model can see for a turn — system prompt, persona, tools, conversation history and the latest message. It grows as the run progresses.",
+  "summary": "The information supplied to the model for a request: instructions, tool descriptions, conversation history, tool results and the latest message.",
   "links": [
     { "label": "Anthropic — Context windows", "url": "https://docs.anthropic.com/en/docs/build-with-claude/context-windows" },
     { "label": "OpenAI — Prompt engineering", "url": "https://platform.openai.com/docs/guides/prompt-engineering" },

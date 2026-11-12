@@ -28,7 +28,8 @@ namespace AgenticLab.AiService.Application.Flow;
 /// </param>
 /// <param name="ToolCall">Optional structured snapshot of a requested function call.</param>
 /// <param name="Run">On a <c>final</c> step only: the model that answered and the run's duration, tokens and calls.</param>
-public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, ModelRunSummary? Run = null);
+/// <param name="Usage">On an <c>llm-response</c> step only: that round-trip's provider-reported tokens; null when the provider reports no complete usage.</param>
+public sealed record FlowEvent(int Sequence, string Kind, string Label, string? Detail = null, int Turn = 0, string? Data = null, string? CallId = null, FlowToolCall? ToolCall = null, ModelRunSummary? Run = null, ModelCallUsage? Usage = null);
 
 /// <summary>A function name and immutable JSON arguments, independent of the display-formatted payload.</summary>
 public sealed record FlowToolCall(string Name, JsonElement Arguments)
