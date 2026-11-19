@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.AI;
 
@@ -9,6 +11,7 @@ public sealed class FlowExecutionScope : IDisposable
     private static readonly AsyncLocal<FlowExecutionScope?> Ambient = new();
     private readonly FlowExecutionScope? _previous = Ambient.Value;
     private readonly FlowSession _session;
+    private readonly ConcurrentQueue<FunctionResultContent> _completedTools = new();
 
     /// <summary>Opens a scope for one run, without modifying the shared chat client.</summary>
     public FlowExecutionScope(FlowSession session)
@@ -26,6 +29,13 @@ public sealed class FlowExecutionScope : IDisposable
     /// <summary>Waits at an enabled execution boundary.</summary>
     public Task WaitAsync(string kind, string? tool, CancellationToken cancellationToken) =>
         _session.WaitForBreakpointAsync(kind, tool, cancellationToken);
+
+    /// <summary>
+    /// Takes a tool result recorded as soon as its function returned. The SDK only streams results after
+    /// every call in a model response has run, so this lets a paused run show results that already exist.
+    /// </summary>
+    public bool TryTakeCompletedTool([NotNullWhen(true)] out FunctionResultContent? result) =>
+        _completedTools.TryDequeue(out result);
 
     /// <summary>Whether the most recent advance produced an agent update.</summary>
     public bool HasUpdate { get; private set; }
@@ -85,6 +95,7 @@ public sealed class FlowExecutionScope : IDisposable
         var result = await context.Function.InvokeAsync(context.Arguments, cancellationToken);
         if (scope is not null)
         {
+            scope._completedTools.Enqueue(new FunctionResultContent(context.CallContent.CallId, result));
             await scope.WaitAsync("after-tool", context.Function.Name, cancellationToken);
         }
 

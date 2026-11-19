@@ -37,6 +37,11 @@ future boundaries without releasing a current pause. Model breakpoints are per r
 Tool breakpoints cover local/MCP calls and the local A2A delegation call, not remote agent internals.
 Thrown tool errors follow normal error handling rather than `after-tool`.
 
+Before announcing a pause, the stream sends the data the boundary already holds, unpaced: the
+captured model request at `before-model`, the model response at `after-model`, and each finished
+tool result at `after-tool`. The SDK streams tool results only after every call in a response has
+run, so these results are sent early and are not repeated afterwards.
+
 The toolbar keeps Continue/Pause, Next and Stop in fixed positions. At a breakpoint, release actions
 are disabled while a control request is pending; Stop stays available. Outside breakpoints, Next is
 disabled in Auto and Pause is disabled in Manual.

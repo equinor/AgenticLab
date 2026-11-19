@@ -223,6 +223,81 @@ public sealed class ModelSelectionTests
 
     /// <summary>The stream reports each round-trip's own tokens on its response; together they are the run's totals.</summary>
     [Fact]
+    public async Task EachPausedBreakpointAlreadyShowsTheDataItsBoundaryHolds()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "Testing" });
+        builder.WebHost.UseUrls("http://127.0.0.1:0");
+        builder.Logging.ClearProviders();
+        builder.Configuration.AddConfiguration(Configuration("OpenAI", "test-model"));
+        builder.Services.AddHarnessTools().AddWorkspaceFeatures(builder.Configuration).AddVendorHarnesses()
+            .AddDemoAgents(builder.Configuration).AddConversationMemory(builder.Configuration)
+            .AddChatInputLimits(builder.Configuration).AddFlowTracing().AddDiscovery();
+        builder.Services.AddSingleton<IAgentDefinition>(new UsageReportingAgent());
+        await using var app = builder.Build();
+        app.MapChatEndpoints();
+        await app.StartAsync(timeout.Token);
+        using var client = new HttpClient { BaseAddress = new Uri(Assert.Single(app.Urls)) };
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, "/chat/stream")
+        {
+            Content = JsonContent.Create(new
+            {
+                message = "Count twice", agent = UsageReportingAgent.AgentName, sessionId = "paused", conversationId = "paused",
+                breakpoints = FlowSession.BreakpointKinds,
+            }),
+        };
+        using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        using var reader = new StreamReader(await response.Content.ReadAsStreamAsync(timeout.Token));
+        var seen = new List<string>();
+        var pauses = new List<string>();
+        while (await reader.ReadLineAsync(timeout.Token) is { } line)
+        {
+            if (!line.StartsWith("data: ", StringComparison.Ordinal))
+            {
+                continue;
+            }
+
+            var step = JsonDocument.Parse(line["data: ".Length..]).RootElement;
+            var kind = step.GetProperty("kind").GetString()!;
+            if (kind != "breakpoint")
+            {
+                seen.Add(kind);
+                continue;
+            }
+
+            using var notice = JsonDocument.Parse(step.GetProperty("data").GetString()!);
+            if (!notice.RootElement.GetProperty("Paused").GetBoolean())
+            {
+                continue;
+            }
+
+            // Record what the UI has received while execution is held at this boundary.
+            int Count(string k) => seen.Count(s => s == k);
+            pauses.Add($"{step.GetProperty("detail").GetString()}: req {Count("llm-request")} res {Count("llm-response")} result {Count("tool-result")}");
+            using var release = await client.PostAsJsonAsync("/chat/control", new
+            {
+                sessionId = "paused", action = "resume", breakpointId = notice.RootElement.GetProperty("Id").GetString(),
+            }, timeout.Token);
+            Assert.Equal(HttpStatusCode.NoContent, release.StatusCode);
+        }
+
+        Assert.Equal(
+        [
+            "before-model: req 1 res 0 result 0",
+            "after-model: req 1 res 1 result 0",
+            "before-tool: req 1 res 1 result 0",
+            "after-tool: req 1 res 1 result 1",
+            "before-tool: req 1 res 1 result 1",
+            "after-tool: req 1 res 1 result 2",
+            "before-model: req 2 res 1 result 2",
+            "after-model: req 2 res 2 result 2",
+        ], pauses);
+        Assert.Equal(2, seen.Count(kind => kind == "tool-result"));
+        Assert.Contains("final", seen);
+    }
+
+    [Fact]
     public async Task StreamedResponsesCarryTheirOwnUsageWhichSumsToTheRunSummary()
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));

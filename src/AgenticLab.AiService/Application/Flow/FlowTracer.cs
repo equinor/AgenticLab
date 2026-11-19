@@ -134,14 +134,24 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
 
             var finalText = new StringBuilder();
             var callNames = new Dictionary<string, string>();
+            var emittedResults = new HashSet<string>(StringComparer.Ordinal);
             var emittedTurns = 0;
             var emittedResponses = 0;
+
+            FlowEvent ToolResultStep(FunctionResultContent result)
+            {
+                var resultText = result.Result?.ToString();
+                var toolName = callNames.GetValueOrDefault(result.CallId);
+                var resultLabel = toolName is null ? "Tool → Harness" : $"Tool → Harness: {toolName}";
+                return Step("tool-result", resultLabel, Truncate(resultText), resultText, result.CallId);
+            }
 
             // Surfaces each captured round-trip in causal order: the request the harness sent, then the
             // model's own response as soon as that round-trip completes. Turn 1 carries the prompt +
             // tools; later turns carry the tool results fed back to the model. Without the per-turn
             // response the UI would only ever see the last one, hiding the response that asked for a tool.
-            async IAsyncEnumerable<FlowEvent> DrainCapturedAsync()
+            // Unpaced drains flush at a breakpoint, where manual step signals are ignored until release.
+            async IAsyncEnumerable<FlowEvent> DrainCapturedAsync(bool paced = true)
             {
                 var turns = capture.Turns;
                 while (true)
@@ -151,7 +161,10 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                     {
                         var completed = turns[emittedResponses++];
                         currentTurn = completed.TurnNumber;
-                        await session.WaitForStepAsync(token);
+                        if (paced)
+                        {
+                            await session.WaitForStepAsync(token);
+                        }
                         yield return Step("llm-response", DescribeResponse(completed.TurnNumber), WithElapsed(completed.ResponseSummary, completed.ElapsedMilliseconds), response) with { Usage = completed.Usage };
                         continue;
                     }
@@ -160,7 +173,10 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                     {
                         var started = turns[emittedTurns++];
                         currentTurn = started.TurnNumber;
-                        await session.WaitForStepAsync(token);
+                        if (paced)
+                        {
+                            await session.WaitForStepAsync(token);
+                        }
                         yield return Step("llm-request", DescribeTurn(started.TurnNumber), started.RequestSummary, started.RequestData);
                         continue;
                     }
@@ -191,6 +207,25 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                 execution.Activate();
                 await foreach (var notice in execution.AdvanceAsync(updates, token))
                 {
+                    // Execution is suspended inside this advance: surface the request (before-model) or
+                    // response (after-model) captured so far, so the paused view shows what the boundary holds.
+                    if (notice.Paused)
+                    {
+                        await foreach (var step in DrainCapturedAsync(paced: false))
+                        {
+                            yield return step;
+                        }
+
+                        // Tool results already returned (after-tool), which the SDK streams only after the batch.
+                        while (execution.TryTakeCompletedTool(out var completedTool))
+                        {
+                            if (emittedResults.Add(completedTool.CallId))
+                            {
+                                yield return ToolResultStep(completedTool);
+                            }
+                        }
+                    }
+
                     currentTurn = capture.Turns.Count;
                     yield return Step("breakpoint", notice.Paused ? "Paused at breakpoint" : "Breakpoint released",
                         notice.Kind, JsonSerializer.Serialize(notice));
@@ -239,12 +274,9 @@ public sealed class FlowTracer(AgentCatalog catalog, WorkspaceAgentResolver work
                                 call.CallId) with { ToolCall = FlowToolCall.Capture(call) };
                             break;
 
-                        case FunctionResultContent result:
-                            var resultText = result.Result?.ToString();
-                            var toolName = callNames.GetValueOrDefault(result.CallId);
-                            var resultLabel = toolName is null ? "Tool → Harness" : $"Tool → Harness: {toolName}";
+                        case FunctionResultContent result when emittedResults.Add(result.CallId):
                             await session.WaitForStepAsync(token);
-                            yield return Step("tool-result", resultLabel, Truncate(resultText), resultText, result.CallId);
+                            yield return ToolResultStep(result);
                             break;
 
                         case TextContent text when !string.IsNullOrEmpty(text.Text):
