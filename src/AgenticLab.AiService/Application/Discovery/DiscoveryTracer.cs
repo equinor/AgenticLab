@@ -17,14 +17,25 @@ namespace AgenticLab.AiService.Application.Discovery;
 /// <param name="catalog">The agent catalog whose discovery-backed agents are refreshed after a run.</param>
 /// <param name="registry">The registry the run's <see cref="FlowSession"/> is removed from when it ends.</param>
 /// <param name="configuration">Configuration, read for the <c>Discovery:OnStartup</c> flag in the snapshot.</param>
+/// <param name="timeProvider">Clock for the on-demand retry interval; defaults to the system clock.</param>
 public sealed class DiscoveryTracer(
     McpToolProvider mcp,
     A2AAgentProvider a2a,
     AgentCatalog catalog,
     FlowControlRegistry registry,
-    IConfiguration configuration)
+    IConfiguration configuration,
+    TimeProvider? timeProvider = null)
 {
+    /// <summary>Minimum time between on-demand retries of the same failed source.</summary>
+    public static readonly TimeSpan OnDemandRetryInterval = TimeSpan.FromMinutes(1);
+
+    /// <summary>Upper bound on how long an on-demand retry may delay a chat run.</summary>
+    public static readonly TimeSpan OnDemandRetryTimeout = TimeSpan.FromSeconds(10);
+
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly TimeProvider time = timeProvider ?? TimeProvider.System;
+    private DateTimeOffset _mcpRetryAfter = DateTimeOffset.MinValue;
+    private DateTimeOffset _a2aRetryAfter = DateTimeOffset.MinValue;
 
     /// <summary>Whether discovery runs automatically at startup (config <c>Discovery:OnStartup</c>, default true).</summary>
     public bool DiscoverOnStartup => configuration.GetValue("Discovery:OnStartup", true);
@@ -84,6 +95,70 @@ public sealed class DiscoveryTracer(
             _gate.Release();
             registry.Remove(session.Id);
         }
+    }
+
+    /// <summary>
+    /// Before a chat run, re-runs discovery for the sources the named agent uses (MCP and/or A2A) whose last
+    /// run <see cref="DiscoveryState.Failed"/>, at most once per <see cref="OnDemandRetryInterval"/> per
+    /// source and bounded by <see cref="OnDemandRetryTimeout"/>. This recovers agents whose server was not
+    /// yet listening at startup (Radix and Compose start components without readiness ordering) or was down
+    /// during a manual run, without a background loop. The discovery-backed agents are refreshed only when a
+    /// source reconnects. Skipped while a manual discovery run is in progress; never throws for a failed retry.
+    /// </summary>
+    /// <param name="agentName">The requested agent name, or null/blank for the default.</param>
+    /// <param name="cancellationToken">Cancels the retry (the chat request's token).</param>
+    public async Task RetryFailedSourcesForAsync(string? agentName, CancellationToken cancellationToken)
+    {
+        var (usesMcp, usesA2a) = catalog.DiscoverySources(agentName);
+        var mcpFailed = usesMcp && mcp.Status.State == DiscoveryState.Failed;
+        var a2aFailed = usesA2a && a2a.Status.State == DiscoveryState.Failed;
+        if ((!mcpFailed && !a2aFailed) || !await _gate.WaitAsync(0, cancellationToken))
+        {
+            return;
+        }
+
+        try
+        {
+            var now = time.GetUtcNow();
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(OnDemandRetryTimeout);
+            var recovered = false;
+            if (mcpFailed && now >= _mcpRetryAfter)
+            {
+                _mcpRetryAfter = now + OnDemandRetryInterval;
+                recovered |= await TryReconnectAsync(mcp.ConnectAsync, () => mcp.Status.State, timeout.Token, cancellationToken);
+            }
+
+            if (a2aFailed && now >= _a2aRetryAfter)
+            {
+                _a2aRetryAfter = now + OnDemandRetryInterval;
+                recovered |= await TryReconnectAsync(a2a.ConnectAsync, () => a2a.Status.State, timeout.Token, cancellationToken);
+            }
+
+            if (recovered)
+            {
+                catalog.RefreshDiscoveryAgents();
+            }
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private static async Task<bool> TryReconnectAsync(
+        Func<CancellationToken, Task> connect, Func<DiscoveryState> state, CancellationToken token, CancellationToken requestToken)
+    {
+        try
+        {
+            await connect(token);
+        }
+        catch (OperationCanceledException) when (!requestToken.IsCancellationRequested)
+        {
+            // Timed out: the source stays failed and is retried after the interval.
+        }
+
+        return state() == DiscoveryState.Connected;
     }
 
     /// <summary>

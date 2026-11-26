@@ -91,7 +91,14 @@ Open **Discovery** from Flow for a modal, or visit `/discovery` directly. Each s
 connection state, discovered definitions and step log. Choose **Re-discover all** or a source's own
 command, then use Auto/Step, Delay, Next, Pause/Resume and Stop. Startup discovery is a read-only
 status here, configured by `Discovery:OnStartup` (default `true`) in
-[AiService settings](../src/AgenticLab.AiService/appsettings.json).
+[AiService settings](../src/AgenticLab.AiService/appsettings.json). There is no background retry
+loop. Instead, when a `/chat` or `/chat/stream` run starts for an agent that uses MCP or A2A and that
+source's last discovery failed (at startup, because Radix and Compose start components without
+readiness ordering, or in a later manual run), AiService first re-runs discovery for that source. It
+does this at most once a minute per source and waits no more than 10 s, then refreshes the
+discovery-backed agents only if the source reconnected. A failed retry leaves the run to continue
+without those tools. The retry is skipped while a manual discovery run is in progress, and agents
+that use neither protocol never trigger it.
 
 Discovered items carry the `exampleId` of the enabled example claiming them (null when shared).
 The standalone page groups each source as **Shared** followed by one group per example; a single

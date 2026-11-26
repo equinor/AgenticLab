@@ -12,8 +12,12 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Time.Testing;
 using AgenticLab.A2AServer;
+using AgenticLab.AiService.Application.Agents;
 using AgenticLab.AiService.Application.Discovery;
+using AgenticLab.AiService.Application.Flow;
+using AgenticLab.AiService.Demo.Agents;
 using AgenticLab.AiService.Application.Models;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.McpServer.Tools;
@@ -54,6 +58,50 @@ public sealed class ProtocolIntegrationTests
         await claimed.ConnectAsync(timeout.Token);
         Assert.Equal("claimer", Assert.Single(claimed.Status.Items).ExampleId);
         Assert.Single(claimed.GetTools(["GetCurrentTime"]));
+    }
+
+    [Fact]
+    public async Task ChatRunRetriesItsFailedMcpSourceAtMostOncePerInterval()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        var url = $"http://127.0.0.1:{((IPEndPoint)probe.LocalEndpoint).Port}";
+        probe.Stop();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Mcp:Endpoint"] = url,
+            ["AzureOpenAI:Endpoint"] = "https://unused.invalid", ["AzureOpenAI:Deployment"] = "test",
+            ["AzureOpenAI:ApiKey"] = "not-used-by-this-test",
+        }).Build();
+        await using var mcp = new McpToolProvider(configuration, NullLogger<McpToolProvider>.Instance);
+        using var a2a = new A2AAgentProvider(configuration, NullLogger<A2AAgentProvider>.Instance);
+        var catalog = new AgentCatalog(new ChatClientProvider(configuration), [new TimeKeeperAgent(mcp)]);
+        var time = new FakeTimeProvider();
+        var tracer = new DiscoveryTracer(mcp, a2a, catalog, new FlowControlRegistry(), configuration, time);
+        await mcp.ConnectAsync(timeout.Token);
+
+        await tracer.RetryFailedSourcesForAsync(TimeKeeperAgent.AgentName, timeout.Token);
+        Assert.Equal(DiscoveryState.Failed, mcp.Status.State);
+
+        await using var server = await StartMcpServerAsync(url, timeout.Token);
+        await tracer.RetryFailedSourcesForAsync(TimeKeeperAgent.AgentName, timeout.Token);
+        Assert.Empty(Assert.Single(catalog.Agents).Tools);
+
+        time.Advance(DiscoveryTracer.OnDemandRetryInterval);
+        await tracer.RetryFailedSourcesForAsync(TimeKeeperAgent.AgentName, timeout.Token);
+        Assert.Equal("GetCurrentTime", Assert.Single(Assert.Single(catalog.Agents).Tools));
+    }
+
+    private static async Task<WebApplication> StartMcpServerAsync(string url, CancellationToken cancellationToken)
+    {
+        var builder = CreateBuilder();
+        builder.WebHost.UseUrls(url);
+        builder.Services.AddMcpServer().WithHttpTransport().WithTools<TimeTools>();
+        var server = builder.Build();
+        server.MapMcp();
+        await server.StartAsync(cancellationToken);
+        return server;
     }
 
     [Theory]

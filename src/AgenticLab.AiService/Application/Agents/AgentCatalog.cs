@@ -117,6 +117,16 @@ public sealed class AgentCatalog
                 : info).ToArray();
     }
 
+    /// <summary>Which discovery sources the named built-in agent uses; both false for unknown or workspace agents.</summary>
+    /// <param name="name">The requested agent name, or null/blank for the default.</param>
+    public (bool Mcp, bool A2A) DiscoverySources(string? name)
+    {
+        var resolved = string.IsNullOrWhiteSpace(name) ? DefaultName : name.Trim();
+        return _builds.TryGetValue(resolved, out var build)
+            ? (build.Definition.SupportsMcp, build.Definition.SupportsA2A)
+            : (false, false);
+    }
+
     /// <summary>Resolves the agent by name (case-insensitive), or the default when <paramref name="name"/> is null/blank.</summary>
     /// <param name="name">The requested agent name, or null/blank for the default.</param>
     /// <param name="agent">The resolved agent when found.</param>

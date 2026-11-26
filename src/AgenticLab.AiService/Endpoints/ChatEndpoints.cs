@@ -19,7 +19,7 @@ internal static class ChatEndpoints
 
         // Streams the steps of an agent run as Server-Sent Events so the web UI can animate the data flow live.
         // The run is paced by a FlowSession so the client can step, pause, resume or stop the real execution.
-        app.MapPost("/chat/stream", IResult (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, ModelChoices models, AgentCatalog catalog, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
+        app.MapPost("/chat/stream", async Task<IResult> (FlowChatRequest request, FlowTracer tracer, FlowControlRegistry registry, ModelChoices models, AgentCatalog catalog, DiscoveryTracer discovery, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken) =>
         {
             if (!limits.Value.Allows(request.Message))
             {
@@ -41,6 +41,7 @@ internal static class ChatEndpoints
                 return Results.BadRequest("Unknown breakpoint kind.");
             }
 
+            await discovery.RetryFailedSourcesForAsync(request.Agent, cancellationToken);
             var session = registry.Create(request.SessionId, request.Manual, request.StepDelayMs);
             session.SetBreakpoints(request.Breakpoints ?? []);
             return TypedResults.ServerSentEvents(
@@ -67,7 +68,7 @@ internal static class ChatEndpoints
     }
 
     // One non-interactive turn against a built-in or workspace-defined agent.
-    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, ModelChoices models, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
+    private static async Task<IResult> ChatAsync(ChatRequest request, AgentCatalog catalog, WorkspaceAgentResolver workspaceAgents, WorkspaceAccess access, ConversationStore conversations, SkillLoader skills, InstructionLoader instructions, VendorHarnessCatalog vendors, ModelChoices models, DiscoveryTracer discovery, IOptions<ChatInputOptions> limits, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(request.Message))
         {
@@ -88,6 +89,8 @@ internal static class ChatEndpoints
         {
             return ScriptedModel(request.Agent);
         }
+
+        await discovery.RetryFailedSourcesForAsync(request.Agent, cancellationToken);
 
         // When a brand/vendor is selected, its harness replaces the shared harness for this run.
         var harness = vendors.Resolve(request.Vendor);
