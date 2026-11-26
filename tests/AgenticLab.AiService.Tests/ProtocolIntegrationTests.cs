@@ -19,6 +19,7 @@ using AgenticLab.AiService.Application.Discovery;
 using AgenticLab.AiService.Application.Flow;
 using AgenticLab.AiService.Demo.Agents;
 using AgenticLab.AiService.Application.Models;
+using AgenticLab.Extensibility.Agents;
 using AgenticLab.Extensibility.Examples;
 using AgenticLab.McpServer.Tools;
 using AgenticLab.ModelProviders;
@@ -91,6 +92,75 @@ public sealed class ProtocolIntegrationTests
         time.Advance(DiscoveryTracer.OnDemandRetryInterval);
         await tracer.RetryFailedSourcesForAsync(TimeKeeperAgent.AgentName, timeout.Token);
         Assert.Equal("GetCurrentTime", Assert.Single(Assert.Single(catalog.Agents).Tools));
+    }
+
+    [Fact]
+    public async Task StalledMcpRetryDoesNotStarveTheA2ARetryOfADualProtocolAgent()
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        // Accepts TCP connections but never answers, so an MCP connect hangs until it is cancelled.
+        var stalledMcp = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        stalledMcp.Start();
+        var probe = new System.Net.Sockets.TcpListener(IPAddress.Loopback, 0);
+        probe.Start();
+        var a2aUrl = $"http://127.0.0.1:{((IPEndPoint)probe.LocalEndpoint).Port}";
+        probe.Stop();
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Mcp:Endpoint"] = $"http://127.0.0.1:{((IPEndPoint)stalledMcp.LocalEndpoint).Port}",
+            ["A2A:Endpoint"] = a2aUrl,
+            ["AzureOpenAI:Endpoint"] = "https://unused.invalid", ["AzureOpenAI:Deployment"] = "test",
+            ["AzureOpenAI:ApiKey"] = "not-used-by-this-test",
+        }).Build();
+        await using var mcp = new McpToolProvider(configuration, NullLogger<McpToolProvider>.Instance);
+        using var a2a = new A2AAgentProvider(configuration, NullLogger<A2AAgentProvider>.Instance);
+        var definition = new DualProtocolDefinition(mcp, a2a);
+        var catalog = new AgentCatalog(new ChatClientProvider(configuration), [definition]);
+        var time = new FakeTimeProvider();
+        var tracer = new DiscoveryTracer(mcp, a2a, catalog, new FlowControlRegistry(), configuration, time);
+        using (var startupTimeout = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token))
+        {
+            startupTimeout.CancelAfter(TimeSpan.FromMilliseconds(200));
+            await mcp.ConnectAsync(startupTimeout.Token);
+        }
+        await a2a.ConnectAsync(timeout.Token);
+        Assert.Equal(DiscoveryState.Failed, mcp.Status.State);
+        Assert.Equal(DiscoveryState.Failed, a2a.Status.State);
+
+        var builder = CreateBuilder();
+        builder.WebHost.UseUrls(a2aUrl);
+        await using var a2aServer = builder.Build();
+        a2aServer.MapGet("/agents", () => Results.Ok(new
+        {
+            Agents = new[] { new { Name = "research", Path = "/a2a/research", Description = "Test specialist" } },
+        }));
+        await a2aServer.StartAsync(timeout.Token);
+
+        var retry = tracer.RetryFailedSourcesForAsync(definition.Name, timeout.Token);
+        using (var recovery = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token))
+        {
+            recovery.CancelAfter(TimeSpan.FromSeconds(5));
+            while (a2a.Status.State != DiscoveryState.Connected)
+            {
+                await Task.Delay(20, recovery.Token);
+            }
+        }
+
+        time.Advance(DiscoveryTracer.OnDemandRetryTimeout);
+        await retry.WaitAsync(timeout.Token);
+        Assert.Equal(DiscoveryState.Failed, mcp.Status.State);
+        Assert.Equal("DelegateToAgent", Assert.Single(Assert.Single(catalog.Agents).Tools));
+        stalledMcp.Stop();
+    }
+
+    private sealed class DualProtocolDefinition(McpToolProvider mcp, A2AAgentProvider a2a) : AgentDefinitionBase
+    {
+        public override string Name => "Dual";
+        public override string Description => "Uses MCP and A2A.";
+        protected override string Persona => "Test.";
+        public override bool SupportsMcp => true;
+        public override bool SupportsA2A => true;
+        public override IList<AITool> Tools => [.. mcp.GetTools(), .. a2a.GetTools()];
     }
 
     private static async Task<WebApplication> StartMcpServerAsync(string url, CancellationToken cancellationToken)

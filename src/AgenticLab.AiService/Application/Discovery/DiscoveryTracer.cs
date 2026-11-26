@@ -100,7 +100,8 @@ public sealed class DiscoveryTracer(
     /// <summary>
     /// Before a chat run, re-runs discovery for the sources the named agent uses (MCP and/or A2A) whose last
     /// run <see cref="DiscoveryState.Failed"/>, at most once per <see cref="OnDemandRetryInterval"/> per
-    /// source and bounded by <see cref="OnDemandRetryTimeout"/>. This recovers agents whose server was not
+    /// source. Eligible sources are retried concurrently under one <see cref="OnDemandRetryTimeout"/>
+    /// deadline (measured on the injected clock). This recovers agents whose server was not
     /// yet listening at startup (Radix and Compose start components without readiness ordering) or was down
     /// during a manual run, without a background loop. The discovery-backed agents are refreshed only when a
     /// source reconnects. Skipped while a manual discovery run is in progress; never throws for a failed retry.
@@ -120,22 +121,25 @@ public sealed class DiscoveryTracer(
         try
         {
             var now = time.GetUtcNow();
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(OnDemandRetryTimeout);
-            var recovered = false;
+            using var deadline = new CancellationTokenSource(OnDemandRetryTimeout, time);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, deadline.Token);
+
+            // Both sources start before either is awaited, so a stalled one cannot use up the other's time
+            // (and its cooldown) under the shared deadline.
+            var attempts = new List<Task<bool>>(2);
             if (mcpFailed && now >= _mcpRetryAfter)
             {
                 _mcpRetryAfter = now + OnDemandRetryInterval;
-                recovered |= await TryReconnectAsync(mcp.ConnectAsync, () => mcp.Status.State, timeout.Token, cancellationToken);
+                attempts.Add(TryReconnectAsync(mcp.ConnectAsync, () => mcp.Status.State, timeout.Token, cancellationToken));
             }
 
             if (a2aFailed && now >= _a2aRetryAfter)
             {
                 _a2aRetryAfter = now + OnDemandRetryInterval;
-                recovered |= await TryReconnectAsync(a2a.ConnectAsync, () => a2a.Status.State, timeout.Token, cancellationToken);
+                attempts.Add(TryReconnectAsync(a2a.ConnectAsync, () => a2a.Status.State, timeout.Token, cancellationToken));
             }
 
-            if (recovered)
+            if ((await Task.WhenAll(attempts)).Any(recovered => recovered))
             {
                 catalog.RefreshDiscoveryAgents();
             }

@@ -95,7 +95,8 @@ status here, configured by `Discovery:OnStartup` (default `true`) in
 loop. Instead, when a `/chat` or `/chat/stream` run starts for an agent that uses MCP or A2A and that
 source's last discovery failed (at startup, because Radix and Compose start components without
 readiness ordering, or in a later manual run), AiService first re-runs discovery for that source. It
-does this at most once a minute per source and waits no more than 10 s, then refreshes the
+does this at most once a minute per source, retrying MCP and A2A concurrently so a stalled one
+cannot starve the other, and waits no more than 10 s in total, then refreshes the
 discovery-backed agents only if the source reconnected. A failed retry leaves the run to continue
 without those tools. The retry is skipped while a manual discovery run is in progress, and agents
 that use neither protocol never trigger it.
