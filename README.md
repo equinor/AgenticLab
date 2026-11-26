@@ -262,8 +262,10 @@ settings (Default host only), without the Aspire dashboard.
 
 After changing only Compose settings, run `docker compose up -d` from the credential-configured
 terminal; rebuilding is unnecessary. Check `docker compose ps -a` and `docker compose logs --tail 100`.
-Startup ordering is not readiness: if protocol discovery runs before a server is listening, use
-Discovery to retry once the services are ready. Stop with `docker compose down`.
+Startup ordering is not readiness: if protocol discovery runs before a server is listening, the next
+chat with an agent that needs it retries discovery first, at most once a minute (Discovery also
+retries on demand).
+Stop with `docker compose down`.
 
 Web's data-protection keys are not persisted across container replacement. Clear this site's
 cookies or use a private window if an old antiforgery cookie cannot be decrypted. This warning is
